@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- the restaurant's logo (absolute API URL) and a small brand SVG */
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { Suspense, type ReactNode } from "react";
 import { logout } from "@/actions/auth";
 import { Icon } from "@/components/icons";
@@ -12,8 +12,8 @@ import type { Role } from "@/lib/api/types";
 import type { Staff } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
-export async function navItems(role: Role): Promise<NavItem[]> {
-  const t = await getTranslations("nav");
+export function useNavItems(role: Role): NavItem[] {
+  const t = useTranslations("nav");
   const items: NavItem[] = [];
   if (role !== "kitchen") {
     items.push({ href: "/floor", label: t("floor"), icon: "grid" }, { href: "/orders", label: t("orders"), icon: "list" });
@@ -24,9 +24,9 @@ export async function navItems(role: Role): Promise<NavItem[]> {
 }
 
 /** Top bar: logo + restaurant, live connection dot, user + role, logout. `dark` is the kitchen screen. */
-export async function TopBar({ staff, dark = false, extra }: { staff: Staff; dark?: boolean; extra?: ReactNode }) {
-  const t = await getTranslations("common");
-  const tRoles = await getTranslations("roles");
+export function TopBar({ staff, dark = false, extra }: { staff: Staff; dark?: boolean; extra?: ReactNode }) {
+  const t = useTranslations("common");
+  const tRoles = useTranslations("roles");
   const { restaurant, user } = staff;
 
   return (
@@ -79,15 +79,15 @@ export async function TopBar({ staff, dark = false, extra }: { staff: Staff; dar
   );
 }
 
-/** POS shell: top bar + left rail on tablet/desktop, bottom bar on phones. */
-export async function PosShell({ staff, children }: { staff: Staff; children: ReactNode }) {
-  const t = await getTranslations("common");
-  const tRoles = await getTranslations("roles");
-  const items = await navItems(staff.user.role);
+/** POS shell: top bar + left rail on tablet/desktop, bottom bar on phones. `extra` goes into the top bar. */
+export function PosShell({ staff, extra, children }: { staff: Staff; extra?: ReactNode; children: ReactNode }) {
+  const t = useTranslations("common");
+  const tRoles = useTranslations("roles");
+  const items = useNavItems(staff.user.role);
 
   return (
     <div className="min-h-dvh bg-[#faf6ee]">
-      <TopBar staff={staff} />
+      <TopBar staff={staff} extra={extra} />
       <nav
         aria-label={t("mainNav")}
         className="fixed top-16 bottom-0 left-0 z-30 hidden w-[88px] flex-col border-r border-line bg-white px-2 py-3 md:flex print:hidden"
@@ -114,8 +114,8 @@ export async function PosShell({ staff, children }: { staff: Staff; children: Re
 }
 
 /** For managers on the kitchen screen: one quiet link back to the floor. */
-export async function BackToFloor() {
-  const t = await getTranslations("kitchen");
+export function BackToFloor() {
+  const t = useTranslations("kitchen");
   return (
     <Link
       href="/floor"
@@ -124,5 +124,24 @@ export async function BackToFloor() {
       <Icon name="grid" className="size-4" />
       {t("toFloor")}
     </Link>
+  );
+}
+
+/** The kitchen screen: dark, full height, readable from across the kitchen on a tablet or a wall TV. */
+export function KitchenShell({ staff, extra, children }: { staff: Staff; extra?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="min-h-dvh bg-night text-white">
+      <TopBar
+        staff={staff}
+        dark
+        extra={
+          <>
+            {staff.user.role !== "kitchen" && <BackToFloor />}
+            {extra}
+          </>
+        }
+      />
+      <main>{children}</main>
+    </div>
   );
 }

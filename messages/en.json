@@ -9,7 +9,8 @@
     "live": "Live",
     "connecting": "Connecting…",
     "offline": "Offline · checking",
-    "retry": "Try again"
+    "retry": "Try again",
+    "product": "Chalai POS"
   },
   "roles": {
     "superadmin": "Super admin",
@@ -54,7 +55,8 @@
     "tendered_short": "The cash received is less than the amount.",
     "cart_empty": "Add at least one dish.",
     "api_unreachable": "The Chalai server can't be reached. Check the internet and try again.",
-    "unknown": "Something went wrong. Please try again."
+    "unknown": "Something went wrong. Please try again.",
+    "payment_too_much": "That's more than the amount due."
   },
   "login": {
     "title": "Staff log in",
@@ -128,7 +130,11 @@
     "unplaced": "Not on the floor plan",
     "tableAria": "Table {table}: {status}",
     "minutes": "{n} min",
-    "seats": "{n, plural, one {# seat} other {# seats}}"
+    "seats": "{n, plural, one {# seat} other {# seats}}",
+    "summary": "{busy} of {total} tables busy.",
+    "printLast": "Print last receipt",
+    "legend": "Table colours",
+    "noTablesTitle": "No tables yet"
   },
   "order": {
     "title": "Order #{number}",
@@ -167,7 +173,13 @@
     "cancelOrder": "Cancel the whole order",
     "cancelOrderBody": "Only for orders opened by mistake or guests who left. The table becomes free.",
     "cancelOrderPlaceholder": "e.g. Opened the wrong table",
-    "confirmCancelOrder": "Cancel order"
+    "confirmCancelOrder": "Cancel order",
+    "tabs": {
+      "label": "Order or add items",
+      "order": "Order",
+      "add": "Add items"
+    },
+    "noRoundsPicker": "Nothing ordered yet. Pick dishes from the menu."
   },
   "override": {
     "title": "Manager approval",
@@ -234,8 +246,13 @@
     "roundNote": "Note for this whole order",
     "roundNotePlaceholder": "e.g. Bring drinks first",
     "count": "{n, plural, =0 {Nothing added} one {# item} other {# items}}",
-    "send": "Send to kitchen",
-    "sending": "Sending…"
+    "send": "Send · {total}",
+    "sending": "Sending…",
+    "hint": "Tap a dish to add it",
+    "sent": "Sent to the kitchen.",
+    "review": "Review, add notes",
+    "hideReview": "Hide review",
+    "emptyCart": "Tap dishes to add them"
   },
   "receipt": {
     "title": "Receipt #{number}",
@@ -300,6 +317,40 @@
     "readyAgo": "ready",
     "note": "Note: {note}",
     "start": "Start",
-    "ready": "Ready"
+    "ready": "Ready",
+    "toFloor": "Floor"
+  },
+  "toast": {
+    "saved": "Saved.",
+    "opened": "Order opened. Add the first dishes.",
+    "approved": "Approved and sent to the kitchen.",
+    "rejected": "QR order rejected. The guest sees why.",
+    "served": "Marked as served.",
+    "itemCancelled": "Item cancelled.",
+    "orderCancelled": "Order #{number} cancelled.",
+    "billRequested": "Bill requested.",
+    "discount": "Discount applied.",
+    "discountCleared": "Discount removed.",
+    "payment": "Part payment recorded.",
+    "paid": "Order #{number} is paid and closed.",
+    "paidTable": "Order #{number} is paid. Table {table} is free now.",
+    "available": "{number} is available again.",
+    "soldOut": "{number} is marked sold out.",
+    "dismiss": "Dismiss",
+    "guestOrder": "Table {table} sent a QR order. Tap the table to approve it.",
+    "reset": "Fresh demo data loaded."
+  },
+  "demo": {
+    "button": "Demo",
+    "title": "Chalai POS demo",
+    "body": "A sample restaurant that lives only in this browser. Nothing is sent anywhere, so try anything. Open the kitchen screen in a second tab to watch orders move.",
+    "accounts": "Switch to",
+    "accountsHint": "Every demo account's password is {password}.",
+    "guestOrder": "Send a guest QR order",
+    "guestOrderHint": "As if a guest scanned a table's QR code and ordered from their phone.",
+    "reset": "Start over with fresh data",
+    "close": "Close",
+    "loginTitle": "This is a demo",
+    "loginBody": "Tap a role to look around. Or type its username (manager, cashier, waiter or kitchen) and the password {password}."
   }
 }

@@ -3,14 +3,10 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ApiError } from "@/lib/api/client";
-import type { DiscountInput, Override, PaymentMethod } from "@/lib/api/types";
+import type { DiscountInput, PaymentMethod } from "@/lib/api/types";
+import { int, readOverride, readRoundItems, str } from "@/lib/form-data";
 import { act, billRoles, floorRoles, requireStaff } from "@/lib/session";
 
-const str = (formData: FormData, name: string, max = 200) => String(formData.get(name) ?? "").trim().slice(0, max);
-const int = (formData: FormData, name: string) => {
-  const raw = str(formData, name, 12).replace(/[,\s৳]/g, "");
-  return /^\d+$/.test(raw) ? Number(raw) : NaN;
-};
 const orderPath = (formData: FormData) => `/orders/${encodeURIComponent(str(formData, "orderId", 64))}`;
 
 /**
@@ -27,13 +23,6 @@ function fail(path: string, error: ApiError | string, form?: string): never {
 function done(path: string, ok: string, extra: Record<string, string> = {}): never {
   const params = new URLSearchParams({ ok, at: String(Date.now()), ...extra });
   redirect(`${path}?${params}`);
-}
-
-/** The manager approval fields shown to cashiers and waiters. Empty → no override sent. */
-function readOverride(formData: FormData): Override | undefined {
-  const username = str(formData, "overrideUsername", 60).toLowerCase();
-  const password = str(formData, "overridePassword");
-  return username && password ? { username, password } : undefined;
 }
 
 export async function openOrder(formData: FormData) {
@@ -165,23 +154,7 @@ export async function addRound(_prev: AddRoundState, formData: FormData): Promis
   const orderId = str(formData, "orderId", 64);
   const clientRequestId = str(formData, "clientRequestId", 100);
   const note = str(formData, "note", 300);
-  let items: { menuItemId: string; quantity: number; note?: string }[] = [];
-  try {
-    const parsed = JSON.parse(String(formData.get("items") ?? "[]")) as unknown;
-    if (Array.isArray(parsed)) {
-      items = parsed
-        .map((raw) => raw as { menuItemId?: unknown; quantity?: unknown; note?: unknown })
-        .filter((i) => typeof i.menuItemId === "string" && Number.isInteger(i.quantity))
-        .slice(0, 50)
-        .map((i) => ({
-          menuItemId: String(i.menuItemId),
-          quantity: Math.min(50, Math.max(1, Number(i.quantity))),
-          ...(typeof i.note === "string" && i.note.trim() ? { note: i.note.trim().slice(0, 300) } : {}),
-        }));
-    }
-  } catch {
-    items = [];
-  }
+  const items = readRoundItems(formData);
   if (!items.length) return { error: "cart_empty", at: Date.now() };
   if (clientRequestId.length < 8) return { error: "unknown", at: Date.now() };
 

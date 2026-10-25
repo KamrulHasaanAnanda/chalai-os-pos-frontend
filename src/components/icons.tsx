@@ -29,6 +29,7 @@ import {
   Search,
   ShieldCheck,
   ShoppingBag,
+  Sparkles,
   Smartphone,
   StickyNote,
   Timer,
@@ -83,6 +84,7 @@ const icons = {
   maximize: Maximize,
   seat: Armchair,
   clipboard: ClipboardList,
+  sparkles: Sparkles,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;

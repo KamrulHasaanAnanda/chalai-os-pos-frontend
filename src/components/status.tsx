@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/icons";
 import { StatusPill, type Tone } from "@/components/ui/badge";
 import type { OrderStatus, RoundStatus, TableStatus } from "@/lib/api/types";
@@ -46,8 +46,8 @@ const roundTone: Record<RoundStatus, Tone> = {
   served: "brand",
 };
 
-export async function RoundPill({ status }: { status: RoundStatus }) {
-  const t = await getTranslations("roundStatus");
+export function RoundPill({ status }: { status: RoundStatus }) {
+  const t = useTranslations("roundStatus");
   return (
     <StatusPill tone={roundTone[status]} pulse={status === "pending_approval" || status === "ready"}>
       {t(status)}
@@ -57,8 +57,8 @@ export async function RoundPill({ status }: { status: RoundStatus }) {
 
 const orderTone: Record<OrderStatus, Tone> = { open: "warning", paid: "success", cancelled: "danger" };
 
-export async function OrderPill({ status }: { status: OrderStatus }) {
-  const t = await getTranslations("orderStatus");
+export function OrderPill({ status }: { status: OrderStatus }) {
+  const t = useTranslations("orderStatus");
   return <StatusPill tone={orderTone[status]}>{t(status)}</StatusPill>;
 }
 

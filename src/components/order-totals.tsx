@@ -1,11 +1,11 @@
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import type { Order } from "@/lib/api/types";
 import { formatTaka } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Subtotal → discount → VAT → total → paid → due, exactly as the API computed them. */
-export async function OrderTotals({ order, large = false }: { order: Order; large?: boolean }) {
-  const t = await getTranslations("totals");
+export function OrderTotals({ order, large = false }: { order: Order; large?: boolean }) {
+  const t = useTranslations("totals");
   const row = "flex items-baseline justify-between gap-3 py-1";
   return (
     <dl className={cn("text-[16px]", large && "text-[17px]")}>

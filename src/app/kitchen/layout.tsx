@@ -1,13 +1,8 @@
-import { AppHeader } from "@/components/app-header";
+import { KitchenShell } from "@/components/shell";
 import { kitchenRoles, requireStaff } from "@/lib/session";
 
-/** The kitchen screen: dark, full height, readable from across the kitchen on a tablet or a wall TV. */
+/** Kitchen staff, plus owners and managers checking on the kitchen. */
 export default async function KitchenLayout({ children }: LayoutProps<"/kitchen">) {
   const staff = await requireStaff({ roles: kitchenRoles, module: "kitchen" });
-  return (
-    <div className="min-h-dvh bg-night text-white">
-      <AppHeader staff={staff} dark />
-      <main>{children}</main>
-    </div>
-  );
+  return <KitchenShell staff={staff}>{children}</KitchenShell>;
 }
