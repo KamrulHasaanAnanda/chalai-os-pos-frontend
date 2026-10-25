@@ -1,0 +1,235 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter), system-ui, "Noto Sans Bengali", sans-serif;
+  --font-heading: var(--font-inter), system-ui, "Noto Sans Bengali", sans-serif;
+  --font-hand: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-baloo), var(--font-inter), system-ui, sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-maroon: var(--maroon);
+  --color-maroon-deep: var(--maroon-deep);
+  --color-maroon-soft: var(--maroon-soft);
+  --color-sun: var(--sun);
+  --color-sun-tint: var(--sun-tint);
+  --color-ink: var(--ink);
+  --color-rose: var(--rose);
+  --color-gray: var(--gray);
+  --color-line: var(--line);
+  --color-brass: var(--brass);
+  --color-brass-light: var(--brass-light);
+  --color-ivory: var(--ivory);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-sun-soft: var(--sun-soft);
+  --color-maroon-tint: var(--maroon-tint);
+  --color-night: var(--night);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-late: var(--late);
+  --color-sign-red: #e3342f;
+  --color-sign-blue: #1e40c8;
+  --color-sign-green: #15955a;
+  --color-bkash: #e2136e;
+  --color-nagad: #f15a22;
+  --color-whatsapp: #15803d;
+}
+
+:root {
+  --maroon: #6f1222;
+  --maroon-deep: #57101c;
+  --maroon-soft: #83182c;
+  --maroon-tint: #f7e9ec;
+  --brand: #c2410c;
+  --brand-soft: #ffedd5;
+  --sun: #ffcc4f;
+  --sun-tint: #fff3cc;
+  --sun-soft: #fff4cf;
+  --ink: #22130f;
+  --night: #1d1210;
+  --ivory: #f4efe8;
+  --surface: #fff6dc;
+  --surface-2: #fff6dc;
+  --rose: #fff6dc;
+  --gray: #f6eedb;
+  --line: #f1e4c6;
+  --ok: #15803d;
+  --ok-soft: #dcfce7;
+  --late: #dc2626;
+  --brass: #d3a04a;
+  --brass-light: #e4d2a8;
+
+  --background: #fffcf5;
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--maroon);
+  --primary-foreground: #ffffff;
+  --secondary: var(--gray);
+  --secondary-foreground: var(--ink);
+  --muted: var(--gray);
+  --muted-foreground: #6c5d57;
+  --accent: var(--sun);
+  --accent-foreground: var(--ink);
+  --destructive: #c0281f;
+  --border: var(--line);
+  --input: #e2c9cc;
+  --ring: var(--maroon);
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    overflow-x: clip;
+    font-size: 16px;
+    line-height: 1.5;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid var(--maroon);
+    outline-offset: 3px;
+  }
+  .on-dark :focus-visible {
+    outline-color: var(--brass-light);
+  }
+  summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
+/* Skeleton shimmer for loading.tsx */
+.skeleton {
+  background: linear-gradient(90deg, #f3ece0 0%, #faf5ea 50%, #f3ece0 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-dark {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.06) 0%, rgb(255 255 255 / 0.12) 50%, rgb(255 255 255 / 0.06) 100%);
+  background-size: 200% 100%;
+}
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* Toast and dialog entrances */
+.toast-in { animation: toast-in 180ms ease-out; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+dialog.sheet[open] { animation: sheet-in 180ms ease-out; }
+dialog.sheet[open]::backdrop { animation: fade-in 180ms ease-out; }
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* "Needs approval" tables: a soft ring that pulses */
+.pulse-dot { position: relative; }
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.35;
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+@keyframes pulse-ring {
+  from { transform: scale(0.6); opacity: 0.5; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+/* Responsive data table: rows become stacked cards under 640 px */
+@media (max-width: 639px) {
+  .rtable thead { display: none; }
+  .rtable tbody { display: grid; gap: 8px; }
+  .rtable tr {
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
+    padding: 6px 0;
+  }
+  .rtable td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    border: 0;
+    padding: 6px 16px;
+    text-align: right;
+  }
+  .rtable td::before {
+    content: attr(data-label);
+    color: var(--muted-foreground);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+  }
+  .rtable td[data-label=""]::before { content: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton, .pulse-dot::after, .toast-in, dialog.sheet[open] { animation: none !important; }
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+  }
+}
