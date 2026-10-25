@@ -4,23 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { ApiError, apiFor, type SessionApi } from "@/lib/api/client";
 import type { Me, Restaurant, Role, User } from "@/lib/api/types";
+import { homeFor } from "@/lib/roles";
+
+export { billRoles, floorRoles, homeFor, kitchenRoles, managerRoles, needsOverride } from "@/lib/roles";
 
 const cookieName = "chalai_pos_session";
 
 /** Where a 401 seen while rendering goes: a route handler that clears the cookie (pages can't) and sends to /login. */
 export const expiredPath = "/api/session/expired";
-
-export const floorRoles: Role[] = ["owner", "manager", "cashier", "waiter"];
-export const billRoles: Role[] = ["owner", "manager", "cashier"];
-export const managerRoles: Role[] = ["owner", "manager"];
-export const kitchenRoles: Role[] = ["owner", "manager", "kitchen"];
-
-/** Cashiers and waiters need a manager's username + password for discounts and cancellations. */
-export const needsOverride = (role: Role) => !managerRoles.includes(role);
-
-export function homeFor(role: Role): string {
-  return role === "kitchen" ? "/kitchen" : "/floor";
-}
 
 /** Called from the login server action. Secure whenever the page was served over https. */
 export async function setSessionCookie(token: string) {

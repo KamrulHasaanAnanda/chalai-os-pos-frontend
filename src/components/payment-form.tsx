@@ -5,8 +5,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { recordPayment } from "@/actions/orders";
-import { fieldClass } from "@/components/form";
-import { buttonVariants } from "@/components/ui/button-variants";
+import { buttonClass } from "@/components/ui/button";
+import { inputClass } from "@/components/ui/input";
 import type { PaymentMethod } from "@/lib/api/types";
 import { formatTaka } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -71,7 +71,7 @@ export function PaymentForm({ orderId, dueTaka }: { orderId: string; dueTaka: nu
             required
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className={cn(fieldClass, "text-[22px] font-extrabold tabular-nums")}
+            className={cn(inputClass, "mt-1.5 h-14 text-[22px] font-extrabold tabular-nums")}
           />
           <span className="mt-1 block text-[14px] font-normal text-muted-foreground">{t("amountHint", { due: formatTaka(dueTaka) })}</span>
         </label>
@@ -85,13 +85,13 @@ export function PaymentForm({ orderId, dueTaka }: { orderId: string; dueTaka: nu
               value={tendered}
               onChange={(e) => setTendered(e.target.value)}
               placeholder={amount}
-              className={cn(fieldClass, "text-[22px] font-extrabold tabular-nums")}
+              className={cn(inputClass, "mt-1.5 h-14 text-[22px] font-extrabold tabular-nums")}
             />
           </label>
         ) : (
           <label className="block text-[15.5px] font-bold">
             {method === "card" ? t("cardReference") : t("walletReference")}
-            <input name="reference" maxLength={100} autoComplete="off" className={fieldClass} />
+            <input name="reference" maxLength={100} autoComplete="off" className={cn(inputClass, "mt-1.5 h-14")} />
           </label>
         )}
       </div>
@@ -116,7 +116,7 @@ export function PaymentForm({ orderId, dueTaka }: { orderId: string; dueTaka: nu
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className={cn(buttonVariants({ variant: "sun", size: "pillLg" }), "w-full")}>
+    <button type="submit" disabled={pending} className={buttonClass({ variant: "accent", size: "xl", block: true })}>
       {label}
     </button>
   );

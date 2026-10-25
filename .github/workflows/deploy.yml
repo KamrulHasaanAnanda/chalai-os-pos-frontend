@@ -1,0 +1,63 @@
+# Builds the frontend-only demo as plain files and uploads it to pos.chalai.app (HostSeba) on every push to main.
+# Needs repo secrets FTP_SERVER, FTP_USERNAME and FTP_PASSWORD (an FTP account rooted at the pos.chalai.app folder).
+name: Deploy to shared hosting
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-shared-hosting
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CHALAI_DEMO: "1"
+      CHALAI_STATIC_EXPORT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - name: Prepare static build
+        run: node deploy/shared-hosting/prepare.mjs
+
+      - run: pnpm build
+
+      - name: Add rewrites and check the output
+        run: |
+          cp deploy/shared-hosting/.htaccess out/
+          test -f out/index.html
+          test -f out/login/index.html
+          test -f out/floor/index.html
+          test -f out/orders/index.html
+          test -f out/orders/view/index.html
+          test -f out/orders/bill/index.html
+          test -f out/orders/receipt/index.html
+          test -f out/menu/index.html
+          test -f out/kitchen/index.html
+          grep -rq "Kacchi" out/_next/static
+
+      - name: Upload over FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          security: loose
+          local-dir: ./out/
+          server-dir: ./
