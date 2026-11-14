@@ -7,7 +7,7 @@ import { billLines } from "@/lib/order";
 import { demoAreas, demoMenu, demoRestaurant, demoTables, demoUsers, seedOrders, type DemoOrder, type DemoTable, type DemoUser } from "./data";
 
 const KEY = "chalai.pos.demo";
-const VERSION = 1;
+const VERSION = 2;
 /** A visitor coming back the next day gets a fresh restaurant: day-old orders and timers would make no sense. */
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 

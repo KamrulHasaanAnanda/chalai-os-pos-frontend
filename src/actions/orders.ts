@@ -7,20 +7,32 @@ import type { DiscountInput, PaymentMethod } from "@/lib/api/types";
 import { int, readOverride, readRoundItems, str } from "@/lib/form-data";
 import { act, billRoles, floorRoles, requireStaff } from "@/lib/session";
 
-const orderPath = (formData: FormData) => `/orders/${encodeURIComponent(str(formData, "orderId", 64))}`;
+const orderPath = (formData: FormData) =>
+  `/orders/${encodeURIComponent(str(formData, "orderId", 64))}`;
+
+/** Approve / reject also run from the Incoming screen (`back=incoming`), which they return to. */
+const roundPath = (formData: FormData) =>
+  str(formData, "back", 16) === "incoming" ? "/incoming" : orderPath(formData);
 
 /**
  * Back to the page with the error code and which of its forms failed, so plain HTML posts show it.
  * `at` makes every redirect a new URL: dialogs use it to reopen on an error and close on success.
  */
 function fail(path: string, error: ApiError | string, form?: string): never {
-  const params = new URLSearchParams({ error: typeof error === "string" ? error : error.code, at: String(Date.now()) });
+  const params = new URLSearchParams({
+    error: typeof error === "string" ? error : error.code,
+    at: String(Date.now()),
+  });
   if (form) params.set("form", form);
   redirect(`${path}?${params}`);
 }
 
 /** Success: back to a clean URL with a toast code (see components/ui/toast.tsx). */
-function done(path: string, ok: string, extra: Record<string, string> = {}): never {
+function done(
+  path: string,
+  ok: string,
+  extra: Record<string, string> = {},
+): never {
   const params = new URLSearchParams({ ok, at: String(Date.now()), ...extra });
   redirect(`${path}?${params}`);
 }
@@ -31,21 +43,24 @@ export async function openOrder(formData: FormData) {
   const result = await act((api) => api.openOrder(tableId));
   if (result.ok) done(`/orders/${result.data.id}`, "opened", { tab: "add" });
   const existing = result.error.body.orderId;
-  if (result.error.code === "table_busy" && typeof existing === "string") redirect(`/orders/${existing}`);
+  if (result.error.code === "table_busy" && typeof existing === "string")
+    redirect(`/orders/${existing}`);
   fail("/floor", result.error);
 }
 
 export async function approveRound(formData: FormData) {
   await requireStaff({ roles: floorRoles });
-  const path = orderPath(formData);
-  const result = await act((api) => api.approveRound(str(formData, "roundId", 64)));
+  const path = roundPath(formData);
+  const result = await act((api) =>
+    api.approveRound(str(formData, "roundId", 64)),
+  );
   if (!result.ok) fail(path, result.error, "rounds");
   done(path, "approved");
 }
 
 export async function rejectRound(formData: FormData) {
   await requireStaff({ roles: floorRoles });
-  const path = orderPath(formData);
+  const path = roundPath(formData);
   const roundId = str(formData, "roundId", 64);
   const reason = str(formData, "reason", 300);
   if (!reason) fail(path, "reason_required", `reject-${roundId}`);
@@ -57,7 +72,9 @@ export async function rejectRound(formData: FormData) {
 export async function serveRound(formData: FormData) {
   await requireStaff({ roles: floorRoles });
   const path = orderPath(formData);
-  const result = await act((api) => api.serveRound(str(formData, "roundId", 64)));
+  const result = await act((api) =>
+    api.serveRound(str(formData, "roundId", 64)),
+  );
   if (!result.ok) fail(path, result.error, "rounds");
   done(path, "served");
 }
@@ -68,7 +85,9 @@ export async function cancelItem(formData: FormData) {
   const itemId = str(formData, "itemId", 64);
   const reason = str(formData, "reason", 300);
   if (!reason) fail(path, "reason_required", `cancel-${itemId}`);
-  const result = await act((api) => api.cancelItem(itemId, reason, readOverride(formData)));
+  const result = await act((api) =>
+    api.cancelItem(itemId, reason, readOverride(formData)),
+  );
   if (!result.ok) fail(path, result.error, `cancel-${itemId}`);
   done(path, "itemCancelled");
 }
@@ -78,7 +97,13 @@ export async function cancelOrder(formData: FormData) {
   const path = orderPath(formData);
   const reason = str(formData, "reason", 300);
   if (!reason) fail(path, "reason_required", "cancel-order");
-  const result = await act((api) => api.cancelOrder(str(formData, "orderId", 64), reason, readOverride(formData)));
+  const result = await act((api) =>
+    api.cancelOrder(
+      str(formData, "orderId", 64),
+      reason,
+      readOverride(formData),
+    ),
+  );
   if (!result.ok) fail(path, result.error, "cancel-order");
   done("/floor", "orderCancelled", { n: String(result.data.number) });
 }
@@ -86,7 +111,9 @@ export async function cancelOrder(formData: FormData) {
 export async function requestBill(formData: FormData) {
   await requireStaff({ roles: floorRoles });
   const path = orderPath(formData);
-  const result = await act((api) => api.requestBill(str(formData, "orderId", 64)));
+  const result = await act((api) =>
+    api.requestBill(str(formData, "orderId", 64)),
+  );
   if (!result.ok) fail(path, result.error, "rounds");
   done(path, "billRequested");
 }
@@ -97,7 +124,8 @@ export async function applyDiscount(formData: FormData) {
   const value = int(formData, "value");
   const kind = str(formData, "kind", 10) === "percent" ? "percent" : "amount";
   const reason = str(formData, "reason", 300);
-  if (Number.isNaN(value) || (kind === "percent" && value > 100)) fail(path, "discount_value", "discount");
+  if (Number.isNaN(value) || (kind === "percent" && value > 100))
+    fail(path, "discount_value", "discount");
   if (!reason && value > 0) fail(path, "reason_required", "discount");
   const override = readOverride(formData);
   const input: DiscountInput = {
@@ -105,7 +133,9 @@ export async function applyDiscount(formData: FormData) {
     reason,
     ...(override ? { override } : {}),
   };
-  const result = await act((api) => api.discount(str(formData, "orderId", 64), input));
+  const result = await act((api) =>
+    api.discount(str(formData, "orderId", 64), input),
+  );
   if (!result.ok) fail(path, result.error, "discount");
   done(path, value > 0 ? "discount" : "discountCleared");
 }
@@ -119,16 +149,24 @@ export async function recordPayment(formData: FormData) {
   const amountTaka = int(formData, "amount");
   const tendered = int(formData, "tendered");
   const reference = str(formData, "reference", 100);
+  const guestName = str(formData, "guestName", 80);
+  const guestPhone = str(formData, "guestPhone", 20);
   if (!methods.includes(method)) fail(path, "payment_method", "payment");
-  if (Number.isNaN(amountTaka) || amountTaka < 1) fail(path, "payment_amount", "payment");
-  if (method === "cash" && !Number.isNaN(tendered) && tendered < amountTaka) fail(path, "tendered_short", "payment");
+  if (Number.isNaN(amountTaka) || amountTaka < 1)
+    fail(path, "payment_amount", "payment");
+  if (method === "cash" && !Number.isNaN(tendered) && tendered < amountTaka)
+    fail(path, "tendered_short", "payment");
 
   const result = await act((api) =>
     api.pay(str(formData, "orderId", 64), {
       method,
       amountTaka,
-      ...(method === "cash" && !Number.isNaN(tendered) ? { tenderedTaka: tendered } : {}),
+      ...(method === "cash" && !Number.isNaN(tendered)
+        ? { tenderedTaka: tendered }
+        : {}),
       ...(method !== "cash" && reference ? { reference } : {}),
+      ...(guestName ? { guestName } : {}),
+      ...(guestPhone ? { guestPhone } : {}),
     }),
   );
   if (!result.ok) fail(path, result.error, "payment");
@@ -143,13 +181,21 @@ export async function recordPayment(formData: FormData) {
   done(path, "payment");
 }
 
-export type AddRoundState = { ok?: boolean; error?: string; menuItemId?: string; at?: number } | null;
+export type AddRoundState = {
+  ok?: boolean;
+  error?: string;
+  menuItemId?: string;
+  at?: number;
+} | null;
 
 /**
  * Called by the menu picker with useActionState. On success it refreshes the order page in place
  * (the picker clears its cart); on error it returns the code (and the sold-out dish) for the picker to show.
  */
-export async function addRound(_prev: AddRoundState, formData: FormData): Promise<AddRoundState> {
+export async function addRound(
+  _prev: AddRoundState,
+  formData: FormData,
+): Promise<AddRoundState> {
   await requireStaff({ roles: floorRoles });
   const orderId = str(formData, "orderId", 64);
   const clientRequestId = str(formData, "clientRequestId", 100);
@@ -158,12 +204,20 @@ export async function addRound(_prev: AddRoundState, formData: FormData): Promis
   if (!items.length) return { error: "cart_empty", at: Date.now() };
   if (clientRequestId.length < 8) return { error: "unknown", at: Date.now() };
 
-  const result = await act((api) => api.addRound(orderId, { items, clientRequestId, ...(note ? { note } : {}) }));
+  const result = await act((api) =>
+    api.addRound(orderId, {
+      items,
+      clientRequestId,
+      ...(note ? { note } : {}),
+    }),
+  );
   if (!result.ok) {
     // item_unavailable names the dish in errors[]: as the field itself, or as the message of a menuItemId field.
     const ids = new Set(items.map((i) => i.menuItemId));
     const hit = result.error.errors
-      .map((e) => (ids.has(e.field) ? e.field : ids.has(e.message) ? e.message : undefined))
+      .map((e) =>
+        ids.has(e.field) ? e.field : ids.has(e.message) ? e.message : undefined,
+      )
       .find(Boolean);
     refresh();
     return { error: result.error.code, menuItemId: hit, at: Date.now() };

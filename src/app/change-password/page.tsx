@@ -3,8 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { changePassword, logout } from "@/actions/auth";
 import { AuthCard } from "@/components/auth-card";
-import { Field, Notice } from "@/components/ui/input";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { Field, Notice } from "@/components/app/field";
+import { SubmitButton } from "@/components/app/submit-button";
 import { readError } from "@/lib/errors";
 import { homeFor, requireStaff } from "@/lib/session";
 
@@ -38,7 +38,7 @@ export default async function ChangePasswordPage({ searchParams }: PageProps<"/c
         <Field name="current" type="password" label={t("current")} autoComplete="current-password" required />
         <Field name="next" type="password" label={t("next")} hint={t("nextHint")} autoComplete="new-password" minLength={8} required />
         <Field name="confirm" type="password" label={t("confirm")} autoComplete="new-password" minLength={8} required />
-        <SubmitButton variant="primary" size="lg" block>
+        <SubmitButton variant="default" size="lg" className="w-full">
           {t("submit")}
         </SubmitButton>
       </form>

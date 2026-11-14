@@ -1,32 +1,115 @@
-import type { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
+"use client"
 
-/**
- * Data table: sticky header, row hover, right-aligned numbers. Under 640 px each row becomes a stacked card
- * (labels come from each cell's data-label; see .rtable in globals.css).
- */
-export function Table({ className, ...props }: ComponentProps<"table">) {
+import * as React from "react"
+import { cn } from "cn"
+
+function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgb(34_19_15/0.04),0_8px_24px_-16px_rgb(80_30_10/0.18)] max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none">
-      <table className={cn("rtable w-full border-collapse text-left text-[15px]", className)} {...props} />
+    <div
+      data-slot="table-container"
+      className="relative w-full overflow-x-auto"
+    >
+      <table
+        data-slot="table"
+        className={cn("w-full caption-bottom text-sm", className)}
+        {...props}
+      />
     </div>
-  );
+  )
 }
 
-export function Th({ className, numeric, ...props }: ComponentProps<"th"> & { numeric?: boolean }) {
+function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
-    <th
-      scope="col"
+    <thead
+      data-slot="table-header"
+      className={cn("[&_tr]:border-b", className)}
+      {...props}
+    />
+  )
+}
+
+function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
+  return (
+    <tbody
+      data-slot="table-body"
+      className={cn("[&_tr:last-child]:border-0", className)}
+      {...props}
+    />
+  )
+}
+
+function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
+  return (
+    <tfoot
+      data-slot="table-footer"
       className={cn(
-        "sticky top-0 border-b border-line bg-[#fbf7ef] px-4 py-3 text-[12px] font-semibold tracking-wide text-[#6c5d57] uppercase",
-        numeric && "text-right",
-        className,
+        "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
+        className
       )}
       {...props}
     />
-  );
+  )
 }
 
-export function Td({ className, numeric, label, ...props }: ComponentProps<"td"> & { numeric?: boolean; label: string }) {
-  return <td data-label={label} className={cn("border-b border-line px-4 py-3", numeric && "text-right tabular-nums", className)} {...props} />;
+function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+  return (
+    <tr
+      data-slot="table-row"
+      className={cn(
+        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+  return (
+    <th
+      data-slot="table-head"
+      className={cn(
+        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+  return (
+    <td
+      data-slot="table-cell"
+      className={cn(
+        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TableCaption({
+  className,
+  ...props
+}: React.ComponentProps<"caption">) {
+  return (
+    <caption
+      data-slot="table-caption"
+      className={cn("mt-4 text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
 }

@@ -35,8 +35,8 @@ export function Toast() {
   return (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex justify-center px-4 md:top-20 md:bottom-auto print:hidden">
       {visible && (
-        <div className="toast-in pointer-events-auto flex max-w-[480px] items-center gap-3 rounded-2xl bg-ink px-4 py-3 text-[15px] font-medium text-white shadow-[0_16px_40px_-12px_rgb(34_19_15/0.5)]">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-ok">
+        <div className="toast-in pointer-events-auto flex max-w-[480px] items-center gap-3 rounded-lg border bg-popover px-4 py-3 text-sm font-medium text-popover-foreground shadow-lg">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ok text-white">
             <Icon name="check" className="size-4" />
           </span>
           {message}
@@ -44,7 +44,7 @@ export function Toast() {
             type="button"
             onClick={() => setHidden(key)}
             aria-label={t("dismiss")}
-            className="-mr-1 flex size-9 items-center justify-center rounded-full text-white/70 hover:bg-white/10"
+            className="-mr-1 flex size-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
           >
             <Icon name="x" className="size-4" />
           </button>

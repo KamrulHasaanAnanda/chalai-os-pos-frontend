@@ -6,11 +6,22 @@ import { go } from "@/demo/navigation";
 import { int, readOverride, readRoundItems, str } from "@/lib/form-data";
 import { orderHref, withParams } from "@/lib/paths";
 
-const orderPath = (formData: FormData, page?: "bill") => orderHref(str(formData, "orderId", 64), page);
+const orderPath = (formData: FormData, page?: "bill") =>
+  orderHref(str(formData, "orderId", 64), page);
+
+/** Approve / reject also run from the Incoming screen (`back=incoming`), which they return to. */
+const roundPath = (formData: FormData) =>
+  str(formData, "back", 16) === "incoming" ? "/incoming" : orderPath(formData);
 
 /** Back to the page with the error code and which of its forms failed (see src/actions/orders.ts). */
 function fail(path: string, error: DemoApiError | string, form?: string) {
-  go(withParams(path, { error: typeof error === "string" ? error : error.code, at: String(Date.now()), ...(form ? { form } : {}) }));
+  go(
+    withParams(path, {
+      error: typeof error === "string" ? error : error.code,
+      at: String(Date.now()),
+      ...(form ? { form } : {}),
+    }),
+  );
 }
 
 /** Success: back to the page with a toast code (see components/ui/toast.tsx). */
@@ -21,21 +32,23 @@ function done(path: string, ok: string, extra: Record<string, string> = {}) {
 export async function openOrder(formData: FormData) {
   const tableId = str(formData, "tableId", 64) || null;
   const result = act(() => demoApi.openOrder(tableId));
-  if (result.ok) return done(orderHref(result.data.id), "opened", { tab: "add" });
+  if (result.ok)
+    return done(orderHref(result.data.id), "opened", { tab: "add" });
   const existing = result.error.body.orderId;
-  if (result.error.code === "table_busy" && typeof existing === "string") return go(orderHref(existing));
+  if (result.error.code === "table_busy" && typeof existing === "string")
+    return go(orderHref(existing));
   fail("/floor", result.error);
 }
 
 export async function approveRound(formData: FormData) {
-  const path = orderPath(formData);
+  const path = roundPath(formData);
   const result = act(() => demoApi.approveRound(str(formData, "roundId", 64)));
   if (!result.ok) return fail(path, result.error, "rounds");
   done(path, "approved");
 }
 
 export async function rejectRound(formData: FormData) {
-  const path = orderPath(formData);
+  const path = roundPath(formData);
   const roundId = str(formData, "roundId", 64);
   const reason = str(formData, "reason", 300);
   if (!reason) return fail(path, "reason_required", `reject-${roundId}`);
@@ -56,7 +69,9 @@ export async function cancelItem(formData: FormData) {
   const itemId = str(formData, "itemId", 64);
   const reason = str(formData, "reason", 300);
   if (!reason) return fail(path, "reason_required", `cancel-${itemId}`);
-  const result = act(() => demoApi.cancelItem(itemId, reason, readOverride(formData)));
+  const result = act(() =>
+    demoApi.cancelItem(itemId, reason, readOverride(formData)),
+  );
   if (!result.ok) return fail(path, result.error, `cancel-${itemId}`);
   done(path, "itemCancelled");
 }
@@ -65,7 +80,13 @@ export async function cancelOrder(formData: FormData) {
   const path = orderPath(formData);
   const reason = str(formData, "reason", 300);
   if (!reason) return fail(path, "reason_required", "cancel-order");
-  const result = act(() => demoApi.cancelOrder(str(formData, "orderId", 64), reason, readOverride(formData)));
+  const result = act(() =>
+    demoApi.cancelOrder(
+      str(formData, "orderId", 64),
+      reason,
+      readOverride(formData),
+    ),
+  );
   if (!result.ok) return fail(path, result.error, "cancel-order");
   done("/floor", "orderCancelled", { n: String(result.data.number) });
 }
@@ -82,7 +103,8 @@ export async function applyDiscount(formData: FormData) {
   const value = int(formData, "value");
   const kind = str(formData, "kind", 10) === "percent" ? "percent" : "amount";
   const reason = str(formData, "reason", 300);
-  if (Number.isNaN(value) || (kind === "percent" && value > 100)) return fail(path, "discount_value", "discount");
+  if (Number.isNaN(value) || (kind === "percent" && value > 100))
+    return fail(path, "discount_value", "discount");
   if (!reason && value > 0) return fail(path, "reason_required", "discount");
   const override = readOverride(formData);
   const input: DiscountInput = {
@@ -90,7 +112,9 @@ export async function applyDiscount(formData: FormData) {
     reason,
     ...(override ? { override } : {}),
   };
-  const result = act(() => demoApi.discount(str(formData, "orderId", 64), input));
+  const result = act(() =>
+    demoApi.discount(str(formData, "orderId", 64), input),
+  );
   if (!result.ok) return fail(path, result.error, "discount");
   done(path, value > 0 ? "discount" : "discountCleared");
 }
@@ -103,16 +127,24 @@ export async function recordPayment(formData: FormData) {
   const amountTaka = int(formData, "amount");
   const tendered = int(formData, "tendered");
   const reference = str(formData, "reference", 100);
+  const guestName = str(formData, "guestName", 80);
+  const guestPhone = str(formData, "guestPhone", 20);
   if (!methods.includes(method)) return fail(path, "payment_method", "payment");
-  if (Number.isNaN(amountTaka) || amountTaka < 1) return fail(path, "payment_amount", "payment");
-  if (method === "cash" && !Number.isNaN(tendered) && tendered < amountTaka) return fail(path, "tendered_short", "payment");
+  if (Number.isNaN(amountTaka) || amountTaka < 1)
+    return fail(path, "payment_amount", "payment");
+  if (method === "cash" && !Number.isNaN(tendered) && tendered < amountTaka)
+    return fail(path, "tendered_short", "payment");
 
   const result = act(() =>
     demoApi.pay(str(formData, "orderId", 64), {
       method,
       amountTaka,
-      ...(method === "cash" && !Number.isNaN(tendered) ? { tenderedTaka: tendered } : {}),
+      ...(method === "cash" && !Number.isNaN(tendered)
+        ? { tenderedTaka: tendered }
+        : {}),
       ...(method !== "cash" && reference ? { reference } : {}),
+      ...(guestName ? { guestName } : {}),
+      ...(guestPhone ? { guestPhone } : {}),
     }),
   );
   if (!result.ok) return fail(path, result.error, "payment");
@@ -127,10 +159,18 @@ export async function recordPayment(formData: FormData) {
   done(path, "payment");
 }
 
-export type AddRoundState = { ok?: boolean; error?: string; menuItemId?: string; at?: number } | null;
+export type AddRoundState = {
+  ok?: boolean;
+  error?: string;
+  menuItemId?: string;
+  at?: number;
+} | null;
 
 /** Called by the menu picker with useActionState; the store re-renders the order, so no redirect. */
-export async function addRound(_prev: AddRoundState, formData: FormData): Promise<AddRoundState> {
+export async function addRound(
+  _prev: AddRoundState,
+  formData: FormData,
+): Promise<AddRoundState> {
   const orderId = str(formData, "orderId", 64);
   const clientRequestId = str(formData, "clientRequestId", 100);
   const note = str(formData, "note", 300);
@@ -138,9 +178,17 @@ export async function addRound(_prev: AddRoundState, formData: FormData): Promis
   if (!items.length) return { error: "cart_empty", at: Date.now() };
   if (clientRequestId.length < 8) return { error: "unknown", at: Date.now() };
 
-  const result = act(() => demoApi.addRound(orderId, { items, clientRequestId, ...(note ? { note } : {}) }));
+  const result = act(() =>
+    demoApi.addRound(orderId, {
+      items,
+      clientRequestId,
+      ...(note ? { note } : {}),
+    }),
+  );
   if (!result.ok) {
-    const hit = result.error.errors.map((e) => e.field).find((field) => items.some((i) => i.menuItemId === field));
+    const hit = result.error.errors
+      .map((e) => e.field)
+      .find((field) => items.some((i) => i.menuItemId === field));
     return { error: result.error.code, menuItemId: hit, at: Date.now() };
   }
   return { ok: true, at: Date.now() };

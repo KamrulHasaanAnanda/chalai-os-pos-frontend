@@ -5,10 +5,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), system-ui, "Noto Sans Bengali", sans-serif;
-  --font-heading: var(--font-inter), system-ui, "Noto Sans Bengali", sans-serif;
-  --font-hand: var(--font-inter), system-ui, sans-serif;
-  --font-display: var(--font-baloo), var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Bengali", sans-serif;
+  --font-heading: var(--font-sans);
+  --font-hand: var(--font-sans);
+  --font-display: var(--font-sans);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -64,48 +64,51 @@
 }
 
 :root {
-  --maroon: #6f1222;
-  --maroon-deep: #57101c;
-  --maroon-soft: #83182c;
-  --maroon-tint: #f7e9ec;
-  --brand: #c2410c;
-  --brand-soft: #ffedd5;
-  --sun: #ffcc4f;
-  --sun-tint: #fff3cc;
-  --sun-soft: #fff4cf;
-  --ink: #22130f;
-  --night: #1d1210;
-  --ivory: #f4efe8;
-  --surface: #fff6dc;
-  --surface-2: #fff6dc;
-  --rose: #fff6dc;
-  --gray: #f6eedb;
-  --line: #f1e4c6;
+  /* Light admin, same as the owner app: white panels on a light grey page, grey hairlines, system font.
+     Orange only for the main action; status colours are soft tints with a word, never big solid blocks.
+     Older token names stay: "maroon"/"ink" is the dark text colour, "sun" the orange. */
+  --maroon: #18181b;
+  --maroon-deep: #09090b;
+  --maroon-soft: #27272a;
+  --maroon-tint: #f4f4f5;
+  --brand: #c9431a;
+  --brand-soft: #fff4ee;
+  --sun: #e2531c;
+  --sun-tint: #fff4ee;
+  --sun-soft: #ffe4d6;
+  --ink: #18181b;
+  --night: #18181b;
+  --ivory: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #fafafa;
+  --rose: #fafafa;
+  --gray: #f4f4f5;
+  --line: #e4e4e7;
   --ok: #15803d;
-  --ok-soft: #dcfce7;
+  --ok-soft: #f0fdf4;
   --late: #dc2626;
-  --brass: #d3a04a;
-  --brass-light: #e4d2a8;
+  --brass: #e2531c;
+  --brass-light: #ff8a5c;
 
-  --background: #fffcf5;
+  --background: #f7f7f8;
   --foreground: var(--ink);
   --card: #ffffff;
   --card-foreground: var(--ink);
   --popover: #ffffff;
   --popover-foreground: var(--ink);
-  --primary: var(--maroon);
+  --primary: #c9431a;
   --primary-foreground: #ffffff;
   --secondary: var(--gray);
   --secondary-foreground: var(--ink);
   --muted: var(--gray);
-  --muted-foreground: #6c5d57;
-  --accent: var(--sun);
+  --muted-foreground: #63636b;
+  --accent: var(--gray);
   --accent-foreground: var(--ink);
-  --destructive: #c0281f;
+  --destructive: #dc2626;
   --border: var(--line);
-  --input: #e2c9cc;
-  --ring: var(--maroon);
-  --radius: 0.625rem;
+  --input: var(--line);
+  --ring: #18181b;
+  --radius: 0.5rem;
 }
 
 @layer base {
@@ -120,9 +123,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     overflow-x: clip;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.5;
-    font-feature-settings: "cv11", "ss01";
   }
   h1,
   h2,
@@ -130,8 +132,8 @@
     text-wrap: balance;
   }
   :focus-visible {
-    outline: 2px solid var(--maroon);
-    outline-offset: 3px;
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
   .on-dark :focus-visible {
     outline-color: var(--brass-light);
@@ -145,9 +147,32 @@
   }
 }
 
+html {
+  color-scheme: light;
+}
+
+@layer base {
+  h1,
+  h2,
+  .font-heading {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Small uppercase labels, as in the setup screens ("ROLE", "WORKS AT"). */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+
 /* Skeleton shimmer for loading.tsx */
 .skeleton {
-  background: linear-gradient(90deg, #f3ece0 0%, #faf5ea 50%, #f3ece0 100%);
+  background: linear-gradient(90deg, #f4f4f5 0%, #e4e4e7 50%, #f4f4f5 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -200,8 +225,8 @@ dialog.sheet[open]::backdrop { animation: fade-in 180ms ease-out; }
   .rtable tr {
     display: block;
     border: 1px solid var(--line);
-    border-radius: 16px;
-    background: #fff;
+    border-radius: 8px;
+    background: var(--card);
     padding: 6px 0;
   }
   .rtable td {
@@ -231,5 +256,36 @@ dialog.sheet[open]::backdrop { animation: fade-in 180ms ease-out; }
   *::before,
   *::after {
     transition-duration: 0ms !important;
+  }
+}
+
+/* Everything clickable shows the hand cursor (Tailwind 4 resets buttons to the default arrow). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="option"],
+  [role="menuitem"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  [role="combobox"],
+  a[href],
+  summary,
+  select,
+  label[for],
+  label:has(input, button[role]),
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="file"],
+  input[type="submit"],
+  input[type="button"] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"],
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
   }
 }

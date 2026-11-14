@@ -1,6 +1,7 @@
 /** Shapes from docs/platform-spec.md §5 and §8. Money is whole taka, timestamps are ISO 8601 UTC. */
 
-export type Role = "superadmin" | "owner" | "manager" | "cashier" | "waiter" | "kitchen";
+export type Role =
+  "superadmin" | "owner" | "manager" | "cashier" | "waiter" | "kitchen";
 
 export type User = {
   id: string;
@@ -25,15 +26,25 @@ export type Restaurant = {
   onboardingStep: string;
   vatPercent: number;
   timezone: string;
-  subscription: { status: string; billingPeriod: string; amountTaka: number; periodEnd: string | null } | null;
+  subscription: {
+    status: string;
+    billingPeriod: string;
+    amountTaka: number;
+    periodEnd: string | null;
+  } | null;
   createdAt: string;
 };
 
-export type Me = { user: User; restaurant: Restaurant | null; actingAs: boolean };
+export type Me = {
+  user: User;
+  restaurant: Restaurant | null;
+  actingAs: boolean;
+};
 
 export type LoginResult = { token: string; expiresAt: string; user: User };
 
-export type TableStatus = "free" | "occupied" | "needs_approval" | "food_ready" | "bill_requested";
+export type TableStatus =
+  "free" | "occupied" | "needs_approval" | "food_ready" | "bill_requested";
 
 export type FloorTable = {
   id: string;
@@ -53,10 +64,13 @@ export type FloorTable = {
   };
 };
 
-export type Floor = { areas: { id: string; name: string; tables: FloorTable[] }[] };
+export type Floor = {
+  areas: { id: string; name: string; tables: FloorTable[] }[];
+};
 
 export type OrderStatus = "open" | "paid" | "cancelled";
-export type RoundStatus = "pending_approval" | "rejected" | "queued" | "preparing" | "ready" | "served";
+export type RoundStatus =
+  "pending_approval" | "rejected" | "queued" | "preparing" | "ready" | "served";
 export type PaymentMethod = "cash" | "bkash" | "nagad" | "card";
 
 export type OrderItem = {
@@ -139,10 +153,17 @@ export type MenuItem = {
   priceTaka: number;
   photoUrl: string | null;
   isAvailable: boolean;
+  /** Portions left today. null = no count kept; at 0 the dish is sold out. */
+  stockLeft?: number | null;
   sortOrder: number;
 };
 
-export type MenuCategory = { id: string; name: string; sortOrder: number; items: MenuItem[] };
+export type MenuCategory = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  items: MenuItem[];
+};
 
 export type KitchenTicket = {
   roundId: string;
@@ -168,6 +189,17 @@ export type RoundInput = {
   clientRequestId: string;
 };
 
-export type DiscountInput = ({ amountTaka: number } | { percent: number }) & { reason: string; override?: Override };
+export type DiscountInput = ({ amountTaka: number } | { percent: number }) & {
+  reason: string;
+  override?: Override;
+};
 
-export type PaymentInput = { method: PaymentMethod; amountTaka: number; tenderedTaka?: number; reference?: string };
+/** guestName/guestPhone: optional customer details saved on the order with the payment. */
+export type PaymentInput = {
+  method: PaymentMethod;
+  amountTaka: number;
+  tenderedTaka?: number;
+  reference?: string;
+  guestName?: string;
+  guestPhone?: string;
+};

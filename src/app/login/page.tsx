@@ -3,8 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { login } from "@/actions/auth";
 import { AuthCard } from "@/components/auth-card";
-import { Field, Notice } from "@/components/ui/input";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { Field, Notice } from "@/components/app/field";
+import { SubmitButton } from "@/components/app/submit-button";
 import { readError } from "@/lib/errors";
 import { homeFor, peekMe } from "@/lib/session";
 
@@ -36,7 +36,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           autoFocus
         />
         <Field name="password" type="password" label={t("password")} autoComplete="current-password" required />
-        <SubmitButton variant="primary" size="lg" block>
+        <SubmitButton variant="default" size="lg" className="w-full">
           {t("submit")}
         </SubmitButton>
       </form>

@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 
-// The main typeface. One variable file covers every weight.
-const inter = Inter({
+// Self-hosted at build time by next/font: no request to Google from the browser.
+const poppins = Poppins({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-poppins",
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,12 +18,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#fffcf5",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={poppins.variable}>
       <body className="min-h-dvh bg-background font-sans text-ink antialiased">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>

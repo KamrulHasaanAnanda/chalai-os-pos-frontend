@@ -1,39 +1,40 @@
 import { useTranslations } from "next-intl";
 import { Icon, type IconName } from "@/components/icons";
-import { StatusPill, type Tone } from "@/components/ui/badge";
+import { StatusPill, type Tone } from "@/components/app/status-pill";
 import type { OrderStatus, RoundStatus, TableStatus } from "@/lib/api/types";
 
-/** The five floor states (design system §3): colour + icon + word, never colour alone. */
-export const tableStatusStyle: Record<TableStatus, { tile: string; sub: string; icon: IconName; swatch: string }> = {
+/** The five floor states (design system §3): colour + icon + word, never colour alone.
+ *  White tiles; a busy table gets a thin coloured left edge and a coloured dot with its status word. */
+export const tableStatusStyle: Record<TableStatus, { tile: string; dot: string; label: string; icon: IconName }> = {
   free: {
-    tile: "border border-[#e3d3b3] bg-white text-ink hover:border-[#cdb68a]",
-    sub: "text-muted-foreground",
+    tile: "border-border hover:border-zinc-400",
+    dot: "bg-zinc-300",
+    label: "text-muted-foreground",
     icon: "circle",
-    swatch: "border border-[#cdb68a] bg-white",
   },
   occupied: {
-    tile: "border border-maroon/15 bg-maroon-tint text-maroon hover:border-maroon/35",
-    sub: "text-maroon/75",
+    tile: "border-border border-l-zinc-700 hover:border-zinc-400 hover:border-l-zinc-700",
+    dot: "bg-zinc-700",
+    label: "text-zinc-800",
     icon: "users",
-    swatch: "bg-maroon-tint border border-maroon/30",
   },
   needs_approval: {
-    tile: "border border-[#e5b400] bg-sun text-ink shadow-[0_6px_18px_-8px_rgb(229_180_0/0.8)]",
-    sub: "text-ink/75",
+    tile: "border-border border-l-orange-500 hover:border-zinc-400 hover:border-l-orange-500",
+    dot: "bg-orange-500",
+    label: "text-orange-700",
     icon: "bell",
-    swatch: "bg-sun",
   },
   food_ready: {
-    tile: "border border-ok bg-ok text-white shadow-[0_6px_18px_-8px_rgb(21_128_61/0.8)]",
-    sub: "text-white/85",
+    tile: "border-border border-l-green-600 hover:border-zinc-400 hover:border-l-green-600",
+    dot: "bg-green-600",
+    label: "text-green-700",
     icon: "checkCircle",
-    swatch: "bg-ok",
   },
   bill_requested: {
-    tile: "border border-ink bg-ink text-sun shadow-[0_6px_18px_-8px_rgb(34_19_15/0.8)]",
-    sub: "text-sun/80",
+    tile: "border-border border-l-blue-600 hover:border-zinc-400 hover:border-l-blue-600",
+    dot: "bg-blue-600",
+    label: "text-blue-700",
     icon: "receipt",
-    swatch: "bg-ink",
   },
 };
 

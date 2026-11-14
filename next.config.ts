@@ -14,6 +14,7 @@ const demoAliases = {
   "@/actions/kitchen": "./src/demo/actions/kitchen.ts",
   "@/actions/menu": "./src/demo/actions/menu.ts",
   "@/actions/orders": "./src/demo/actions/orders.ts",
+  "@/actions/assistant": "./src/demo/actions/assistant.ts",
   "@/components/live-sync": "./src/demo/live-sync.tsx",
 };
 

@@ -11,7 +11,7 @@ export type NavItem = { href: string; label: string; icon: IconName };
 export function NavLinks({ items, variant }: { items: NavItem[]; variant: "rail" | "bottom" }) {
   const path = usePathname();
   return (
-    <ul className={cn("flex", variant === "rail" ? "flex-col gap-1" : "w-full")}>
+    <ul className={cn("flex", variant === "rail" ? "flex-col gap-0.5" : "w-full")}>
       {items.map((item) => {
         const active = path === item.href || path.startsWith(`${item.href}/`);
         return (
@@ -20,19 +20,15 @@ export function NavLinks({ items, variant }: { items: NavItem[]; variant: "rail"
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "group flex flex-col items-center justify-center gap-1 font-semibold transition-colors duration-150",
-                variant === "rail" ? "h-[68px] rounded-xl text-[12px]" : "h-16 text-[11.5px]",
-                active ? "text-maroon" : "text-[#7a6b64] hover:text-ink",
+                "flex items-center transition-colors",
+                variant === "rail"
+                  ? "h-10 gap-2.5 rounded-md px-3 text-[14px]"
+                  : "h-16 flex-col justify-center gap-1 text-[11.5px] font-medium",
+                variant === "rail" && (active ? "bg-white/10 font-medium text-white shadow-[inset_2px_0_0_var(--sun)]" : "text-zinc-400 hover:bg-white/5 hover:text-white"),
+                variant === "bottom" && (active ? "font-semibold text-primary" : "text-muted-foreground"),
               )}
             >
-              <span
-                className={cn(
-                  "flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-150",
-                  active ? "bg-maroon-tint" : "group-hover:bg-[#f6eedb]",
-                )}
-              >
-                <Icon name={item.icon} className="size-5" />
-              </span>
+              <Icon name={item.icon} className={variant === "rail" ? "size-[18px]" : "size-5"} />
               {item.label}
             </Link>
           </li>

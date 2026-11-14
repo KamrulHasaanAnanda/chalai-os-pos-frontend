@@ -14,7 +14,7 @@ export function Segmented({
 }) {
   return (
     <nav aria-label={label} className={cn("max-w-full overflow-x-auto", className)}>
-      <ul className="inline-flex gap-1 rounded-xl bg-[#f3ece0] p-1">
+      <ul className="inline-flex items-center gap-1 rounded-lg bg-muted p-1">
         {items.map((item) => (
           <li key={item.href}>
             <Link
@@ -22,13 +22,14 @@ export function Segmented({
               aria-current={item.active ? "page" : undefined}
               scroll={false}
               className={cn(
-                "flex h-11 items-center gap-2 rounded-[10px] px-4 text-[15px] font-semibold whitespace-nowrap transition-colors duration-150",
-                item.active ? "bg-white text-ink shadow-[0_1px_2px_rgb(34_19_15/0.12)]" : "text-[#6c5d57] hover:text-ink",
+                // Looks like a shadcn TabsTrigger, but each tab is a link so it works without JavaScript.
+                "flex h-10 items-center gap-2 rounded-md px-3.5 text-sm font-medium whitespace-nowrap transition-colors",
+                item.active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {item.label}
               {item.count !== undefined && (
-                <span className={cn("rounded-full px-1.5 text-[12px] tabular-nums", item.active ? "bg-maroon-tint text-maroon" : "bg-white/70")}>
+                <span className={cn("rounded-full px-1.5 text-[12px] tabular-nums", item.active ? "text-muted-foreground" : "text-muted-foreground/70")}>
                   {item.count}
                 </span>
               )}
