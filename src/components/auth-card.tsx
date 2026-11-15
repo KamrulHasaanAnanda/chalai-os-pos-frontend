@@ -36,19 +36,13 @@ export function AuthCard({
           aria-hidden
           className="pointer-events-none absolute -top-32 -right-32 size-80 rounded-full bg-orange-500/20 blur-3xl"
         />
-        <span className="relative flex items-center gap-2.5 self-start">
-          <img
-            src="/icon.svg"
-            alt=""
-            width={36}
-            height={36}
-            className="size-9 rounded-lg"
-          />
-          <span className="text-[19px] font-bold tracking-tight">Chalai</span>
-          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11.5px] font-semibold tracking-wide text-zinc-300 uppercase">
-            POS
-          </span>
-        </span>
+        <img
+          src="/brand/logo-en-on-dark.svg"
+          alt="Chalai OS"
+          width={440}
+          height={100}
+          className="relative h-7 w-auto self-start"
+        />
         <div className="relative mt-7 lg:mt-14">
           <p className="text-[26px] leading-tight font-bold tracking-tight sm:text-[30px] lg:text-[34px]">
             {t("product")}

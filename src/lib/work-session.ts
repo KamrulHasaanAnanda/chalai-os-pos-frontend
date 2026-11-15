@@ -1,81 +1,92 @@
 "use client";
-// A staff member's work session: started at the beginning of their day, ended before they log out.
-// Kept in this device's localStorage for now: the POS API has no session endpoint yet.
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+// A staff member's work shift: started at the beginning of their day, ended before they log out. The API keeps it,
+// so it survives a reload or another device, and ending it makes the shift report.
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { currentShift, endShift, startShift } from "@/actions/shifts";
+import type { ShiftReport } from "@/lib/api/types";
 
-export type WorkSession = { startedAt: string; by: string };
+export type WorkSession = { id: string; startedAt: string; by: string };
+type State = WorkSession | null | "pending";
 
-const EVENT = "chalai-pos-session";
-const keyFor = (userId: string) => `chalai-pos-session:${userId}`;
+// One shared copy per signed-in user, so the Floor bar and the logout button always agree.
+const states = new Map<string, State>();
+const loading = new Set<string>();
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((l) => l());
+
+function set(userId: string, state: State) {
+  states.set(userId, state);
+  notify();
+}
+
+async function load(userId: string) {
+  if (loading.has(userId)) return;
+  loading.add(userId);
+  try {
+    const result = await currentShift();
+    // When the API can't be reached, show "not started" rather than spinning; starting will try again.
+    set(userId, result.ok && result.data ? toSession(result.data) : null);
+  } finally {
+    loading.delete(userId);
+  }
+}
+
+const toSession = (s: { id: string; startedAt: string; staffName: string }): WorkSession => ({
+  id: s.id,
+  startedAt: s.startedAt,
+  by: s.staffName,
+});
 
 function subscribe(onChange: () => void) {
-  window.addEventListener(EVENT, onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    window.removeEventListener(EVENT, onChange);
-    window.removeEventListener("storage", onChange);
-  };
+  listeners.add(onChange);
+  return () => listeners.delete(onChange);
 }
 
-function parse(raw: string | null): WorkSession | null {
-  if (!raw) return null;
-  try {
-    const s = JSON.parse(raw) as WorkSession;
-    return typeof s.startedAt === "string" ? s : null;
-  } catch {
-    return null;
-  }
-}
-
-/** The user's session, null when none is open, or "pending" before localStorage has been read (server render). */
-export function useWorkSession(userId: string): WorkSession | null | "pending" {
-  const raw = useSyncExternalStore(
+/** The user's shift, null when none is open, or "pending" while it is being loaded. */
+export function useWorkSession(userId: string): State {
+  const state = useSyncExternalStore(
     subscribe,
-    () => {
-      try {
-        return window.localStorage.getItem(keyFor(userId));
-      } catch {
-        return null;
-      }
-    },
-    () => "pending",
+    () => states.get(userId) ?? "pending",
+    () => "pending" as const,
   );
-  return useMemo(() => (raw === "pending" ? "pending" : parse(raw)), [raw]);
+  useEffect(() => {
+    if (!states.has(userId)) void load(userId);
+  }, [userId]);
+  return state;
 }
 
-export function startWorkSession(userId: string, name: string) {
-  save(userId, { startedAt: new Date().toISOString(), by: name });
+/** Starts the shift on the server. Returns an error code when it failed. */
+export async function startWorkSession(userId: string): Promise<string | null> {
+  const result = await startShift();
+  if (!result.ok) return result.error;
+  set(userId, toSession(result.data));
+  return null;
 }
 
-export function endWorkSession(userId: string) {
-  save(userId, null);
-}
-
-function save(userId: string, session: WorkSession | null) {
-  try {
-    if (session)
-      window.localStorage.setItem(keyFor(userId), JSON.stringify(session));
-    else window.localStorage.removeItem(keyFor(userId));
-  } catch {
-    // Private mode or blocked storage: the session just won't survive a reload.
+/** Ends the shift and returns its report, or an error code. `countedCashTaka` null skips the cash count. */
+export async function endWorkSession(
+  userId: string,
+  countedCashTaka: number | null,
+): Promise<{ report: ShiftReport } | { error: string }> {
+  const result = await endShift(countedCashTaka);
+  if (!result.ok) {
+    // Someone ended it on another device: there is nothing open here any more.
+    if (result.error === "no_open_shift") set(userId, null);
+    return { error: result.error };
   }
-  window.dispatchEvent(new Event(EVENT));
+  set(userId, null);
+  return { report: result.data };
 }
 
 /** Minutes the session has been open, refreshed every 30 seconds. */
-export function useSessionMinutes(
-  session: WorkSession | null | "pending",
-): number {
+export function useSessionMinutes(session: State): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(id);
   }, []);
   if (!session || session === "pending") return 0;
-  return Math.max(
-    0,
-    Math.floor((now - new Date(session.startedAt).getTime()) / 60000),
-  );
+  return Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000));
 }
 
 export const clockTime = (iso: string) =>

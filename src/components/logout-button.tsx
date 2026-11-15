@@ -1,9 +1,11 @@
 "use client";
-// Logout that makes the user end their work session first. With no session open it logs out straight away.
+// Logout that makes the user end their work session first, then shows its report. With no session open it logs out
+// straight away.
 import { useTranslations } from "next-intl";
 import { useRef, useState, type ReactNode } from "react";
 import { logout } from "@/actions/auth";
-import { EndSessionDialog } from "@/components/session-bar";
+import { EndSessionDialog, ShiftReportDialog } from "@/components/session-bar";
+import type { ShiftReport } from "@/lib/api/types";
 import {
   endWorkSession,
   useSessionMinutes,
@@ -26,9 +28,15 @@ export function LogoutButton({
   const session = useWorkSession(userId);
   const minutes = useSessionMinutes(session);
   const [asking, setAsking] = useState(false);
+  const [report, setReport] = useState<ShiftReport | null>(null);
   const form = useRef<HTMLFormElement>(null);
   const ended = useRef(false);
   const open = session !== null && session !== "pending";
+
+  const logOutNow = () => {
+    ended.current = true;
+    form.current?.requestSubmit();
+  };
 
   return (
     <>
@@ -61,15 +69,25 @@ export function LogoutButton({
           body={tSession("logoutBody")}
           confirm={tSession("endAndLogout")}
           onCancel={() => setAsking(false)}
-          onConfirm={() => {
-            endWorkSession(userId);
+          onConfirm={async (counted) => {
+            const result = await endWorkSession(userId, counted);
+            if ("error" in result && result.error !== "no_open_shift") return result.error;
             setAsking(false);
-            // The session is ended, so let this submit go through to the logout action.
-            ended.current = true;
-            form.current?.requestSubmit();
+            // Show the report first; closing it logs out. Ended elsewhere already: just log out.
+            if ("report" in result) setReport(result.report);
+            else logOutNow();
+            return null;
           }}
         />
       )}
+      <ShiftReportDialog
+        report={report}
+        closeLabel={t("logout")}
+        onClose={() => {
+          setReport(null);
+          logOutNow();
+        }}
+      />
     </>
   );
 }

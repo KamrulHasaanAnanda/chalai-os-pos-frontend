@@ -13,6 +13,8 @@ import type {
   Override,
   PaymentInput,
   RoundInput,
+  Shift,
+  ShiftReport,
 } from "./types";
 
 const baseUrl = (
@@ -103,7 +105,7 @@ const q = (params: Record<string, string | undefined>) => {
 /** Endpoints that don't need a session. */
 export const publicApi = {
   login: (username: string, password: string) =>
-    request<LoginResult>("/auth/login", {
+    request<LoginResult>("/device/login", {
       method: "POST",
       body: { username, password, app: "pos" },
     }),
@@ -117,8 +119,8 @@ export function apiFor(token: string) {
   const withOverride = (override?: Override) => (override ? { override } : {});
 
   return {
-    me: () => get<Me>("/auth/me"),
-    logout: () => post<void>("/auth/logout"),
+    me: () => get<Me>("/device/me"),
+    logout: () => post<void>("/device/logout"),
     changePassword: (currentPassword: string, newPassword: string) =>
       post<void>("/auth/change-password", { currentPassword, newPassword }),
     realtimeTicket: () =>
@@ -156,6 +158,16 @@ export function apiFor(token: string) {
       }),
     pay: (orderId: string, input: PaymentInput) =>
       post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/payments`, input),
+
+    currentShift: () => get<{ shift: Shift | null }>("/pos/shifts/current"),
+    startShift: () => post<{ shift: Shift }>("/pos/shifts"),
+    endShift: (countedCashTaka: number | null) =>
+      post<ShiftReport>(
+        "/pos/shifts/current/end",
+        countedCashTaka === null ? {} : { countedCashTaka },
+      ),
+    shiftReport: (id: string) =>
+      get<ShiftReport>(`/pos/shifts/${encodeURIComponent(id)}`),
 
     menu: () => get<MenuCategory[]>("/menu"),
     setAvailability: (itemId: string, isAvailable: boolean) =>

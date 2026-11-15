@@ -5,3 +5,4 @@ import { DemoRedirect } from "@/demo/pages";
 export default function Page() {
   return <DemoRedirect to="/" />;
 }
+

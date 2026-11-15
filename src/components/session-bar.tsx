@@ -1,5 +1,6 @@
 "use client";
-// The work-session strip in the dark Floor hero, plus the "start your day" prompt when no session is open.
+// The work-session strip in the dark Floor hero. Starting the day is a button on the strip, not a dialog. Ending it
+// asks for the cash counted in the drawer, then shows the shift report the API made.
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Icon } from "@/components/icons";
@@ -12,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import type { PaymentMethod, ShiftReport } from "@/lib/api/types";
 import {
   clockTime,
   endWorkSession,
@@ -30,20 +33,19 @@ export function useDuration() {
       : t("hours", { h: Math.floor(minutes / 60), m: minutes % 60 });
 }
 
-export function SessionBar({
-  userId,
-  userName,
-}: {
-  userId: string;
-  userName: string;
-}) {
+/** ৳1,155 or ৳70.50: shift money keeps its paisa. */
+const money = (taka: number) =>
+  `৳${new Intl.NumberFormat("en-IN", { minimumFractionDigits: Number.isInteger(taka) ? 0 : 2, maximumFractionDigits: 2 }).format(taka)}`;
+
+export function SessionBar({ userId }: { userId: string; userName: string }) {
   const t = useTranslations("session");
   const session = useWorkSession(userId);
   const minutes = useSessionMinutes(session);
   const duration = useDuration();
-  // The start prompt opens by itself when the day hasn't been started; "Not now" hides it until the next visit.
-  const [dismissed, setDismissed] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState(false);
+  const [report, setReport] = useState<ShiftReport | null>(null);
 
   if (session === "pending")
     return (
@@ -53,7 +55,12 @@ export function SessionBar({
       />
     );
 
-  const start = () => startWorkSession(userId, userName);
+  async function start() {
+    setStarting(true);
+    setStartError(false);
+    setStartError((await startWorkSession(userId)) !== null);
+    setStarting(false);
+  }
 
   return (
     <>
@@ -84,13 +91,20 @@ export function SessionBar({
                 ? t("open", { time: clockTime(session.startedAt) })
                 : t("closed")}
             </p>
-            <p className="truncate text-[12.5px] text-zinc-400">
-              {session
-                ? t("openDetail", {
-                    duration: duration(minutes),
-                    name: session.by,
-                  })
-                : t("closedDetail")}
+            <p
+              className={cn(
+                "truncate text-[12.5px]",
+                startError ? "text-red-300" : "text-zinc-400",
+              )}
+            >
+              {startError
+                ? t("startFailed")
+                : session
+                  ? t("openDetail", {
+                      duration: duration(minutes),
+                      name: session.by,
+                    })
+                  : t("closedDetail")}
             </p>
           </div>
         </div>
@@ -106,6 +120,7 @@ export function SessionBar({
         ) : (
           <Button
             onClick={start}
+            disabled={starting}
             className="h-10 rounded-lg bg-amber-400 px-4 font-semibold text-zinc-900 hover:bg-amber-300"
           >
             <Icon name="play" />
@@ -113,41 +128,6 @@ export function SessionBar({
           </Button>
         )}
       </div>
-
-      <Dialog
-        open={!session && !dismissed}
-        onOpenChange={(open) => !open && setDismissed(true)}
-      >
-        <DialogContent className="sm:max-w-[420px]">
-          <DialogHeader>
-            <span
-              aria-hidden
-              className="mb-1 flex size-12 items-center justify-center rounded-xl bg-amber-400 text-zinc-900"
-            >
-              <Icon name="play" className="size-5" />
-            </span>
-            <DialogTitle className="text-[22px] font-bold">
-              {t("startTitle", { name: userName.split(" ")[0] })}
-            </DialogTitle>
-            <DialogDescription className="text-[14.5px]">
-              {t("startBody")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setDismissed(true)}
-            >
-              {t("notNow")}
-            </Button>
-            <Button size="lg" className="font-semibold" onClick={start}>
-              <Icon name="play" />
-              {t("start")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {session && (
         <EndSessionDialog
@@ -158,17 +138,28 @@ export function SessionBar({
           body={t("endBody")}
           confirm={t("end")}
           onCancel={() => setEnding(false)}
-          onConfirm={() => {
-            endWorkSession(userId);
+          onConfirm={async (counted) => {
+            const result = await endWorkSession(userId, counted);
+            if ("error" in result) return result.error;
             setEnding(false);
+            setReport(result.report);
+            return null;
           }}
         />
       )}
+      <ShiftReportDialog
+        report={report}
+        closeLabel={t("done")}
+        onClose={() => setReport(null)}
+      />
     </>
   );
 }
 
-/** Shared by the Floor bar and the logout button: when it started, how long, and the confirm button. */
+/**
+ * Shared by the Floor bar and the logout button: when it started, how long, the cash count and the confirm button.
+ * `onConfirm` gets the counted cash (null when left empty) and answers an error code, or null when it worked.
+ */
 export function EndSessionDialog({
   open,
   session,
@@ -186,12 +177,30 @@ export function EndSessionDialog({
   body: string;
   confirm: string;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: (countedCashTaka: number | null) => Promise<string | null>;
 }) {
   const t = useTranslations("session");
   const duration = useDuration();
+  const [cash, setCash] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const trimmed = cash.trim();
+  const counted = trimmed === "" ? null : Number(trimmed);
+  const invalid = counted !== null && (!Number.isFinite(counted) || counted < 0);
+
+  async function submit() {
+    if (invalid) return;
+    setBusy(true);
+    setError(null);
+    const failed = await onConfirm(counted);
+    setBusy(false);
+    if (failed) setError(failed === "no_open_shift" ? t("alreadyEnded") : t("endFailed"));
+    else setCash("");
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
+    <Dialog open={open} onOpenChange={(next) => !next && !busy && onCancel()}>
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
           <span
@@ -220,14 +229,49 @@ export function EndSessionDialog({
             </div>
           ))}
         </dl>
+        <form
+          id="end-session-form"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            void submit();
+          }}
+          className="grid gap-1.5"
+        >
+          <label htmlFor="counted-cash" className="text-[14px] font-semibold">
+            {t("countLabel")}
+          </label>
+          <Input
+            id="counted-cash"
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="৳0"
+            value={cash}
+            onChange={(ev) => setCash(ev.target.value)}
+            aria-invalid={invalid || undefined}
+            aria-describedby="counted-cash-hint"
+            className="h-11 text-[16px] tabular-nums"
+          />
+          <p
+            id="counted-cash-hint"
+            className={cn(
+              "text-[12.5px]",
+              invalid || error ? "text-red-600" : "text-muted-foreground",
+            )}
+            role={invalid || error ? "alert" : undefined}
+          >
+            {invalid ? t("countInvalid") : (error ?? t("countHint"))}
+          </p>
+        </form>
         <DialogFooter>
-          <Button variant="outline" size="lg" onClick={onCancel}>
+          <Button variant="outline" size="lg" onClick={onCancel} disabled={busy}>
             {t("keepOpen")}
           </Button>
           <Button
+            type="submit"
+            form="end-session-form"
             size="lg"
+            disabled={busy || invalid}
             className="bg-zinc-900 font-semibold text-white hover:bg-zinc-800"
-            onClick={onConfirm}
           >
             <Icon name="stop" />
             {confirm}
@@ -235,5 +279,181 @@ export function EndSessionDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const METHODS: PaymentMethod[] = ["cash", "bkash", "nagad", "card"];
+
+/** The report the API made when the shift ended. */
+export function ShiftReportDialog({
+  report,
+  closeLabel,
+  onClose,
+}: {
+  report: ShiftReport | null;
+  closeLabel: string;
+  onClose: () => void;
+}) {
+  const t = useTranslations("session");
+  const tMethod = useTranslations("paymentMethod");
+  const duration = useDuration();
+  if (!report) return null;
+  const diff = report.cash.differenceTaka;
+
+  return (
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle className="text-[22px] font-bold">
+            {t("reportTitle")}
+          </DialogTitle>
+          <DialogDescription className="text-[14px]">
+            {t("reportFor", {
+              who: report.branchName
+                ? `${report.staffName}, ${report.branchName}`
+                : report.staffName,
+              start: clockTime(report.startedAt),
+              end: clockTime(report.endedAt),
+              duration: duration(report.minutes),
+            })}
+          </DialogDescription>
+        </DialogHeader>
+
+        <section aria-labelledby="report-money" className="grid gap-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 id="report-money" className="text-[14px] font-semibold">
+              {t("moneyTaken")}
+            </h3>
+            <span className="text-[24px] font-bold tabular-nums">
+              {money(report.payments.totalTaka)}
+            </span>
+          </div>
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {METHODS.map((m) => (
+              <div key={m} className="rounded-lg bg-muted p-2.5">
+                <dt className="text-[12px] font-medium text-muted-foreground">
+                  {tMethod(m)}
+                </dt>
+                <dd className="mt-0.5 text-[15px] font-bold tabular-nums">
+                  {money(report.payments.byMethod[m])}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="text-[13px] text-muted-foreground">
+            {t("paymentsCount", {
+              n: report.payments.count,
+              orders: report.ordersClosed,
+            })}
+          </p>
+        </section>
+
+        <section
+          aria-labelledby="report-cash"
+          className="grid gap-1.5 rounded-lg border p-3"
+        >
+          <h3 id="report-cash" className="text-[14px] font-semibold">
+            {t("cashDrawer")}
+          </h3>
+          <Row label={t("cashExpected")} value={money(report.cash.expectedTaka)} />
+          <Row
+            label={t("cashCounted")}
+            value={
+              report.cash.countedTaka === null
+                ? t("notCounted")
+                : money(report.cash.countedTaka)
+            }
+          />
+          {diff !== null && (
+            <p
+              className={cn(
+                "mt-1 rounded-md px-2.5 py-1.5 text-[14px] font-semibold",
+                diff === 0
+                  ? "bg-emerald-50 text-emerald-800"
+                  : "bg-red-50 text-red-700",
+              )}
+            >
+              {diff === 0
+                ? t("cashMatches")
+                : diff < 0
+                  ? t("cashShort", { amount: money(-diff) })
+                  : t("cashOver", { amount: money(diff) })}
+            </p>
+          )}
+        </section>
+
+        {(report.cancelled.orders.length > 0 ||
+          report.cancelled.dishes.length > 0) && (
+          <section aria-labelledby="report-cancelled" className="grid gap-1.5">
+            <h3 id="report-cancelled" className="text-[14px] font-semibold">
+              {t("cancelledTitle")}
+            </h3>
+            <ul className="grid gap-1 text-[13.5px]">
+              {report.cancelled.orders.map((o) => (
+                <li key={`o${o.number}`}>
+                  {t("cancelledOrder", { n: o.number })}
+                  {o.reason && (
+                    <span className="text-muted-foreground"> · {o.reason}</span>
+                  )}
+                </li>
+              ))}
+              {report.cancelled.dishes.map((d, i) => (
+                <li key={`d${i}`}>
+                  {d.quantity} × {d.name}
+                  {d.reason && (
+                    <span className="text-muted-foreground"> · {d.reason}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <section aria-labelledby="report-open" className="grid gap-1.5">
+          <h3 id="report-open" className="text-[14px] font-semibold">
+            {t("openTablesTitle")}
+          </h3>
+          {report.openTables.length === 0 ? (
+            <p className="text-[13.5px] text-muted-foreground">
+              {t("noOpenTables")}
+            </p>
+          ) : (
+            <ul className="grid gap-1 text-[13.5px]">
+              {report.openTables.map((o) => (
+                <li key={o.number} className="flex justify-between gap-3">
+                  <span>
+                    {o.label
+                      ? t("openTable", { table: o.label, n: o.number })
+                      : t("orderNo", { n: o.number })}
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    {t("due", { amount: money(o.dueTaka) })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <DialogFooter>
+          <Button
+            size="lg"
+            onClick={onClose}
+            className="bg-zinc-900 font-semibold text-white hover:bg-zinc-800"
+          >
+            {closeLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3 text-[14px]">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold tabular-nums">{value}</span>
+    </div>
   );
 }

@@ -203,3 +203,32 @@ export type PaymentInput = {
   guestName?: string;
   guestPhone?: string;
 };
+
+/** A staff member's open shift on the POS. */
+export type Shift = { id: string; staffName: string; startedAt: string };
+
+/** Made by the API when a shift ends. Money is what this person took; cancellations and open tables are the branch's. */
+export type ShiftReport = {
+  id: string;
+  staffName: string;
+  branchName: string;
+  startedAt: string;
+  endedAt: string;
+  minutes: number;
+  payments: {
+    totalTaka: number;
+    count: number;
+    byMethod: Record<PaymentMethod, number>;
+  };
+  ordersClosed: number;
+  cash: {
+    expectedTaka: number;
+    countedTaka: number | null;
+    differenceTaka: number | null;
+  };
+  cancelled: {
+    orders: { number: number; reason: string | null }[];
+    dishes: { name: string; quantity: number; reason: string | null }[];
+  };
+  openTables: { label: string | null; number: number; dueTaka: number }[];
+};

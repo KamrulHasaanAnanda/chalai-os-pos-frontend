@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- the restaurant's logo (absolute API URL) and a small brand SVG */
+/* eslint-disable @next/next/no-img-element -- the Chalai OS wordmark */
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Suspense, type ReactNode } from "react";
@@ -42,7 +42,7 @@ export function TopBar({
 }) {
   const t = useTranslations("common");
   const tRoles = useTranslations("roles");
-  const { restaurant, user } = staff;
+  const { user } = staff;
 
   return (
     <header
@@ -52,40 +52,8 @@ export function TopBar({
       )}
     >
       <div className="flex h-full items-center gap-3 px-4 sm:px-6">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          {restaurant.logoUrl ? (
-            <img
-              src={restaurant.logoUrl}
-              alt=""
-              width={36}
-              height={36}
-              className="size-9 shrink-0 rounded-lg object-cover"
-            />
-          ) : (
-            <img
-              src="/icon.svg"
-              alt=""
-              width={36}
-              height={36}
-              className="size-9 shrink-0"
-            />
-          )}
-          <div className="min-w-0 leading-tight">
-            <p
-              className="truncate text-[15px] font-semibold"
-              title={restaurant.name}
-            >
-              {restaurant.name}
-            </p>
-            <p
-              className={cn(
-                "truncate text-[12px] font-medium",
-                dark ? "text-white/55" : "text-muted-foreground",
-              )}
-            >
-              {t("product")}
-            </p>
-          </div>
+        <div className="flex min-w-0 flex-1 items-center">
+          <RestaurantMark staff={staff} dark={dark} />
         </div>
         {extra}
         <LiveSync
@@ -142,43 +110,25 @@ function RestaurantMark({
   staff: Staff;
   dark?: boolean;
 }) {
-  const t = useTranslations("common");
   const { restaurant } = staff;
   return (
-    <div className="flex min-w-0 items-center gap-2.5">
-      {restaurant.logoUrl ? (
-        <img
-          src={restaurant.logoUrl}
-          alt=""
-          width={32}
-          height={32}
-          className="size-8 shrink-0 rounded-md object-cover"
-        />
-      ) : (
-        <img
-          src="/icon.svg"
-          alt=""
-          width={32}
-          height={32}
-          className="size-8 shrink-0"
-        />
-      )}
-      <div className="min-w-0 leading-tight">
-        <p
-          className="line-clamp-2 text-[14px] leading-snug font-semibold"
-          title={restaurant.name}
-        >
-          {restaurant.name}
-        </p>
-        <p
-          className={cn(
-            "truncate text-[12px]",
-            dark ? "text-zinc-400" : "text-muted-foreground",
-          )}
-        >
-          {t("product")}
-        </p>
-      </div>
+    <div className="flex min-w-0 flex-col gap-1">
+      <img
+        src={dark ? "/brand/logo-en-on-dark.svg" : "/brand/logo-en-on-light.svg"}
+        alt="Chalai OS"
+        width={440}
+        height={100}
+        className="h-5 w-auto self-start"
+      />
+      <p
+        className={cn(
+          "truncate text-[12px] font-medium",
+          dark ? "text-zinc-400" : "text-muted-foreground",
+        )}
+        title={restaurant.name}
+      >
+        {restaurant.name}
+      </p>
     </div>
   );
 }
@@ -204,7 +154,7 @@ export function PosShell({
         aria-label={t("mainNav")}
         className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col bg-zinc-900 text-zinc-100 md:flex print:hidden"
       >
-        <div className="flex h-14 items-center border-b border-white/10 px-4">
+        <div className="flex h-16 items-center border-b border-white/10 px-4">
           <RestaurantMark staff={staff} dark />
         </div>
         <nav className="flex-1 overflow-y-auto p-2">
