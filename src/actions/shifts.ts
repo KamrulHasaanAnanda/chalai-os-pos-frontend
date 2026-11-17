@@ -11,9 +11,11 @@ export async function currentShift(): Promise<ShiftResult<Shift | null>> {
   return result.ok ? { ok: true, data: result.data.shift } : { ok: false, error: result.error.code };
 }
 
-export async function startShift(): Promise<ShiftResult<Shift>> {
+/** `openingCashTaka` null means 0 in the drawer. */
+export async function startShift(openingCashTaka: number | null = null): Promise<ShiftResult<Shift>> {
   await requireStaff();
-  const result = await act((api) => api.startShift());
+  const opening = openingCashTaka !== null && Number.isFinite(openingCashTaka) && openingCashTaka >= 0 ? openingCashTaka : null;
+  const result = await act((api) => api.startShift(opening));
   return result.ok ? { ok: true, data: result.data.shift } : { ok: false, error: result.error.code };
 }
 
@@ -23,4 +25,18 @@ export async function endShift(countedCashTaka: number | null): Promise<ShiftRes
   const counted = countedCashTaka !== null && Number.isFinite(countedCashTaka) && countedCashTaka >= 0 ? countedCashTaka : null;
   const result = await act((api) => api.endShift(counted));
   return result.ok ? { ok: true, data: result.data } : { ok: false, error: result.error.code };
+}
+
+/** The X-report: the open shift so far. The shift stays open. */
+export async function shiftSoFar(): Promise<ShiftResult<ShiftReport>> {
+  await requireStaff();
+  const result = await act((api) => api.shiftSoFar());
+  return result.ok ? { ok: true, data: result.data } : { ok: false, error: result.error.code };
+}
+
+/** Cash put into or taken out of the drawer. Whole taka; the API answers bad_amount otherwise. */
+export async function moveCash(direction: "in" | "out", amountTaka: number, reason: string): Promise<ShiftResult<null>> {
+  await requireStaff();
+  const result = await act((api) => api.moveCash(direction === "in" ? "in" : "out", amountTaka, String(reason).slice(0, 120)));
+  return result.ok ? { ok: true, data: null } : { ok: false, error: result.error.code };
 }

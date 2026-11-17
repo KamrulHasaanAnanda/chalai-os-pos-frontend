@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { moveCash, shiftSoFar } from "@/actions/shifts";
 import type { PaymentMethod, ShiftReport } from "@/lib/api/types";
 import {
   clockTime,
@@ -46,6 +47,12 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState(false);
   const [report, setReport] = useState<ShiftReport | null>(null);
+  const [soFar, setSoFar] = useState<ShiftReport | null>(null);
+  const [soFarError, setSoFarError] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [opening, setOpening] = useState("");
+  const openingValue = opening.trim() === "" ? null : Number(opening.trim());
+  const openingInvalid = openingValue !== null && (!Number.isFinite(openingValue) || openingValue < 0);
 
   if (session === "pending")
     return (
@@ -56,10 +63,20 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
     );
 
   async function start() {
+    if (openingInvalid) return;
     setStarting(true);
     setStartError(false);
-    setStartError((await startWorkSession(userId)) !== null);
+    const failed = (await startWorkSession(userId, openingValue)) !== null;
+    setStartError(failed);
+    if (!failed) setOpening("");
     setStarting(false);
+  }
+
+  async function showSoFar() {
+    setSoFarError(false);
+    const result = await shiftSoFar();
+    if (result.ok) setSoFar(result.data);
+    else setSoFarError(true);
   }
 
   return (
@@ -99,7 +116,9 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
             >
               {startError
                 ? t("startFailed")
-                : session
+                : soFarError
+                  ? t("reportFailed")
+                  : session
                   ? t("openDetail", {
                       duration: duration(minutes),
                       name: session.by,
@@ -109,23 +128,61 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
           </div>
         </div>
         {session ? (
-          <Button
-            variant="outline"
-            onClick={() => setEnding(true)}
-            className="h-10 rounded-lg border-white/20 bg-transparent px-4 font-semibold text-white hover:bg-white/10 hover:text-white"
-          >
-            <Icon name="stop" />
-            {t("end")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setMoving(true)}
+              className="h-10 rounded-lg border-white/20 bg-transparent px-3 font-semibold text-white hover:bg-white/10 hover:text-white"
+            >
+              {t("moveCash")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => void showSoFar()}
+              className="h-10 rounded-lg border-white/20 bg-transparent px-3 font-semibold text-white hover:bg-white/10 hover:text-white"
+            >
+              {t("soFar")}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setEnding(true)}
+              className="h-10 rounded-lg border-white/20 bg-transparent px-4 font-semibold text-white hover:bg-white/10 hover:text-white"
+            >
+              <Icon name="stop" />
+              {t("end")}
+            </Button>
+          </div>
         ) : (
-          <Button
-            onClick={start}
-            disabled={starting}
-            className="h-10 rounded-lg bg-amber-400 px-4 font-semibold text-zinc-900 hover:bg-amber-300"
+          <form
+            onSubmit={(ev) => {
+              ev.preventDefault();
+              void start();
+            }}
+            className="flex items-center gap-2"
           >
-            <Icon name="play" />
-            {t("start")}
-          </Button>
+            <label className="sr-only" htmlFor="opening-cash">
+              {t("openingLabel")}
+            </label>
+            <input
+              id="opening-cash"
+              inputMode="decimal"
+              autoComplete="off"
+              value={opening}
+              onChange={(ev) => setOpening(ev.target.value)}
+              placeholder={t("openingLabel")}
+              title={openingInvalid ? t("openingInvalid") : t("openingLabel")}
+              aria-invalid={openingInvalid || undefined}
+              className="h-10 w-44 rounded-lg bg-white/10 px-3 text-[14px] text-white tabular-nums ring-1 ring-white/15 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-amber-300 aria-invalid:ring-red-400"
+            />
+            <Button
+              type="submit"
+              disabled={starting || openingInvalid}
+              className="h-10 rounded-lg bg-amber-400 px-4 font-semibold text-zinc-900 hover:bg-amber-300"
+            >
+              <Icon name="play" />
+              {t("start")}
+            </Button>
+          </form>
         )}
       </div>
 
@@ -152,7 +209,134 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
         closeLabel={t("done")}
         onClose={() => setReport(null)}
       />
+      <ShiftReportDialog
+        report={soFar}
+        soFar
+        closeLabel={t("done")}
+        onClose={() => setSoFar(null)}
+      />
+      <CashMoveDialog open={moving} onClose={() => setMoving(false)} />
     </>
+  );
+}
+
+/** Cash put into or taken out of the drawer during the shift, with a reason. */
+function CashMoveDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useTranslations("session");
+  const [direction, setDirection] = useState<"in" | "out">("out");
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const value = Number(amount.trim());
+  const valid = Number.isInteger(value) && value > 0 && reason.trim() !== "";
+
+  async function submit() {
+    if (!valid) {
+      setError(t("moveInvalid"));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const result = await moveCash(direction, value, reason.trim());
+    setBusy(false);
+    if (!result.ok) {
+      setError(
+        result.error === "day_closed"
+          ? t("dayClosed")
+          : result.error === "no_open_shift"
+            ? t("alreadyEnded")
+            : result.error === "bad_amount"
+              ? t("moveInvalid")
+              : t("moveFailed"),
+      );
+      return;
+    }
+    setAmount("");
+    setReason("");
+    onClose();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
+      <DialogContent className="sm:max-w-[420px]">
+        <DialogHeader>
+          <DialogTitle className="text-[22px] font-bold">{t("moveTitle")}</DialogTitle>
+          <DialogDescription className="text-[14.5px]">{t("moveBody")}</DialogDescription>
+        </DialogHeader>
+        <form
+          id="cash-move-form"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            void submit();
+          }}
+          className="grid gap-3"
+        >
+          <div role="radiogroup" className="grid grid-cols-2 gap-2">
+            {(["out", "in"] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                role="radio"
+                aria-checked={direction === d}
+                onClick={() => setDirection(d)}
+                className={cn(
+                  "h-11 rounded-lg text-[14.5px] font-semibold ring-1",
+                  direction === d ? "bg-zinc-900 text-white ring-zinc-900" : "bg-background ring-border hover:bg-muted",
+                )}
+              >
+                {d === "in" ? t("moveIn") : t("moveOut")}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-1.5">
+            <label htmlFor="move-amount" className="text-[14px] font-semibold">
+              {t("moveAmount")}
+            </label>
+            <Input
+              id="move-amount"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="৳0"
+              value={amount}
+              onChange={(ev) => setAmount(ev.target.value)}
+              className="h-11 text-[16px] tabular-nums"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <label htmlFor="move-reason" className="text-[14px] font-semibold">
+              {t("moveReason")}
+            </label>
+            <Input
+              id="move-reason"
+              maxLength={120}
+              autoComplete="off"
+              placeholder={t("moveReasonPlaceholder")}
+              value={reason}
+              onChange={(ev) => setReason(ev.target.value)}
+              className="h-11 text-[15px]"
+            />
+          </div>
+          <p className="min-h-5 text-[12.5px] text-red-600" role={error ? "alert" : undefined}>
+            {error}
+          </p>
+        </form>
+        <DialogFooter>
+          <Button variant="outline" size="lg" onClick={onClose} disabled={busy}>
+            {t("keepOpen")}
+          </Button>
+          <Button
+            type="submit"
+            form="cash-move-form"
+            size="lg"
+            disabled={busy}
+            className="bg-zinc-900 font-semibold text-white hover:bg-zinc-800"
+          >
+            {t("moveSave")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -287,10 +471,13 @@ const METHODS: PaymentMethod[] = ["cash", "bkash", "nagad", "card"];
 /** The report the API made when the shift ended. */
 export function ShiftReportDialog({
   report,
+  soFar = false,
   closeLabel,
   onClose,
 }: {
   report: ShiftReport | null;
+  /** The X-report: the shift is still open. */
+  soFar?: boolean;
   closeLabel: string;
   onClose: () => void;
 }) {
@@ -305,8 +492,13 @@ export function ShiftReportDialog({
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle className="text-[22px] font-bold">
-            {t("reportTitle")}
+            {soFar ? t("soFarTitle") : t("reportTitle")}
           </DialogTitle>
+          {soFar && (
+            <p className="rounded-md bg-amber-50 px-2.5 py-1.5 text-[13px] font-medium text-amber-800">
+              {t("soFarNote")}
+            </p>
+          )}
           <DialogDescription className="text-[14px]">
             {t("reportFor", {
               who: report.branchName
@@ -355,6 +547,16 @@ export function ShiftReportDialog({
           <h3 id="report-cash" className="text-[14px] font-semibold">
             {t("cashDrawer")}
           </h3>
+          {report.cash.openingTaka !== undefined && (
+            <Row label={t("cashOpening")} value={money(report.cash.openingTaka)} />
+          )}
+          {(report.cash.movements ?? []).map((m, i) => (
+            <Row
+              key={i}
+              label={`${m.direction === "in" ? t("cashIn") : t("cashOut")} · ${m.reason}`}
+              value={`${m.direction === "in" ? "+" : "−"}${money(m.amountTaka)}`}
+            />
+          ))}
           <Row label={t("cashExpected")} value={money(report.cash.expectedTaka)} />
           <Row
             label={t("cashCounted")}

@@ -1,5 +1,6 @@
 import "server-only";
 import type {
+  CashMovement,
   Customer,
   DiscountInput,
   Floor,
@@ -164,7 +165,14 @@ export function apiFor(token: string) {
       post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/payments`, input),
 
     currentShift: () => get<{ shift: Shift | null }>("/pos/shifts/current"),
-    startShift: () => post<{ shift: Shift }>("/pos/shifts"),
+    startShift: (openingCashTaka: number | null) =>
+      post<{ shift: Shift }>(
+        "/pos/shifts",
+        openingCashTaka === null ? {} : { openingCashTaka },
+      ),
+    shiftSoFar: () => get<ShiftReport>("/pos/shifts/current/report"),
+    moveCash: (direction: "in" | "out", amountTaka: number, reason: string) =>
+      post<CashMovement>("/pos/shifts/current/cash", { direction, amountTaka, reason }),
     endShift: (countedCashTaka: number | null) =>
       post<ShiftReport>(
         "/pos/shifts/current/end",

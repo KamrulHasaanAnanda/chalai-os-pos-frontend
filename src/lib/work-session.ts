@@ -56,8 +56,8 @@ export function useWorkSession(userId: string): State {
 }
 
 /** Starts the shift on the server. Returns an error code when it failed. */
-export async function startWorkSession(userId: string): Promise<string | null> {
-  const result = await startShift();
+export async function startWorkSession(userId: string, openingCashTaka: number | null = null): Promise<string | null> {
+  const result = await startShift(openingCashTaka);
   if (!result.ok) return result.error;
   set(userId, toSession(result.data));
   return null;

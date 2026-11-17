@@ -232,9 +232,15 @@ export type ShiftReport = {
   };
   ordersClosed: number;
   cash: {
+    /** Missing on reports made before opening cash and cash in/out existed. */
+    openingTaka?: number;
+    cashInTaka?: number;
+    cashOutTaka?: number;
+    /** Opening + cash payments + cash in − cash out. */
     expectedTaka: number;
     countedTaka: number | null;
     differenceTaka: number | null;
+    movements?: CashMovement[];
   };
   cancelled: {
     orders: { number: number; reason: string | null }[];
@@ -301,3 +307,5 @@ export type Receipt = {
 
 /** A guest the restaurant knows by phone (customers spec). */
 export type Customer = { id: string; name: string; phone: string; visitCount: number; lastVisitAt: string | null };
+
+export type CashMovement = { direction: "in" | "out"; amountTaka: number; reason: string; at: string };
