@@ -117,7 +117,11 @@
     "api_unreachable": "The Chalai server can't be reached. Check the internet and try again.",
     "unknown": "Something went wrong. Please try again.",
     "payment_too_much": "That's more than the amount due.",
-    "stock_count": "Enter a whole number from 0 to 9999."
+    "stock_count": "Enter a whole number from 0 to 9999.",
+    "bad_points": "Enter a whole number of points.",
+    "loyalty_off": "Loyalty points are turned off. The owner turns them on in the owner app.",
+    "not_enough_points": "The customer doesn't have that many points.",
+    "above_due": "That's more points than is still due."
   },
   "login": {
     "title": "Staff log in",
@@ -213,7 +217,8 @@
       "toApprove": "To approve",
       "ready": "Ready to collect",
       "cooking": "In the kitchen"
-    }
+    },
+    "booked": "Booked {time} · {name} ({n})"
   },
   "session": {
     "closed": "Session not started",
@@ -444,7 +449,13 @@
     "customerAttach": "Attach to bill",
     "customerRemove": "Remove",
     "customerBadPhone": "Enter 11 digits starting with 01.",
-    "customerFailed": "Couldn't save the customer. Try again."
+    "customerFailed": "Couldn't save the customer. Try again.",
+    "pointsTitle": "Loyalty points",
+    "pointsBalance": "{name} has {n, plural, one {# point} other {# points}} (1 point = ৳1).",
+    "pointsUse": "Use points",
+    "pointsAmount": "Points to use",
+    "pointsUsed": "{n, plural, one {# point} other {# points}} used on this bill",
+    "pointsRemove": "Give points back"
   },
   "picker": {
     "title": "Add items",
@@ -615,7 +626,9 @@
     "guestOrder": "Table {table} sent a QR order. Tap the table to approve it.",
     "reset": "Fresh demo data loaded.",
     "stock": "{number}: count saved.",
-    "stockCleared": "{number} is no longer counted."
+    "stockCleared": "{number} is no longer counted.",
+    "pointsUsed": "Points used on the bill.",
+    "pointsReturned": "Points given back."
   },
   "demo": {
     "button": "Demo",

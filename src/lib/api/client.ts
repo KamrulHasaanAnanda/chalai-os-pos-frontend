@@ -157,6 +157,13 @@ export function apiFor(token: string) {
       }),
     discount: (orderId: string, input: DiscountInput) =>
       post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/discount`, input),
+    spendPoints: (orderId: string, points: number) =>
+      post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/loyalty`, { points }),
+    returnPoints: (orderId: string) =>
+      request<Order>(`/pos/orders/${encodeURIComponent(orderId)}/loyalty`, {
+        method: "DELETE",
+        token,
+      }),
     requestBill: (orderId: string) =>
       post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/request-bill`),
     cancelOrder: (orderId: string, reason: string, override?: Override) =>

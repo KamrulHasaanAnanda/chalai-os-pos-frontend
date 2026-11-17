@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { applyDiscount } from "@/actions/orders";
+import { applyDiscount, returnPoints, spendPoints } from "@/actions/orders";
 import { Icon } from "@/components/icons";
 import { OrderTotals } from "@/components/order-totals";
 import { OverrideFields } from "@/components/override-fields";
@@ -243,6 +243,69 @@ export function BillView({
                 ))}
               </ul>
             </>
+          )}
+
+          {open && order.customer && (order.loyalty || (order.customer.points ?? 0) > 0) && (
+            <section
+              id="loyalty"
+              aria-labelledby="loyalty-title"
+              className="mt-3 rounded-xl px-3 py-3 ring-1 ring-zinc-200"
+            >
+              <h3 id="loyalty-title" className="text-[14px] font-semibold">
+                {t("pointsTitle")}
+              </h3>
+              {error.forForm("loyalty") && (
+                <div className="mt-2">
+                  <Notice>{error.forForm("loyalty")}</Notice>
+                </div>
+              )}
+              {order.loyalty ? (
+                <form action={returnPoints} className="mt-1 flex items-center justify-between gap-3">
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <p className="text-[13.5px] text-muted-foreground">
+                    {t("pointsUsed", { n: order.loyalty.spent })}
+                  </p>
+                  <button
+                    type="submit"
+                    className="h-10 shrink-0 rounded-lg px-3 text-[13.5px] font-semibold ring-1 ring-zinc-300 hover:bg-zinc-100"
+                  >
+                    {t("pointsRemove")}
+                  </button>
+                </form>
+              ) : (
+                <form action={spendPoints} className="mt-1">
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <p className="text-[13.5px] text-muted-foreground">
+                    {t("pointsBalance", {
+                      name: order.customer.name,
+                      n: order.customer.points ?? 0,
+                    })}
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <label className="block flex-1">
+                      <span className="sr-only">{t("pointsAmount")}</span>
+                      <input
+                        name="points"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        required
+                        defaultValue={Math.min(
+                          order.customer.points ?? 0,
+                          Math.floor(order.dueTaka),
+                        )}
+                        className={cn(inputClass, "font-bold tabular-nums")}
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="h-11 shrink-0 rounded-lg bg-zinc-900 px-4 text-[14px] font-semibold text-white hover:bg-zinc-800"
+                    >
+                      {t("pointsUse")}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </section>
           )}
 
           {open && lines.length > 0 && (

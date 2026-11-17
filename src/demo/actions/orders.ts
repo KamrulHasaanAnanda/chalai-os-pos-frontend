@@ -119,6 +119,15 @@ export async function applyDiscount(formData: FormData) {
   done(path, value > 0 ? "discount" : "discountCleared");
 }
 
+/** The demo has no customers, so no points (the bill never shows the loyalty block). */
+export async function spendPoints(formData: FormData) {
+  fail(orderPath(formData, "bill"), "loyalty_off", "loyalty");
+}
+
+export async function returnPoints(formData: FormData) {
+  fail(orderPath(formData, "bill"), "not_found", "loyalty");
+}
+
 const methods: PaymentMethod[] = ["cash", "bkash", "nagad", "card"];
 
 export async function recordPayment(formData: FormData) {

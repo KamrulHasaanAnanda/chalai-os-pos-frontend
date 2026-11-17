@@ -140,6 +140,26 @@ export async function applyDiscount(formData: FormData) {
   done(path, value > 0 ? "discount" : "discountCleared");
 }
 
+/** Spends the attached customer's loyalty points on the bill (one point = ৳1 off). */
+export async function spendPoints(formData: FormData) {
+  await requireStaff({ roles: billRoles });
+  const path = `${orderPath(formData)}/bill`;
+  const points = int(formData, "points");
+  if (!Number.isInteger(points) || points <= 0) fail(path, "bad_points", "loyalty");
+  const result = await act((api) => api.spendPoints(str(formData, "orderId", 64), points));
+  if (!result.ok) fail(path, result.error, "loyalty");
+  done(path, result.data.status === "paid" ? "paid" : "pointsUsed", result.data.status === "paid" ? { n: String(result.data.number) } : {});
+}
+
+/** Takes the loyalty discount off the bill; the points go back to the customer. */
+export async function returnPoints(formData: FormData) {
+  await requireStaff({ roles: billRoles });
+  const path = `${orderPath(formData)}/bill`;
+  const result = await act((api) => api.returnPoints(str(formData, "orderId", 64)));
+  if (!result.ok) fail(path, result.error, "loyalty");
+  done(path, "pointsReturned");
+}
+
 const methods: PaymentMethod[] = ["cash", "bkash", "nagad", "card"];
 
 export async function recordPayment(formData: FormData) {

@@ -70,6 +70,8 @@ export type FloorTable = {
     readyRounds: number;
     billRequested: boolean;
   };
+  /** Today's booking holding this table now, or the next one later today (reservations spec). Missing in the demo. */
+  nextReservation?: { name: string; partySize: number; at: string } | null;
 };
 
 /** An online pickup order (online-ordering spec): no table, a token number for the day. */
@@ -148,7 +150,9 @@ export type Order = {
   guestName: string | null;
   guestPhone: string | null;
   /** The customer on this bill, when the cashier attached one. Missing in the demo. */
-  customer?: { id: string; name: string; phone: string; visitCount: number } | null;
+  customer?: { id: string; name: string; phone: string; visitCount: number; points?: number } | null;
+  /** Loyalty points spent on this bill, as a bill discount (loyalty spec). Missing in the demo. */
+  loyalty?: { spent: number } | null;
   openedAt: string;
   closedAt: string | null;
   billRequestedAt: string | null;
@@ -338,6 +342,6 @@ export type Receipt = {
 };
 
 /** A guest the restaurant knows by phone (customers spec). */
-export type Customer = { id: string; name: string; phone: string; visitCount: number; lastVisitAt: string | null };
+export type Customer = { id: string; name: string; phone: string; visitCount: number; lastVisitAt: string | null; points?: number };
 
 export type CashMovement = { direction: "in" | "out"; amountTaka: number; reason: string; at: string };

@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/app/submit-button";
 import { SessionBar } from "@/components/session-bar";
 import type { Floor, FloorTable, TableStatus, User } from "@/lib/api/types";
 import type { ErrorReader } from "@/lib/error-reader";
-import { formatTaka, minutesSince } from "@/lib/format";
+import { formatTaka, formatTime, minutesSince } from "@/lib/format";
 import { orderHref } from "@/lib/paths";
 import { billRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
@@ -498,6 +498,18 @@ function TableTile({ table }: { table: FloorTable }) {
           </span>
         )}
       </span>
+      {table.nextReservation && (
+        <span className="flex items-center gap-1 truncate text-[11.5px] font-semibold text-sky-700 sm:text-[12.5px]">
+          <Icon name="clock" className="hidden size-3.5 shrink-0 sm:block" />
+          <span className="truncate">
+            {t("booked", {
+              time: formatTime(table.nextReservation.at, "Asia/Dhaka"),
+              name: table.nextReservation.name,
+              n: table.nextReservation.partySize,
+            })}
+          </span>
+        </span>
+      )}
       {free ? (
         <span className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
           <span className="truncate">{tStatus("free")}</span>
