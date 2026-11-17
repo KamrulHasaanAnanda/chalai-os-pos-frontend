@@ -6,6 +6,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState, useMemo, useState } from "react";
 import { addRound, type AddRoundState } from "@/actions/orders";
+import { requestKotPrint } from "@/components/print/kot-printer";
 import { Icon } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { inputClass } from "@/components/app/field";
@@ -50,6 +51,7 @@ export function MenuPicker({
     async (prev, formData) => {
       const result = await addRound(prev, formData);
       if (result?.ok) {
+        if (result.printRoundId) requestKotPrint(result.printRoundId);
         setCart({});
         setReviewOpen(false);
         setRequestId(newRequestId());

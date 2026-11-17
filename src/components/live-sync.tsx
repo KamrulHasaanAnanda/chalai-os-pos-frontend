@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { LiveStatus, type LiveLabels } from "@/components/live-status";
+import { KITCHEN_CHANGED_EVENT } from "@/components/print/kot-printer";
 
 type Payload = { tableId?: string; orderId?: string; roundId?: string; menuItemId?: string };
 type Rule = { events: string[]; pollMs: number; orderId?: string };
@@ -89,6 +90,8 @@ export function LiveSync({ labels, dark = false }: { labels: LiveLabels; dark?: 
 
     for (const name of events) {
       socket.on(name, (payload: Payload = {}) => {
+        // The KOT printer listens on every page (components/print/kot-printer.tsx).
+        if (name === "kitchen.changed") window.dispatchEvent(new Event(KITCHEN_CHANGED_EVENT));
         const rule = ruleRef.current;
         if (!rule || !rule.events.includes(name)) return;
         if (name === "order.changed" && rule.orderId && payload.orderId && payload.orderId !== rule.orderId) return;

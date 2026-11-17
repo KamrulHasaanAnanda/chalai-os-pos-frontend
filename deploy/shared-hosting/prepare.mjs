@@ -11,7 +11,9 @@ if (!process.env.CI) {
 }
 
 // No proxy, route handlers or per-order pages in a static build. The demo's order screens take ?id= (src/lib/paths.ts).
-const remove = ["src/proxy.ts", "src/app/api", "src/app/(app)/orders/[id]", "src/app/(print)/orders/[id]"];
+const remove = ["src/proxy.ts", "src/app/api", "src/app/(app)/orders/[id]", "src/app/(print)/orders/[id]",
+  // KOT printing needs the API; the demo has no kitchen printer.
+  "src/app/(print)/kot"];
 for (const path of remove) {
   if (!existsSync(path)) {
     console.error(`prepare.mjs: ${path} not found. Update deploy/shared-hosting/prepare.mjs.`);

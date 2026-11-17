@@ -69,7 +69,32 @@ function chime() {
   }
 }
 
+/** How often a visible kitchen board tells the API it is alive; 30 s without one starts the POS printer fallback. */
+const HEARTBEAT_MS = 10_000;
+
+/**
+ * Kitchen heartbeat. A hidden tab (screen off, another app in front) stays silent on purpose: nobody is reading the
+ * board, so the POS should print. The static demo has no API.
+ */
+function useKitchenHeartbeat() {
+  useEffect(() => {
+    if (process.env.CHALAI_DEMO === "1") return;
+    const beat = () => {
+      if (document.visibilityState !== "visible") return;
+      fetch("/api/kitchen/heartbeat", { method: "POST" }).catch(() => undefined);
+    };
+    beat();
+    const id = setInterval(beat, HEARTBEAT_MS);
+    document.addEventListener("visibilitychange", beat);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", beat);
+    };
+  }, []);
+}
+
 export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
+  useKitchenHeartbeat();
   const t = useTranslations("kitchen");
   const tErrors = useTranslations("errors");
   const now = useNow();

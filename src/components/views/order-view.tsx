@@ -12,6 +12,7 @@ import { Elapsed } from "@/components/elapsed";
 import { Icon } from "@/components/icons";
 import { MenuPicker } from "@/components/menu-picker";
 import { OrderTotals } from "@/components/order-totals";
+import { PrintKotButton } from "@/components/print/kot-printer";
 import { OverrideFields } from "@/components/override-fields";
 import { OrderPill, RoundPill } from "@/components/status";
 import { inputClass, Notice } from "@/components/app/field";
@@ -31,6 +32,8 @@ import { billRoles, managerRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 const fieldClass = cn(inputClass, "mt-1.5");
+/** The static demo has no API to print from. */
+const demo = process.env.CHALAI_DEMO === "1";
 
 /** Colour strip on top of each round, by where it is in the kitchen. */
 const ROUND_STRIP: Record<Round["status"], string> = {
@@ -78,6 +81,7 @@ export function OrderView({
   error: ErrorReader;
 }) {
   const t = useTranslations("order");
+  const tKot = useTranslations("kot");
   const open = order.status === "open";
   const pending = order.rounds.filter((r) => r.status === "pending_approval");
   const others = order.rounds.filter((r) => r.status !== "pending_approval");
@@ -314,6 +318,15 @@ export function OrderView({
                   role={user.role}
                   error={error}
                 />
+                {!demo && round.status !== "rejected" && (
+                  <PrintKotButton
+                    roundId={round.id}
+                    className={cn(btnOutline, "mt-2 h-10 w-full")}
+                  >
+                    <Icon name="printer" />
+                    {tKot("printKot")}
+                  </PrintKotButton>
+                )}
                 {canServe && (
                   <form action={serveRound} className="mt-2">
                     <input type="hidden" name="orderId" value={order.id} />

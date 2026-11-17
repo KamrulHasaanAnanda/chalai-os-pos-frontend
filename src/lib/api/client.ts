@@ -3,6 +3,7 @@ import type {
   DiscountInput,
   Floor,
   KitchenTicket,
+  Kot,
   LoginResult,
   Me,
   MenuCategory,
@@ -12,6 +13,8 @@ import type {
   OrderSummary,
   Override,
   PaymentInput,
+  PrintPending,
+  Receipt,
   RoundInput,
   Shift,
   ShiftReport,
@@ -187,6 +190,17 @@ export function apiFor(token: string) {
       }),
 
     tickets: () => get<KitchenTicket[]>("/kitchen/tickets"),
+    kitchenHeartbeat: () => post<{ heardAt: string }>("/kitchen/heartbeat"),
+
+    printPending: () => get<PrintPending>("/pos/print/pending"),
+    kot: (roundId: string) =>
+      get<Kot>(`/pos/print/tickets/${encodeURIComponent(roundId)}`),
+    markPrinted: (roundId: string, fallback: boolean) =>
+      post<Kot>(`/pos/print/tickets/${encodeURIComponent(roundId)}`, {
+        fallback,
+      }),
+    receipt: (orderId: string) =>
+      get<Receipt>(`/pos/print/orders/${encodeURIComponent(orderId)}`),
     setTicketStatus: (roundId: string, status: "preparing" | "ready") =>
       post<KitchenTicket>(
         `/kitchen/tickets/${encodeURIComponent(roundId)}/status`,

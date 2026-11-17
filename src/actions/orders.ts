@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ApiError } from "@/lib/api/client";
-import type { DiscountInput, PaymentMethod } from "@/lib/api/types";
+import type { DiscountInput, PaymentMethod, Restaurant } from "@/lib/api/types";
 import { int, readOverride, readRoundItems, str } from "@/lib/form-data";
 import { act, billRoles, floorRoles, requireStaff } from "@/lib/session";
 
@@ -49,13 +49,13 @@ export async function openOrder(formData: FormData) {
 }
 
 export async function approveRound(formData: FormData) {
-  await requireStaff({ roles: floorRoles });
+  const { restaurant } = await requireStaff({ roles: floorRoles });
   const path = roundPath(formData);
-  const result = await act((api) =>
-    api.approveRound(str(formData, "roundId", 64)),
-  );
+  const roundId = str(formData, "roundId", 64);
+  const result = await act((api) => api.approveRound(roundId));
   if (!result.ok) fail(path, result.error, "rounds");
-  done(path, "approved");
+  // The approving POS prints the KOT when the restaurant prints them (components/print/kot-printer.tsx).
+  done(path, "approved", printsKot(restaurant) ? { print: roundId } : {});
 }
 
 export async function rejectRound(formData: FormData) {
@@ -181,8 +181,15 @@ export async function recordPayment(formData: FormData) {
   done(path, "payment");
 }
 
+/** The restaurant wants paper KOTs from the POS that sends a round (setting `kot_output`). */
+function printsKot(restaurant: Restaurant): boolean {
+  return restaurant.kotOutput === "printer" || restaurant.kotOutput === "both";
+}
+
 export type AddRoundState = {
   ok?: boolean;
+  /** The round just sent, when this POS should print its KOT. */
+  printRoundId?: string;
   error?: string;
   menuItemId?: string;
   at?: number;
@@ -196,7 +203,7 @@ export async function addRound(
   _prev: AddRoundState,
   formData: FormData,
 ): Promise<AddRoundState> {
-  await requireStaff({ roles: floorRoles });
+  const { restaurant } = await requireStaff({ roles: floorRoles });
   const orderId = str(formData, "orderId", 64);
   const clientRequestId = str(formData, "clientRequestId", 100);
   const note = str(formData, "note", 300);
@@ -223,5 +230,10 @@ export async function addRound(
     return { error: result.error.code, menuItemId: hit, at: Date.now() };
   }
   refresh();
-  return { ok: true, at: Date.now() };
+  const sent = result.data.rounds.at(-1);
+  return {
+    ok: true,
+    at: Date.now(),
+    ...(sent && printsKot(restaurant) ? { printRoundId: sent.id } : {}),
+  };
 }

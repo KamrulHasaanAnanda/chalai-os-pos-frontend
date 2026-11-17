@@ -7,11 +7,16 @@ import { Icon } from "@/components/icons";
 import { LiveSync } from "@/components/live-sync";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLinks, type NavItem } from "@/components/nav-links";
+import { KotPrinter } from "@/components/print/kot-printer";
 import { Avatar } from "@/components/app/staff-avatar";
 import { Toast } from "@/components/app/toast";
 import type { Role } from "@/lib/api/types";
+import { billRoles } from "@/lib/roles";
 import type { Staff } from "@/lib/session";
 import { cn } from "@/lib/utils";
+
+/** The static demo has no API to print from. */
+const demo = process.env.CHALAI_DEMO === "1";
 
 export function useNavItems(role: Role): NavItem[] {
   const t = useTranslations("nav");
@@ -145,6 +150,7 @@ export function PosShell({
 }) {
   const t = useTranslations("common");
   const tRoles = useTranslations("roles");
+  const tKot = useTranslations("kot");
   const items = useNavItems(staff.user.role);
   const { user } = staff;
 
@@ -195,6 +201,15 @@ export function PosShell({
               offline: t("offline"),
             }}
           />
+          {!demo && (
+            <Suspense fallback={null}>
+              {/* The till (cashier, manager, owner) prints for a silent kitchen; waiters' phones never pop a dialog. */}
+              <KotPrinter
+                fallback={billRoles.includes(user.role) && staff.restaurant.printerFallback !== false}
+                printingLabel={tKot("printing")}
+              />
+            </Suspense>
+          )}
           <LogoutButton
             userId={staff.user.id}
             formClassName="md:hidden"

@@ -26,6 +26,10 @@ export type Restaurant = {
   onboardingStep: string;
   vatPercent: number;
   timezone: string;
+  /** Print settings (printing and KOT fallback spec). Missing on older API builds and in the demo: screen, 80 mm, on. */
+  kotOutput?: KotOutput;
+  receiptWidthMm?: ReceiptWidth;
+  printerFallback?: boolean;
   subscription: {
     status: string;
     billingPeriod: string;
@@ -231,4 +235,60 @@ export type ShiftReport = {
     dishes: { name: string; quantity: number; reason: string | null }[];
   };
   openTables: { label: string | null; number: number; dueTaka: number }[];
+};
+
+export type KotOutput = "screen" | "printer" | "both";
+export type ReceiptWidth = 58 | 80;
+
+/** GET /pos/print/tickets/:roundId: one kitchen slip. No prices. */
+export type Kot = {
+  roundId: string;
+  orderId: string;
+  orderNumber: number;
+  roundNumber: number;
+  tableLabel: string | null;
+  areaName: string | null;
+  source: "qr" | "pos";
+  sentBy: string | null;
+  sentAt: string;
+  note: string | null;
+  printedAt: string | null;
+  printedFallback: boolean;
+  items: { name: string; quantity: number; note: string | null }[];
+};
+
+/** GET /pos/print/pending: what the POS should print by itself now. */
+export type PrintPending = {
+  settings: { kotOutput: KotOutput; receiptWidthMm: ReceiptWidth; printerFallback: boolean };
+  kitchenSeenAt: string | null;
+  rounds: Kot[];
+};
+
+/** GET /pos/print/orders/:orderId: a receipt, totals from the API's bill calculation. */
+export type Receipt = {
+  orderId: string;
+  billNumber: number;
+  status: "open" | "paid" | "cancelled";
+  restaurantName: string;
+  branchName: string;
+  branchAddress: string;
+  tableLabel: string | null;
+  areaName: string | null;
+  guestName: string | null;
+  openedAt: string;
+  closedAt: string | null;
+  receiptWidthMm: ReceiptWidth;
+  items: { name: string; quantity: number; unitPriceTaka: number; lineTotalTaka: number }[];
+  subtotalTaka: number;
+  discountTaka: number;
+  serviceChargePercent: number;
+  serviceChargeTaka: number;
+  vatPercent: number;
+  vatMode: "exclusive" | "inclusive";
+  vatTaka: number;
+  roundingTaka: number;
+  totalTaka: number;
+  paidTaka: number;
+  dueTaka: number;
+  payments: { method: PaymentMethod; amountTaka: number; tenderedTaka: number | null; changeTaka: number; reference: string | null }[];
 };

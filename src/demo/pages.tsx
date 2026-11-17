@@ -40,6 +40,7 @@ import { orderStatuses, OrdersView } from "@/components/views/orders-view";
 import { ReceiptView } from "@/components/views/receipt-view";
 import type { Role } from "@/lib/api/types";
 import { errorReader } from "@/lib/error-reader";
+import { receiptFromOrder } from "@/lib/order";
 import { businessDate } from "@/lib/format";
 import { incomingFrom } from "@/lib/incoming";
 import {
@@ -390,7 +391,7 @@ export function DemoReceipt() {
   const { gate, order } = useOrder(billRoles);
   if (!gate) return <Loading />;
   if (!order) return <OrderMissing />;
-  return <ReceiptView order={order} restaurant={gate.staff.restaurant} />;
+  return <ReceiptView receipt={receiptFromOrder(order, gate.staff.restaurant)} timeZone={gate.staff.restaurant.timezone} />;
 }
 
 export function DemoMenu() {

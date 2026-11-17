@@ -445,7 +445,10 @@
     "cancelled": "CANCELLED",
     "subtotal": "Subtotal",
     "discount": "Discount",
+    "serviceCharge": "Service charge {percent}%",
     "vat": "VAT {percent}%",
+    "vatIncluded": "VAT {percent}% (included)",
+    "rounding": "Rounding",
     "total": "TOTAL",
     "change": "Change",
     "due": "Due",
@@ -588,5 +591,20 @@
     "loginBody": "Tap a role to look around. Or type its username (manager, cashier, waiter or kitchen) and the password {password}.",
     "whoIsWorking": "Who's working?",
     "tapToStart": "Tap a person to start their shift."
+  },
+  "kot": {
+    "title": "KOT #{number} · round {round}",
+    "heading": "KITCHEN ORDER",
+    "order": "Order #{number}",
+    "round": "Round {n}",
+    "sentBy": "Sent by {name}",
+    "fromQr": "QR order",
+    "note": "Note: {note}",
+    "reprint": "REPRINT",
+    "fallback": "Printed because the kitchen screen was offline",
+    "print": "Print",
+    "back": "Back",
+    "printKot": "Print KOT",
+    "printing": "Printing kitchen ticket…"
   }
 }
