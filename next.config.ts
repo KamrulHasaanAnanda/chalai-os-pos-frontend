@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   ...(staticExport ? { output: "export", trailingSlash: true } : {}),
   // Read by the browser code too (lib/paths.ts): the demo build has different order URLs.
-  env: { CHALAI_DEMO: demo ? "1" : "0" },
+  env: { CHALAI_DEMO: demo ? "1" : "0", CHALAI_STATIC: staticExport ? "1" : "0" },
   experimental: {
     agentUpgrade: "security",
   },

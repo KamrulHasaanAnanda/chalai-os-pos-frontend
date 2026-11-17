@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- small brand SVG, no optimisation needed */
+import { LanguageSwitch } from "@/components/language-switch";
 import { ChefHatIcon, LayoutGridIcon, ReceiptIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
@@ -36,6 +37,7 @@ export function AuthCard({
           aria-hidden
           className="pointer-events-none absolute -top-32 -right-32 size-80 rounded-full bg-orange-500/20 blur-3xl"
         />
+        <LanguageSwitch className="absolute top-5 right-5 z-10 border-white/20 bg-white/10 text-white hover:bg-white/20 sm:right-10" />
         <img
           src="/brand/logo-en-on-dark.svg"
           alt="Chalai OS"

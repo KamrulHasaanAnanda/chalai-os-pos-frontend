@@ -5,6 +5,7 @@ import { Suspense, type ReactNode } from "react";
 import { ChalaiBotMount } from "@/components/chalai-bot";
 import { Icon } from "@/components/icons";
 import { LiveSync } from "@/components/live-sync";
+import { LanguageSwitch } from "@/components/language-switch";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLinks, type NavItem } from "@/components/nav-links";
 import { KotPrinter } from "@/components/print/kot-printer";
@@ -93,6 +94,9 @@ export function TopBar({
             </p>
           </div>
         </div>
+        <LanguageSwitch
+          className={cn(dark ? "border-white/20 text-white/80 hover:bg-white/10" : "hover:bg-gray")}
+        />
         <LogoutButton
           userId={user.id}
           className={cn(
@@ -195,6 +199,7 @@ export function PosShell({
           </div>
           <div className="hidden flex-1 md:block" />
           {extra}
+          <LanguageSwitch className="hover:bg-muted" />
           <LiveSync
             labels={{
               live: t("live"),

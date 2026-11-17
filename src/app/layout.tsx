@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Poppins } from "next/font/google";
 import { ServiceWorker } from "@/components/service-worker";
 import "./globals.css";
@@ -22,9 +22,9 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={poppins.variable}>
+    <html lang={await getLocale()} className={poppins.variable}>
       <body className="min-h-dvh bg-background font-sans text-ink antialiased">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
         <ServiceWorker />
