@@ -93,6 +93,9 @@ function useKitchenHeartbeat() {
   }, []);
 }
 
+/** What Start / Ready post: one station's ticket when the restaurant routes by station. */
+const ticketKey = (ticket: KitchenTicket) => ticket.ticketId ?? ticket.roundId;
+
 export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
   useKitchenHeartbeat();
   const t = useTranslations("kitchen");
@@ -102,7 +105,7 @@ export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
     tickets,
     (state, change: { roundId: string; status: Status }) =>
       state.map((ticket) =>
-        ticket.roundId === change.roundId
+        ticketKey(ticket) === change.roundId
           ? { ...ticket, status: change.status }
           : ticket,
       ),
@@ -118,7 +121,7 @@ export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
     const ids = new Set(
       tickets
         .filter((ticket) => ticket.status === "queued")
-        .map((ticket) => ticket.roundId),
+        .map((ticket) => ticketKey(ticket)),
     );
     if (seen.current && sound && [...ids].some((id) => !seen.current!.has(id)))
       chime();
@@ -145,10 +148,10 @@ export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
 
   const move = (ticket: KitchenTicket, status: "preparing" | "ready") => {
     setError(null);
-    setBusy(ticket.roundId);
+    setBusy(ticketKey(ticket));
     startTransition(async () => {
-      applyOptimistic({ roundId: ticket.roundId, status });
-      const code = await setTicketStatus(ticket.roundId, status);
+      applyOptimistic({ roundId: ticketKey(ticket), status });
+      const code = await setTicketStatus(ticketKey(ticket), status);
       setBusy(null);
       if (code)
         setError(
@@ -287,7 +290,7 @@ export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
                   );
                   return (
                     <li
-                      key={ticket.roundId}
+                      key={ticketKey(ticket)}
                       className={cn(
                         "overflow-hidden rounded-xl bg-white text-zinc-900 shadow-lg shadow-black/30",
                         late && "ring-4 ring-red-500",
@@ -315,6 +318,11 @@ export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
                             {t("order", { number: ticket.orderNumber })} ·{" "}
                             {t("items", { n: pieces })}
                           </p>
+                          {ticket.stationId && (
+                            <p className="truncate text-[12px] font-bold tracking-wide uppercase opacity-70">
+                              {ticket.stationName}
+                            </p>
+                          )}
                         </div>
                         <div className="flex flex-col items-end justify-center px-3.5 py-2.5 text-right">
                           <p className="text-[26px] leading-none font-black tabular-nums lg:text-[30px]">
@@ -384,7 +392,7 @@ export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
                         ) : (
                           <button
                             type="button"
-                            disabled={busy === ticket.roundId}
+                            disabled={busy === ticketKey(ticket)}
                             onClick={() =>
                               move(
                                 ticket,
@@ -400,7 +408,7 @@ export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
                           >
                             <Icon
                               name={
-                                busy === ticket.roundId
+                                busy === ticketKey(ticket)
                                   ? "spinner"
                                   : column === "queued"
                                     ? "flame"
@@ -408,7 +416,7 @@ export function KitchenBoard({ tickets }: { tickets: KitchenTicket[] }) {
                               }
                               className={cn(
                                 "size-7",
-                                busy === ticket.roundId && "animate-spin",
+                                busy === ticketKey(ticket) && "animate-spin",
                               )}
                             />
                             {column === "queued"

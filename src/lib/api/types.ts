@@ -170,7 +170,11 @@ export type MenuCategory = {
 };
 
 export type KitchenTicket = {
+  /** The round id when station routing is off, the ticket's own id when it is on. Missing in the demo. */
+  ticketId?: string;
   roundId: string;
+  stationId?: string | null;
+  stationName?: string | null;
   orderId: string;
   orderNumber: number;
   tableLabel: string | null;
