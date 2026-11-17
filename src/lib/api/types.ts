@@ -123,6 +123,8 @@ export type Order = {
   status: OrderStatus;
   guestName: string | null;
   guestPhone: string | null;
+  /** The customer on this bill, when the cashier attached one. Missing in the demo. */
+  customer?: { id: string; name: string; phone: string; visitCount: number } | null;
   openedAt: string;
   closedAt: string | null;
   billRequestedAt: string | null;
@@ -296,3 +298,6 @@ export type Receipt = {
   dueTaka: number;
   payments: { method: PaymentMethod; amountTaka: number; tenderedTaka: number | null; changeTaka: number; reference: string | null }[];
 };
+
+/** A guest the restaurant knows by phone (customers spec). */
+export type Customer = { id: string; name: string; phone: string; visitCount: number; lastVisitAt: string | null };

@@ -4,6 +4,7 @@ import { applyDiscount } from "@/actions/orders";
 import { Icon } from "@/components/icons";
 import { OrderTotals } from "@/components/order-totals";
 import { OverrideFields } from "@/components/override-fields";
+import { CustomerFields } from "@/components/customer-fields";
 import { PAY_FORM_ID, PaymentForm } from "@/components/payment-form";
 import { inputClass, Notice } from "@/components/app/field";
 import type { Order, User } from "@/lib/api/types";
@@ -178,36 +179,13 @@ export function BillView({
               </div>
             </div>
             {payable && (
-              <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-                <label className="flex h-11 items-center gap-2 rounded-lg bg-white px-3 ring-1 ring-sky-200 focus-within:ring-2 focus-within:ring-sky-500">
-                  <Icon name="users" className="size-4 shrink-0 text-sky-600" />
-                  <span className="sr-only">{t("customerName")}</span>
-                  <input
-                    form={PAY_FORM_ID}
-                    name="guestName"
-                    defaultValue={order.guestName ?? ""}
-                    maxLength={80}
-                    autoComplete="off"
-                    placeholder={t("customerName")}
-                    className="min-w-0 flex-1 bg-transparent text-[14.5px] font-semibold outline-none placeholder:font-normal placeholder:text-zinc-400"
-                  />
-                </label>
-                <label className="flex h-11 items-center gap-2 rounded-lg bg-white px-3 ring-1 ring-sky-200 focus-within:ring-2 focus-within:ring-sky-500">
-                  <Icon name="phone" className="size-4 shrink-0 text-sky-600" />
-                  <span className="sr-only">{t("customerPhone")}</span>
-                  <input
-                    form={PAY_FORM_ID}
-                    name="guestPhone"
-                    type="tel"
-                    inputMode="tel"
-                    defaultValue={order.guestPhone ?? ""}
-                    maxLength={20}
-                    autoComplete="off"
-                    placeholder={t("customerPhone")}
-                    className="min-w-0 flex-1 bg-transparent text-[14.5px] font-semibold tabular-nums outline-none placeholder:font-normal placeholder:text-zinc-400"
-                  />
-                </label>
-              </div>
+              <CustomerFields
+                orderId={order.id}
+                formId={PAY_FORM_ID}
+                initialName={order.guestName ?? ""}
+                initialPhone={order.guestPhone ?? ""}
+                attached={order.customer ?? null}
+              />
             )}
           </section>
 

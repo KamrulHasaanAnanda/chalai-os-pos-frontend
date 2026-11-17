@@ -405,7 +405,13 @@
     "payInFull": "Pay in full",
     "backspace": "Delete last digit",
     "cardHint": "Type the number on the card machine's slip.",
-    "walletHint": "Ask the guest for the transaction ID from their app message."
+    "walletHint": "Ask the guest for the transaction ID from their app message.",
+    "customerVisits": "{n, plural, =0 {Returning guest, first paid visit today} one {Returning guest · # visit} other {Returning guest · # visits}}",
+    "customerNew": "New customer: saved when you attach or pay.",
+    "customerAttach": "Attach to bill",
+    "customerRemove": "Remove",
+    "customerBadPhone": "Enter 11 digits starting with 01.",
+    "customerFailed": "Couldn't save the customer. Try again."
   },
   "picker": {
     "title": "Add items",

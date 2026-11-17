@@ -1,5 +1,6 @@
 import "server-only";
 import type {
+  Customer,
   DiscountInput,
   Floor,
   KitchenTicket,
@@ -191,6 +192,20 @@ export function apiFor(token: string) {
 
     tickets: () => get<KitchenTicket[]>("/kitchen/tickets"),
     kitchenHeartbeat: () => post<{ heardAt: string }>("/kitchen/heartbeat"),
+
+    findCustomer: (phone: string) =>
+      get<{ customer: Customer | null }>(`/pos/customers${q({ phone })}`),
+    attachCustomer: (orderId: string, name: string, phone: string) =>
+      request<Customer>(`/pos/orders/${encodeURIComponent(orderId)}/customer`, {
+        method: "PUT",
+        body: { name, phone },
+        token,
+      }),
+    detachCustomer: (orderId: string) =>
+      request<void>(`/pos/orders/${encodeURIComponent(orderId)}/customer`, {
+        method: "DELETE",
+        token,
+      }),
 
     printPending: () => get<PrintPending>("/pos/print/pending"),
     kot: (roundId: string) =>
