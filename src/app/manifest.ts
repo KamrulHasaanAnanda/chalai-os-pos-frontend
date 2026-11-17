@@ -1,5 +1,8 @@
 import type { MetadataRoute } from "next";
 
+// Same for everyone, so it can be a plain file (the static demo export needs that).
+export const dynamic = "force-static";
+
 /** Home-screen install (installable-apps spec): full screen, no browser bar. Served at /manifest.webmanifest. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
