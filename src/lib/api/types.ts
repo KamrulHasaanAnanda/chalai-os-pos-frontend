@@ -25,6 +25,10 @@ export type Restaurant = {
   status: "active" | "suspended";
   onboardingStep: string;
   vatPercent: number;
+  /** Bill settings for the offline bill. Missing on older API builds and in the demo. */
+  vatMode?: "exclusive" | "inclusive";
+  serviceChargePercent?: number;
+  roundToTaka?: boolean;
   timezone: string;
   /** Print settings (printing and KOT fallback spec). Missing on older API builds and in the demo: screen, 80 mm, on. */
   kotOutput?: KotOutput;

@@ -68,6 +68,7 @@ export function TopBar({
             connecting: t("connecting"),
             offline: t("offline"),
           }}
+          offlineLabels={{ syncing: t("syncing", { n: "{n}" }), openTill: t("openTill") }}
         />
         <div className="hidden items-center gap-2.5 sm:flex">
           <Avatar
@@ -200,6 +201,7 @@ export function PosShell({
               connecting: t("connecting"),
               offline: t("offline"),
             }}
+            offlineLabels={{ syncing: t("syncing", { n: "{n}" }), openTill: t("openTill") }}
           />
           {!demo && (
             <Suspense fallback={null}>

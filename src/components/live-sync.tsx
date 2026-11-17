@@ -6,7 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { LiveStatus, type LiveLabels } from "@/components/live-status";
+import Link from "next/link";
 import { KITCHEN_CHANGED_EVENT } from "@/components/print/kot-printer";
+import { startOffline, useOutbox } from "@/lib/offline/outbox";
+
+const demo = process.env.CHALAI_DEMO === "1";
 
 type Payload = { tableId?: string; orderId?: string; roundId?: string; menuItemId?: string };
 type Rule = { events: string[]; pollMs: number; orderId?: string };
@@ -27,9 +31,22 @@ function ruleFor(path: string): Rule | null {
   return null;
 }
 
-export function LiveSync({ labels, dark = false }: { labels: LiveLabels; dark?: boolean }) {
+export function LiveSync({
+  labels,
+  dark = false,
+  offlineLabels,
+}: {
+  labels: LiveLabels;
+  dark?: boolean;
+  /** "Syncing ({n})" and the link to the offline till (pos-offline spec). */
+  offlineLabels?: { syncing: string; openTill: string };
+}) {
   const router = useRouter();
   const path = usePathname();
+  const outbox = useOutbox();
+  useEffect(() => {
+    if (!demo) startOffline();
+  }, []);
   const [status, setStatus] = useState<"connecting" | "live" | "offline">("connecting");
 
   // The event handler lives for the whole socket; it reads the current page through refs.
@@ -120,5 +137,17 @@ export function LiveSync({ labels, dark = false }: { labels: LiveLabels; dark?: 
     return () => clearInterval(id);
   }, [status, path, router]);
 
-  return <LiveStatus status={status} labels={labels} dark={dark} />;
+  const browserOffline = !demo && !outbox.online;
+  const shown = browserOffline ? "offline" : outbox.pending > 0 ? "connecting" : status;
+  const shownLabels = outbox.pending > 0 && offlineLabels ? { ...labels, connecting: offlineLabels.syncing.replace("{n}", String(outbox.pending)) } : labels;
+  return (
+    <span className="inline-flex items-center gap-2">
+      <LiveStatus status={shown} labels={shownLabels} dark={dark} />
+      {browserOffline && offlineLabels && path !== "/kitchen" && (
+        <Link href="/offline" className="inline-flex h-8 items-center rounded-md bg-amber-400 px-2.5 text-[13px] font-semibold text-zinc-900">
+          {offlineLabels.openTill}
+        </Link>
+      )}
+    </span>
+  );
 }

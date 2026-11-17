@@ -44,11 +44,13 @@ type Init = {
   method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   body?: unknown;
   token?: string;
+  /** Sent as Idempotency-Key (offline outbox). */
+  idempotencyKey?: string;
 };
 
 async function request<T>(
   path: string,
-  { method = "GET", body, token }: Init = {},
+  { method = "GET", body, token, idempotencyKey }: Init = {},
 ): Promise<T> {
   let response: Response;
   try {
@@ -59,6 +61,7 @@ async function request<T>(
         Accept: "application/json",
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
@@ -216,6 +219,10 @@ export function apiFor(token: string) {
       }),
 
     printPending: () => get<PrintPending>("/pos/print/pending"),
+    sync: () => get<{ menuVersion: string; floorVersion: string }>("/pos/sync"),
+    /** One offline outbox entry, sent as it was saved (the outbox route checks the path first). */
+    replay: (path: string, body: unknown, idempotencyKey: string) =>
+      request<unknown>(path, { method: "POST", body, token, idempotencyKey }),
     kot: (roundId: string) =>
       get<Kot>(`/pos/print/tickets/${encodeURIComponent(roundId)}`),
     markPrinted: (roundId: string, fallback: boolean) =>
