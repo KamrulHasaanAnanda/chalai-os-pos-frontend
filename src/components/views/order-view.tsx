@@ -139,6 +139,8 @@ export function OrderView({
             <h1 className="truncate text-[20px] leading-tight font-bold tracking-tight">
               {order.tableLabel
                 ? t("table", { table: order.tableLabel })
+                : order.tokenNo
+                ? t("pickup", { token: order.tokenNo })
                 : t("takeaway")}
             </h1>
             <p className="truncate text-[12.5px] text-zinc-400">

@@ -87,7 +87,7 @@ export function IncomingView({
 }
 
 function where(order: Order, t: ReturnType<typeof useTranslations<"incoming">>) {
-  return order.tableLabel ? t("table", { table: order.tableLabel }) : t("takeaway");
+  return order.tableLabel ? t("table", { table: order.tableLabel }) : order.tokenNo ? t("pickup", { token: order.tokenNo }) : t("takeaway");
 }
 
 function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound; tz: string; error: ErrorReader }) {
@@ -99,7 +99,14 @@ function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound;
   const rejectError = error.forForm(rejectForm);
   const firstRound = order.rounds[0]?.id === round.id;
 
-  const meta = [order.areaName, order.guestName, order.guestPhone, firstRound ? t("firstOrder") : t("moreOrder"), t("sentAt", { time: formatTime(round.createdAt, tz) })]
+  const pickup = order.type === "pickup" && order.pickupAt;
+  const meta = [
+    order.areaName,
+    order.guestName,
+    order.guestPhone,
+    pickup ? t("pickupAt", { time: formatTime(order.pickupAt!, tz) }) : firstRound ? t("firstOrder") : t("moreOrder"),
+    t("sentAt", { time: formatTime(round.createdAt, tz) }),
+  ]
     .filter(Boolean)
     .join(" · ");
 

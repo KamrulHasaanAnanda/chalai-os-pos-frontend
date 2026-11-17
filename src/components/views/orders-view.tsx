@@ -282,6 +282,8 @@ export function OrdersView({
                       <p className="truncate text-[16px] font-bold">
                         {order.tableLabel
                           ? t("table", { table: order.tableLabel })
+                          : order.tokenNo
+                          ? t("pickup", { token: order.tokenNo })
                           : t("takeaway")}
                       </p>
                       <p className="text-[12.5px] text-muted-foreground tabular-nums">
@@ -401,6 +403,8 @@ export function OrdersView({
                       >
                         {order.tableLabel
                           ? t("table", { table: order.tableLabel })
+                          : order.tokenNo
+                          ? t("pickup", { token: order.tokenNo })
                           : t("takeaway")}
                         <span className="ml-2 text-[13px] font-medium text-muted-foreground tabular-nums">
                           #{order.number}

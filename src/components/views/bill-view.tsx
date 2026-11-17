@@ -90,6 +90,8 @@ export function BillView({
                 {t("heading", {
                   table: order.tableLabel
                     ? tOrder("table", { table: order.tableLabel })
+                    : order.tokenNo
+                    ? tOrder("pickup", { token: order.tokenNo })
                     : tOrder("takeaway"),
                 })}
               </h1>

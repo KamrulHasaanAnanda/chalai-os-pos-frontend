@@ -35,7 +35,7 @@ export function KotSlip({
       <header className="text-center">
         <p className="text-[11px] tracking-widest">{t("heading")}</p>
         <p className={cn("font-bold", narrow ? "text-[22px]" : "text-[28px]")}>
-          {kot.tableLabel ? tOrder("table", { table: kot.tableLabel }) : tOrder("takeaway")}
+          {kot.tableLabel ? tOrder("table", { table: kot.tableLabel }) : kot.tokenNo ? tOrder("pickup", { token: kot.tokenNo }) : tOrder("takeaway")}
         </p>
         {kot.areaName && <p>{kot.areaName}</p>}
         <p className="font-semibold">

@@ -299,6 +299,49 @@ export function FloorView({
           <AreaGrid tables={area.tables} />
         )}
       </section>
+
+      {(floor.pickups?.length ?? 0) > 0 && (
+        <section aria-labelledby="pickups-title" className="rounded-2xl border bg-card p-3 sm:p-5">
+          <h2 id="pickups-title" className="mb-3 text-[15px] font-semibold">
+            {t("pickups.title")}
+          </h2>
+          <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+            {floor.pickups!.map((p) => (
+              <li key={p.id}>
+                <Link
+                  href={orderHref(p.id)}
+                  className="flex h-full flex-col gap-1 rounded-xl border bg-white p-3 hover:border-zinc-400 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                  <span className="flex items-center gap-1.5 text-[18px] font-bold tabular-nums">
+                    <Icon name="bag" className="size-4 text-orange-600" />
+                    {t("pickups.token", { token: p.tokenNo })}
+                  </span>
+                  {p.guestName && <span className="truncate text-[13.5px] text-muted-foreground">{p.guestName}</span>}
+                  <span className="text-[13px] font-semibold tabular-nums">{formatTaka(p.totalTaka)}</span>
+                  <span
+                    className={cn(
+                      "mt-auto w-fit rounded-full px-2 py-0.5 text-[12px] font-semibold",
+                      p.pendingRounds > 0
+                        ? "bg-amber-100 text-amber-900"
+                        : p.readyRounds > 0
+                          ? "bg-emerald-100 text-emerald-900"
+                          : p.billRequested
+                            ? "bg-sky-100 text-sky-900"
+                            : "bg-zinc-100 text-zinc-700",
+                    )}
+                  >
+                    {p.pendingRounds > 0
+                      ? t("pickups.toApprove")
+                      : p.readyRounds > 0
+                        ? t("pickups.ready")
+                        : t("pickups.cooking")}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

@@ -72,8 +72,24 @@ export type FloorTable = {
   };
 };
 
+/** An online pickup order (online-ordering spec): no table, a token number for the day. */
+export type FloorPickup = {
+  id: string;
+  number: number;
+  tokenNo: number;
+  pickupAt: string;
+  guestName: string | null;
+  openedAt: string;
+  totalTaka: number;
+  pendingRounds: number;
+  readyRounds: number;
+  billRequested: boolean;
+};
+
 export type Floor = {
   areas: { id: string; name: string; tables: FloorTable[] }[];
+  /** Missing from an older API. */
+  pickups?: FloorPickup[];
 };
 
 export type OrderStatus = "open" | "paid" | "cancelled";
@@ -119,10 +135,14 @@ export type Payment = {
 };
 
 export type Order = {
+  type?: "dine_in" | "pickup";
+  pickupAt?: string | null;
   id: string;
   number: number;
   tableId: string | null;
   tableLabel: string | null;
+  /** Online pickup token; null for a table or counter order. */
+  tokenNo?: number | null;
   areaName: string | null;
   status: OrderStatus;
   guestName: string | null;
@@ -148,6 +168,8 @@ export type OrderSummary = {
   id: string;
   number: number;
   tableLabel: string | null;
+  /** Online pickup token; null for a table or counter order. */
+  tokenNo?: number | null;
   status: OrderStatus;
   totalTaka: number;
   dueTaka: number;
@@ -184,6 +206,8 @@ export type KitchenTicket = {
   orderId: string;
   orderNumber: number;
   tableLabel: string | null;
+  /** Online pickup token; null for a table or counter order. */
+  tokenNo?: number | null;
   areaName: string | null;
   status: "queued" | "preparing" | "ready";
   note: string | null;
@@ -263,6 +287,8 @@ export type Kot = {
   orderNumber: number;
   roundNumber: number;
   tableLabel: string | null;
+  /** Online pickup token; null for a table or counter order. */
+  tokenNo?: number | null;
   areaName: string | null;
   source: "qr" | "pos";
   sentBy: string | null;
@@ -289,6 +315,8 @@ export type Receipt = {
   branchName: string;
   branchAddress: string;
   tableLabel: string | null;
+  /** Online pickup token; null for a table or counter order. */
+  tokenNo?: number | null;
   areaName: string | null;
   guestName: string | null;
   openedAt: string;

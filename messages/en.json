@@ -206,7 +206,14 @@
     "summary": "{busy} of {total} tables busy.",
     "printLast": "Print last receipt",
     "legend": "Table colours",
-    "noTablesTitle": "No tables yet"
+    "noTablesTitle": "No tables yet",
+    "pickups": {
+      "title": "Online pickups",
+      "token": "#{token}",
+      "toApprove": "To approve",
+      "ready": "Ready to collect",
+      "cooking": "In the kitchen"
+    }
   },
   "session": {
     "closed": "Session not started",
@@ -275,11 +282,12 @@
   "incoming": {
     "title": "Incoming",
     "emptyTitle": "Nothing waiting",
-    "emptyBody": "QR orders and bill requests show up here.",
-    "qrTitle": "{n, plural, one {QR order to approve} other {# QR orders to approve}}",
+    "emptyBody": "QR orders, online pickups and bill requests show up here.",
+    "qrTitle": "{n, plural, one {Order to approve} other {# orders to approve}}",
     "billsTitle": "{n, plural, one {Bill asked} other {# bills asked}}",
     "table": "Table {table}",
     "takeaway": "Takeaway",
+    "pickup": "Pickup #{token}",
     "firstOrder": "First order",
     "moreOrder": "Ordering more",
     "waiting": "Waiting for",
@@ -288,13 +296,15 @@
     "sentAt": "Sent at {time}",
     "askedAt": "asked at {time}",
     "takePayment": "Take payment",
-    "tellCashier": "Tell the cashier: this table wants the bill."
+    "tellCashier": "Tell the cashier: this table wants the bill.",
+    "pickupAt": "Pick up at {time}"
   },
   "order": {
     "title": "Order #{number}",
     "backToFloor": "Floor",
     "table": "Table {table}",
     "takeaway": "Takeaway",
+    "pickup": "Pickup #{token}",
     "number": "Order #{number}",
     "openFor": "Open for",
     "closedAt": "Closed {time}",
@@ -550,6 +560,7 @@
     "bill": "Bill",
     "table": "Table {table}",
     "takeaway": "Takeaway",
+    "pickup": "Pickup #{token}",
     "minutes": "{n} min",
     "hours": "{h}h {m}m"
   },

@@ -56,7 +56,7 @@ export function ReceiptView({ receipt, timeZone: tz }: { receipt: Receipt; timeZ
           {receipt.branchAddress && <p>{receipt.branchAddress}</p>}
           <p className="mt-1">{formatDateTime(receipt.closedAt ?? receipt.openedAt, tz)}</p>
           <p>
-            {t("order", { number: receipt.billNumber })} · {receipt.tableLabel ? tOrder("table", { table: receipt.tableLabel }) : tOrder("takeaway")}
+            {t("order", { number: receipt.billNumber })} · {receipt.tableLabel ? tOrder("table", { table: receipt.tableLabel }) : receipt.tokenNo ? tOrder("pickup", { token: receipt.tokenNo }) : tOrder("takeaway")}
           </p>
           {receipt.guestName && <p>{receipt.guestName}</p>}
           {receipt.status !== "paid" && <p className="mt-1 font-semibold">{receipt.status === "open" ? t("unpaid") : t("cancelled")}</p>}

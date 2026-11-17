@@ -9,7 +9,9 @@ export type Incoming = { rounds: IncomingRound[]; bills: Order[] };
 export function incomingOrderIds(floor: Floor): string[] {
   return floor.areas
     .flatMap((a) => a.tables)
-    .flatMap((t) => (t.order && (t.order.pendingRounds > 0 || t.order.billRequested) ? [t.order.id] : []));
+    .flatMap((t) => (t.order && (t.order.pendingRounds > 0 || t.order.billRequested) ? [t.order.id] : []))
+    // Online pickups have no table (online-ordering spec).
+    .concat((floor.pickups ?? []).flatMap((p) => (p.pendingRounds > 0 || p.billRequested ? [p.id] : [])));
 }
 
 const time = (iso: string | null) => (iso ? new Date(iso).getTime() : 0);
