@@ -4,6 +4,7 @@
   },
   "common": {
     "logout": "লগ আউট",
+    "pos": "পয়েন্ট অফ সেল",
     "mainNav": "প্রধান",
     "signedInAs": "{name} · {role}",
     "live": "লাইভ",
@@ -16,7 +17,8 @@
     "featureKitchen": "টিকিট সরাসরি কিচেনে",
     "featureBills": "নগদ, বিকাশ বা নগদে বিল পরিশোধ",
     "syncing": "সিঙ্ক হচ্ছে ({n})",
-    "openTill": "অফলাইন টিল"
+    "openTill": "অফলাইন টিল",
+    "loading": "লোড হচ্ছে…"
   },
   "roles": {
     "superadmin": "সুপার অ্যাডমিন",
@@ -27,11 +29,15 @@
     "kitchen": "কিচেন"
   },
   "nav": {
+    "service": "সার্ভিস",
+    "manage": "ব্যবস্থাপনা",
+    "restaurant": "রেস্টুরেন্ট",
     "floor": "ফ্লোর",
     "incoming": "নতুন আসা",
     "orders": "অর্ডার",
     "menu": "মেনু",
-    "kitchen": "কিচেন"
+    "kitchen": "কিচেন",
+    "tables": "টেবিল"
   },
   "assistant": {
     "title": "চালাই সহকারী",
@@ -121,7 +127,15 @@
     "bad_points": "পয়েন্টের একটি পূর্ণ সংখ্যা দিন।",
     "loyalty_off": "লয়্যালটি পয়েন্ট বন্ধ আছে। মালিক তার অ্যাপ থেকে চালু করবেন।",
     "not_enough_points": "গ্রাহকের এত পয়েন্ট নেই।",
-    "above_due": "বাকির চেয়ে বেশি পয়েন্ট।"
+    "above_due": "বাকির চেয়ে বেশি পয়েন্ট।",
+    "coupon_not_found": "এই কোডের কোনো কুপন নেই।",
+    "coupon_off": "এই কুপনটি বন্ধ আছে।",
+    "coupon_not_started": "এই কুপন এখনো ব্যবহার করা যাবে না।",
+    "coupon_expired": "এই কুপনের মেয়াদ শেষ।",
+    "coupon_used_up": "এই কুপন আর ব্যবহার করা যাবে না।",
+    "coupon_needs_customer": "কুপনটি একজন কাস্টমার একবারই পাবেন: আগে বিলে কাস্টমারের ফোন নম্বর দিন।",
+    "coupon_already_used": "এই কাস্টমার কুপনটি আগেই ব্যবহার করেছেন।",
+    "coupon_min_bill": "বিল এই কুপনের সর্বনিম্ন পরিমাণের কম।"
   },
   "login": {
     "title": "স্টাফ লগ ইন",
@@ -196,7 +210,9 @@
     "stats": {
       "busy": "চালু টেবিল",
       "open": "খোলা বিলে",
-      "seats": "ভরা আসন"
+      "seats": "ভরা আসন",
+      "booked": "বুক করা আসন",
+      "bookedHint": "আজ {n}টি বুকিং"
     },
     "areaBusy": "{busy}/{total}",
     "open": "খোলা",
@@ -218,7 +234,40 @@
       "ready": "নেওয়ার জন্য রেডি",
       "cooking": "কিচেনে"
     },
-    "booked": "বুকড {time} · {name} ({n})"
+    "booked": "বুকড {time} · {name} ({n})",
+    "reservations": {
+      "title": "আজকের রিজার্ভেশন",
+      "empty": "আজ আর কোনো বুকিং নেই।",
+      "emptyHint": "ওনার অ্যাপে করা বুকিং এখানে দেখাবে।",
+      "people": "{n}জন অতিথি",
+      "noTable": "টেবিল দেওয়া হয়নি",
+      "now": "এখন"
+    },
+    "attention": "মনোযোগ দরকার",
+    "search": "টেবিল খুঁজুন",
+    "searchPlaceholder": "টেবিল নম্বর",
+    "showLabel": "টেবিল দেখান",
+    "show": {
+      "all": "সব {n}",
+      "busy": "ব্যস্ত {n}",
+      "free": "খালি {n}"
+    },
+    "noMatch": "কোনো টেবিল মেলেনি।",
+    "capped": "{total}টির মধ্যে {shown}টি দেখানো হচ্ছে। বাকিগুলো পেতে টেবিল নম্বর খুঁজুন।",
+    "tablesTitle": "টেবিল",
+    "busyTitle": "ব্যস্ত টেবিল",
+    "allTables": "সব টেবিল",
+    "noneBusy": "কোনো টেবিল ব্যস্ত নেই। টেবিল ট্যাব থেকে খুলুন।",
+    "fullscreen": "ফুল স্ক্রিন",
+    "exitFullscreen": "ফুল স্ক্রিন বন্ধ",
+    "parcels": {
+      "title": "টেকঅ্যাওয়ে অর্ডার",
+      "token": "#{token}",
+      "empty": "এখনো কিছু যোগ হয়নি",
+      "ready": "দেওয়ার জন্য তৈরি",
+      "bill": "বিল চেয়েছে",
+      "cooking": "রান্নাঘরে"
+    }
   },
   "session": {
     "closed": "সেশন শুরু হয়নি",
@@ -257,8 +306,8 @@
     "cashOver": "{amount} বেশি",
     "cancelledTitle": "শিফটে শাখায় বাতিল হয়েছে",
     "cancelledOrder": "অর্ডার #{n} বাতিল",
-    "openTablesTitle": "এখনো খোলা টেবিল",
-    "noOpenTables": "কোনো টেবিল খোলা নেই।",
+    "openTablesTitle": "এখনো খোলা অর্ডার",
+    "noOpenTables": "কোনো অর্ডার খোলা নেই।",
     "openTable": "টেবিল {table} · অর্ডার #{n}",
     "orderNo": "অর্ডার #{n}",
     "due": "{amount} বাকি",
@@ -282,7 +331,14 @@
     "soFar": "এ পর্যন্ত রিপোর্ট",
     "soFarTitle": "এ পর্যন্ত শিফট",
     "soFarNote": "আপনার শিফট এখনো খোলা। এটি চূড়ান্ত রিপোর্ট নয়।",
-    "reportFailed": "রিপোর্ট লোড করা গেল না। আবার চেষ্টা করুন।"
+    "reportFailed": "রিপোর্ট লোড করা গেল না। আবার চেষ্টা করুন।",
+    "openingPlaceholder": "শুরুর ক্যাশ ৳ (ঐচ্ছিক)",
+    "lockTitle": "কাজ শুরু করতে আজকের সেশন চালু করুন",
+    "lockBody": "সেশন চালু না করা পর্যন্ত সব বন্ধ থাকবে। ড্রয়ারের ক্যাশ গুনে থাকলে লিখুন, তারপর চালু করুন।",
+    "staleTitle": "আগের দিনের সেশন এখনো খোলা",
+    "staleBody": "আগে সেটি শেষ করুন (ড্রয়ার গুনে), তারপর আজকের সেশন চালু করুন।",
+    "openTakeaway": "টেকঅ্যাওয়ে #{token} · অর্ডার #{n}",
+    "openPickup": "পিকআপ #{token} · অর্ডার #{n}"
   },
   "incoming": {
     "title": "নতুন আসা",
@@ -455,7 +511,14 @@
     "pointsUse": "পয়েন্ট ব্যবহার করুন",
     "pointsAmount": "কত পয়েন্ট",
     "pointsUsed": "এই বিলে {n}টি পয়েন্ট ব্যবহার হয়েছে",
-    "pointsRemove": "পয়েন্ট ফেরত দিন"
+    "pointsRemove": "পয়েন্ট ফেরত দিন",
+    "total": "মোট",
+    "paid": "পরিশোধ",
+    "keyBack": "শেষ সংখ্যা মুছুন",
+    "keyClear": "মুছুন",
+    "colQty": "পরিমাণ",
+    "colItem": "আইটেম",
+    "colPrice": "দাম"
   },
   "picker": {
     "title": "আইটেম যোগ",
@@ -471,7 +534,7 @@
     "add": "যোগ",
     "addOne": "আরেকটি {name} যোগ করুন",
     "removeOne": "একটি {name} কমান",
-    "addNote": "+ নোট",
+    "addNote": "নোট যোগ করুন",
     "itemNote": "কিচেনের জন্য নোট",
     "itemNotePlaceholder": "যেমন: ঝাল কম",
     "roundNote": "পুরো অর্ডারের জন্য নোট",
@@ -484,7 +547,9 @@
     "review": "দেখুন, নোট যোগ করুন",
     "hideReview": "লুকান",
     "emptyCart": "যোগ করতে খাবার চাপুন",
-    "left": "আর {n}টি"
+    "left": "আর {n}টি",
+    "newTitle": "{n}টি নতুন আইটেম · এখনো পাঠানো হয়নি",
+    "clear": "মুছুন"
   },
   "receipt": {
     "title": "রসিদ #{number}",
@@ -628,7 +693,9 @@
     "stock": "{number}: সংখ্যা সেভ হয়েছে।",
     "stockCleared": "{number} আর গোনা হচ্ছে না।",
     "pointsUsed": "বিলে পয়েন্ট ব্যবহার হয়েছে।",
-    "pointsReturned": "পয়েন্ট ফেরত দেওয়া হয়েছে।"
+    "pointsReturned": "পয়েন্ট ফেরত দেওয়া হয়েছে।",
+    "couponApplied": "কুপন প্রয়োগ হয়েছে।",
+    "couponRemoved": "কুপন সরানো হয়েছে।"
   },
   "demo": {
     "button": "ডেমো",
@@ -718,5 +785,36 @@
     "kot": "কিচেন স্লিপ",
     "receipt": "রসিদ",
     "offlineNote": "অফলাইনে তৈরি"
+  },
+  "coupon": {
+    "title": "কুপন",
+    "placeholder": "কুপন কোড",
+    "apply": "প্রয়োগ",
+    "remove": "কুপন সরান",
+    "off": "−{amount} ছাড়",
+    "percent": "{percent}% ছাড়",
+    "flat": "{amount} ছাড়",
+    "short": "এটি পেতে আরও {amount} অর্ডার করুন"
+  },
+  "notifications": {
+    "title": "নোটিফিকেশন",
+    "open": "নোটিফিকেশন ({n}টি নতুন)",
+    "empty": "সব দেখা হয়ে গেছে",
+    "emptyBody": "QR অর্ডার, পরিবেশনের খাবার, বিলের অনুরোধ আর অতিথির ডাক এখানে দেখাবে।",
+    "approve": "{place}: অনুমোদনের জন্য নতুন QR অর্ডার",
+    "ready": "{place}: খাবার পরিবেশনের জন্য তৈরি",
+    "bill": "{place} বিল চেয়েছে",
+    "callWaiter": "{place} ওয়েটার ডাকছে",
+    "callWater": "{place} পানি চাইছে",
+    "booking": "{time}-এ বুকিং: {name}, {n} জন",
+    "bookingTable": "টেবিল {table}",
+    "bookingWaitlist": "এখনো টেবিল নেই",
+    "table": "টেবিল {label}",
+    "pickup": "পিকআপ #{token}",
+    "done": "হয়েছে",
+    "seeIncoming": "ইনকামিং খুলুন",
+    "ago": "{n} মিনিট আগে",
+    "justNow": "এইমাত্র",
+    "failed": "নোটিফিকেশন লোড হয়নি।"
   }
 }

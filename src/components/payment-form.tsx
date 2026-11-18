@@ -1,6 +1,6 @@
 "use client";
-// Client component: the dark checkout panel. Method tabs, the cash the guest hands over and the change,
-// and one button. Customer name/phone live on the bill (inputs with form={PAY_FORM_ID}) and submit with this form.
+// Client component: a classic till. A totals display, big method keys, a number pad for the cash handed over,
+// the change, and one Pay key. Customer name/phone live on the bill (inputs with form={PAY_FORM_ID}) and submit with this form.
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -13,11 +13,15 @@ import { cn } from "@/lib/utils";
 
 export const PAY_FORM_ID = "pay-form";
 
-const methods: { id: PaymentMethod; dot: string }[] = [
-  { id: "cash", dot: "bg-emerald-500" },
-  { id: "bkash", dot: "bg-bkash" },
-  { id: "nagad", dot: "bg-nagad" },
-  { id: "card", dot: "bg-blue-500" },
+const methods: {
+  id: PaymentMethod;
+  dot: string;
+  icon: "cash" | "phone" | "card";
+}[] = [
+  { id: "cash", dot: "bg-emerald-500", icon: "cash" },
+  { id: "bkash", dot: "bg-bkash", icon: "phone" },
+  { id: "nagad", dot: "bg-nagad", icon: "phone" },
+  { id: "card", dot: "bg-blue-500", icon: "card" },
 ];
 
 const toInt = (value: string) =>
@@ -58,8 +62,17 @@ export function PaymentForm({
       ? tenderedValue - amountValue
       : null;
   const partial = !Number.isNaN(amountValue) && amountValue < dueTaka;
-  const paidShare =
-    totalTaka > 0 ? Math.min(100, Math.round((paidTaka / totalTaka) * 100)) : 0;
+
+  /** A number-pad key: digits append, "00" adds two zeros, back deletes one, clear empties. */
+  const press = (key: string) =>
+    setTendered((v) =>
+      key === "back"
+        ? v.slice(0, -1)
+        : key === "clear"
+          ? ""
+          : (v + key).replace(/^0+(?=\d)/, "").slice(0, 7),
+    );
+  const quick = quickCash(shown);
 
   return (
     <form
@@ -71,54 +84,48 @@ export function PaymentForm({
       <input type="hidden" name="method" value={method} />
       {!splitting && <input type="hidden" name="amount" value={amount} />}
 
-      {/* What's due, and how much of the bill is already paid. */}
-      <div className="shrink-0 px-5 pt-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[12px] font-bold tracking-wide text-zinc-400 uppercase">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3.5">
+        {/* The till display: total, paid, and the amount due in large type. */}
+        <div className="rounded-xl border border-input bg-zinc-50">
+          <dl className="space-y-0.5 px-4 pt-3 text-[13.5px] tabular-nums">
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">{t("total")}</dt>
+              <dd className="font-medium">{formatTaka(totalTaka)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">{t("paid")}</dt>
+              <dd className="font-medium">{formatTaka(paidTaka)}</dd>
+            </div>
+          </dl>
+          <div className="mt-2 flex items-end justify-between gap-3 border-t border-dashed border-input px-4 pt-2 pb-3">
+            <span className="pb-1 text-[13px] font-semibold tracking-wide uppercase">
               {partial ? t("takingNow") : t("due")}
-            </p>
-            <p className="mt-1 text-[42px] leading-none font-bold tabular-nums">
+            </span>
+            <span className="text-[36px] leading-none font-bold tracking-tight tabular-nums">
               {formatTaka(shown)}
-            </p>
+            </span>
           </div>
+        </div>
+        <div className="mt-2 flex justify-end">
           <button
             type="button"
             onClick={() => {
-              setSplitting((s) => !s);
+              setSplitting((v) => !v);
               setAmount(String(dueTaka));
             }}
-            className={cn(
-              "mt-1 h-8 shrink-0 rounded-full px-3 text-[12.5px] font-semibold ring-1 transition-colors",
-              splitting
-                ? "bg-white text-zinc-900 ring-white"
-                : "text-zinc-300 ring-white/20 hover:bg-white/10",
-            )}
+            className="text-[13px] font-semibold text-zinc-600 underline-offset-2 hover:text-zinc-900 hover:underline"
           >
             {splitting ? t("payInFull") : t("splitBill")}
           </button>
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-          <div
-            className="h-full rounded-full bg-emerald-500"
-            style={{ width: `${paidShare}%` }}
-          />
-        </div>
-        <p className="mt-1.5 text-[12px] text-zinc-400 tabular-nums">
-          {t("dueDetail", {
-            total: formatTaka(totalTaka),
-            paid: formatTaka(paidTaka),
-          })}
-        </p>
-
         {splitting && (
-          <label className="mt-3 flex h-12 items-center gap-2 rounded-xl bg-white/5 px-3 ring-1 ring-white/15 focus-within:ring-white/50">
-            <span className="text-[13px] font-semibold text-zinc-400">
+          <label className="mt-1 flex h-12 items-center gap-2 rounded-lg border border-input bg-white px-3 focus-within:border-select">
+            <span className="text-[13.5px] font-medium text-muted-foreground">
               {t("amountToTake")}
             </span>
             <span
               aria-hidden
-              className="ml-auto text-[18px] font-bold text-zinc-500"
+              className="ml-auto text-[18px] font-bold text-zinc-400"
             >
               ৳
             </span>
@@ -134,47 +141,51 @@ export function PaymentForm({
             />
           </label>
         )}
-      </div>
 
-      {/* Method tabs. */}
-      <div
-        role="radiogroup"
-        aria-label={t("method")}
-        className="mx-5 mt-4 grid shrink-0 grid-cols-4 gap-1 rounded-xl bg-white/5 p-1"
-      >
-        {methods.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            role="radio"
-            aria-checked={method === m.id}
-            onClick={() => setMethod(m.id)}
-            className={cn(
-              "flex h-10 items-center justify-center gap-1.5 rounded-lg text-[13.5px] font-semibold transition-colors",
-              method === m.id
-                ? "bg-white text-zinc-900 shadow-sm"
-                : "text-zinc-300 hover:bg-white/10 hover:text-white",
-            )}
-          >
-            <span aria-hidden className={cn("size-2 rounded-full", m.dot)} />
-            {tMethod(m.id)}
-          </button>
-        ))}
-      </div>
+        {/* Method keys. */}
+        <div
+          role="radiogroup"
+          aria-label={t("method")}
+          className="mt-2 grid grid-cols-4 gap-2"
+        >
+          {methods.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              role="radio"
+              aria-checked={method === m.id}
+              onClick={() => setMethod(m.id)}
+              className={cn(
+                "flex h-14 flex-col items-center justify-center gap-0.5 rounded-lg border-2 text-[13.5px] font-semibold transition-colors",
+                method === m.id
+                  ? "border-select bg-select text-white"
+                  : "border-border bg-white text-zinc-700 hover:border-zinc-400",
+              )}
+            >
+              <span className="flex items-center gap-1.5">
+                <span
+                  aria-hidden
+                  className={cn("size-2 rounded-full", m.dot)}
+                />
+                <Icon name={m.icon} aria-hidden className="size-4" />
+              </span>
+              {tMethod(m.id)}
+            </button>
+          ))}
+        </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3 pb-1">
         {method === "cash" ? (
           <>
-            {/* Cash the guest handed over (typed), and the change worked out from it. */}
-            <div className="grid grid-cols-2 gap-2">
-              <label className="block min-w-0">
-                <span className="text-[11.5px] font-bold tracking-wide text-zinc-400 uppercase">
+            {/* Received and change, then the number pad with quick notes down the right. */}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <label className="block min-w-0 rounded-lg border border-input bg-white px-3 py-2 focus-within:border-select">
+                <span className="block text-[12.5px] font-medium text-muted-foreground">
                   {t("tendered")}
                 </span>
-                <span className="mt-1.5 flex h-16 items-center gap-2 rounded-xl bg-white/5 px-3.5 ring-1 ring-white/15 transition focus-within:bg-white/10 focus-within:ring-2 focus-within:ring-orange-400">
+                <span className="flex items-baseline gap-1">
                   <span
                     aria-hidden
-                    className="text-[20px] font-bold text-zinc-500"
+                    className="text-[18px] font-bold text-zinc-400"
                   >
                     ৳
                   </span>
@@ -183,83 +194,117 @@ export function PaymentForm({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     autoComplete="off"
-                    autoFocus
                     value={tendered}
                     onChange={(e) =>
                       setTendered(e.target.value.replace(/\D/g, "").slice(0, 7))
                     }
                     placeholder={String(shown)}
-                    className="w-full min-w-0 bg-transparent text-[26px] font-bold tabular-nums outline-none placeholder:text-zinc-600"
+                    className="w-full min-w-0 bg-transparent text-[26px] leading-tight font-bold tabular-nums outline-none placeholder:text-zinc-300"
                   />
                 </span>
               </label>
-              <label className="block min-w-0">
-                <span className="text-[11.5px] font-bold tracking-wide text-zinc-400 uppercase">
+              <div
+                className={cn(
+                  "min-w-0 rounded-lg border px-3 py-2",
+                  change === null
+                    ? "border-border bg-zinc-50"
+                    : change >= 0
+                      ? "border-emerald-300 bg-emerald-50"
+                      : "border-red-300 bg-red-50",
+                )}
+              >
+                <span className="block text-[12.5px] font-medium text-muted-foreground">
                   {change !== null && change < 0 ? t("shortBy") : t("giveBack")}
                 </span>
-                <span
+                <output
+                  aria-live="polite"
                   className={cn(
-                    "mt-1.5 flex h-16 items-center gap-2 rounded-xl px-3.5 ring-1",
+                    "block truncate text-[26px] leading-tight font-bold tabular-nums",
                     change === null
-                      ? "bg-white/5 ring-white/10"
+                      ? "text-zinc-300"
                       : change >= 0
-                        ? "bg-emerald-500/15 ring-emerald-400/40"
-                        : "bg-red-500/15 ring-red-400/40",
+                        ? "text-emerald-700"
+                        : "text-red-700",
                   )}
                 >
-                  <span
-                    aria-hidden
-                    className="text-[20px] font-bold text-zinc-500"
-                  >
-                    ৳
-                  </span>
-                  <output
-                    aria-live="polite"
-                    className={cn(
-                      "w-full min-w-0 truncate text-[26px] font-bold tabular-nums",
-                      change === null
-                        ? "text-zinc-600"
-                        : change >= 0
-                          ? "text-emerald-400"
-                          : "text-red-400",
-                    )}
-                  >
-                    {change === null
-                      ? "0"
-                      : new Intl.NumberFormat("en-IN").format(Math.abs(change))}
-                  </output>
-                </span>
-              </label>
+                  ৳
+                  {change === null
+                    ? "0"
+                    : new Intl.NumberFormat("en-IN").format(Math.abs(change))}
+                </output>
+              </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-4 gap-1.5">
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {[
+                "7",
+                "8",
+                "9",
+                "4",
+                "5",
+                "6",
+                "1",
+                "2",
+                "3",
+                "00",
+                "0",
+                "back",
+              ].map((key, i) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => press(key)}
+                  aria-label={key === "back" ? t("keyBack") : undefined}
+                  style={{
+                    gridColumn: (i % 3) + 1,
+                    gridRow: Math.floor(i / 3) + 1,
+                  }}
+                  className="flex h-11 items-center justify-center rounded-lg border border-border bg-white text-[19px] font-semibold tabular-nums shadow-[0_1px_0_rgb(0_0_0/0.06)] transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+                >
+                  {key === "back" ? (
+                    <Icon name="back" className="size-5" />
+                  ) : (
+                    key
+                  )}
+                </button>
+              ))}
               <button
                 type="button"
                 onClick={() => setTendered(String(shown))}
-                className="h-10 rounded-lg bg-emerald-500/15 text-[13px] font-bold text-emerald-300 ring-1 ring-emerald-400/30 transition-colors hover:bg-emerald-500/25"
+                style={{ gridColumn: 4, gridRow: 1 }}
+                className="h-11 rounded-lg border border-emerald-300 bg-emerald-50 text-[14px] font-bold text-emerald-800 hover:bg-emerald-100"
               >
                 {t("exact")}
               </button>
-              {quickCash(shown).map((n) => (
+              {quick.slice(0, 2).map((n, i) => (
                 <button
                   key={n}
                   type="button"
                   onClick={() => setTendered(String(n))}
+                  style={{ gridColumn: 4, gridRow: i + 2 }}
                   className={cn(
-                    "h-10 rounded-lg text-[13px] font-bold tabular-nums ring-1 transition-colors",
+                    "h-11 rounded-lg border text-[14px] font-bold tabular-nums transition-colors",
                     tenderedValue === n
-                      ? "bg-white text-zinc-900 ring-white"
-                      : "bg-white/5 ring-white/10 hover:bg-white/10",
+                      ? "border-select bg-select text-white"
+                      : "border-border bg-white hover:bg-zinc-50",
                   )}
                 >
                   {formatTaka(n)}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => press("clear")}
+                style={{ gridColumn: 4, gridRow: 4 }}
+                className="h-11 rounded-lg border border-border bg-white text-[14px] font-bold text-red-700 hover:bg-red-50"
+              >
+                {t("keyClear")}
+              </button>
             </div>
           </>
         ) : (
-          <label className="block">
-            <span className="text-[11.5px] font-bold tracking-wide text-zinc-400 uppercase">
+          <label className="mt-3 block">
+            <span className="text-[13px] font-medium text-muted-foreground">
               {method === "card" ? t("cardReference") : t("walletReference")}
             </span>
             <input
@@ -267,16 +312,16 @@ export function PaymentForm({
               maxLength={100}
               autoComplete="off"
               placeholder={method === "card" ? "004512" : "8N7A2KQ9XZ"}
-              className="mt-1.5 h-14 w-full rounded-xl bg-white/5 px-4 text-[18px] font-semibold ring-1 ring-white/15 outline-none placeholder:text-zinc-600 focus:ring-white/50"
+              className="mt-1.5 h-14 w-full rounded-lg border border-input bg-white px-4 text-[18px] font-semibold outline-none placeholder:text-zinc-300 focus:border-select"
             />
-            <span className="mt-2 block text-[13px] text-zinc-400">
+            <span className="mt-2 block text-[13px] text-muted-foreground">
               {method === "card" ? t("cardHint") : t("walletHint")}
             </span>
           </label>
         )}
       </div>
 
-      <div className="shrink-0 p-5 pt-3">
+      <div className="shrink-0 border-t bg-zinc-50 p-3">
         <Submit
           title={t("takePayment")}
           detail={[
@@ -296,7 +341,7 @@ export function PaymentForm({
   );
 }
 
-/** Wide pay button: what happens on the left, the amount on the right, like a card terminal's confirm key. */
+/** The Pay key: what happens on the left, the amount on the right. */
 function Submit({
   title,
   detail,
@@ -313,29 +358,21 @@ function Submit({
     <button
       type="submit"
       disabled={pending || blocked}
-      className="group flex h-16 w-full items-center gap-3 rounded-2xl bg-gradient-to-b from-orange-500 to-orange-600 pr-2 pl-3 text-left text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_10px_24px_-8px_rgb(249_115_22/0.6)] transition hover:from-orange-400 hover:to-orange-500 active:translate-y-px disabled:cursor-not-allowed disabled:from-zinc-700 disabled:to-zinc-700 disabled:text-zinc-400 disabled:shadow-none"
+      className="flex h-14 w-full items-center gap-3 rounded-lg bg-emerald-600 px-4 text-left text-white shadow-sm transition-colors hover:bg-emerald-700 active:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600"
     >
-      <span
+      <Icon
+        name={pending ? "spinner" : "check"}
         aria-hidden
-        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/20"
-      >
-        <Icon
-          name={pending ? "spinner" : "check"}
-          className={cn("size-5", pending && "animate-spin")}
-        />
-      </span>
+        className={cn("size-5 shrink-0", pending && "animate-spin")}
+      />
       <span className="min-w-0 flex-1 leading-tight">
         <span className="block text-[16px] font-bold">{title}</span>
-        <span className="block truncate text-[12.5px] font-medium text-white/80 group-disabled:text-zinc-500">
+        <span className="block truncate text-[12.5px] font-medium opacity-85">
           {detail}
         </span>
       </span>
-      <span className="flex h-12 shrink-0 items-center gap-1.5 rounded-xl bg-black/20 px-4 text-[20px] font-bold tabular-nums">
+      <span className="shrink-0 text-[22px] font-bold tabular-nums">
         {amount}
-        <Icon
-          name="go"
-          className="size-5 transition-transform group-hover:translate-x-0.5"
-        />
       </span>
     </button>
   );

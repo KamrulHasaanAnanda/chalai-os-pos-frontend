@@ -202,3 +202,20 @@ export async function addRound(
   }
   return { ok: true, at: Date.now() };
 }
+
+/** The demo restaurant has no coupons. */
+export async function applyCoupon(formData: FormData) {
+  fail(
+    orderPath(formData, formData.get("back") === "bill" ? "bill" : undefined),
+    "coupon_not_found",
+    "coupon",
+  );
+}
+
+export async function removeCoupon(formData: FormData) {
+  fail(
+    orderPath(formData, formData.get("back") === "bill" ? "bill" : undefined),
+    "not_found",
+    "coupon",
+  );
+}

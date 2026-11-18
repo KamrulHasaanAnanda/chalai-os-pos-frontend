@@ -95,7 +95,7 @@ export function OfflineTill() {
   return (
     <div className="min-h-dvh bg-zinc-50 print:bg-white">
       <div className="print:hidden">
-        <header className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b bg-zinc-900 px-4 py-3 text-white">
+        <header className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b bg-primary px-4 py-3 text-primary-foreground">
           <h1 className="text-[17px] font-bold">{t("title")}</h1>
           <span
             role="status"
@@ -379,7 +379,7 @@ function OrderScreen({
               e.preventDefault();
               void pay();
             }}
-            className="grid gap-2 rounded-xl bg-zinc-900 p-3 text-white"
+            className="grid gap-2 rounded-xl bg-primary p-3 text-primary-foreground"
           >
             <div className="grid grid-cols-4 gap-1">
               {(["cash", "bkash", "nagad", "card"] as const).map((m) => (
@@ -508,14 +508,14 @@ function CashMove() {
       <h2 className="text-[15px] font-bold sm:col-span-4">{t("cash")}</h2>
       <div className="flex gap-1">
         {(["out", "in"] as const).map((d) => (
-          <button key={d} type="button" onClick={() => setDirection(d)} className={cn("h-10 rounded-md px-3 text-[13px] font-semibold ring-1", direction === d ? "bg-zinc-900 text-white ring-zinc-900" : "ring-zinc-200")}>
+          <button key={d} type="button" onClick={() => setDirection(d)} className={cn("h-10 rounded-md px-3 text-[13px] font-semibold ring-1", direction === d ? "bg-select text-white ring-select" : "ring-zinc-200")}>
             {d === "in" ? t("cashIn") : t("cashOut")}
           </button>
         ))}
       </div>
       <input aria-label={t("amount")} inputMode="numeric" placeholder="৳0" value={amount} onChange={(e) => (setAmount(e.target.value), setSaved(false))} className="h-10 rounded-md px-3 ring-1 ring-zinc-200 tabular-nums" />
       <input aria-label={t("cashReason")} placeholder={t("cashReason")} maxLength={120} value={reason} onChange={(e) => (setReason(e.target.value), setSaved(false))} className="h-10 rounded-md px-3 ring-1 ring-zinc-200" />
-      <button type="submit" disabled={!valid} className="h-10 rounded-md bg-zinc-900 px-4 text-[14px] font-semibold text-white disabled:opacity-50">
+      <button type="submit" disabled={!valid} className="h-10 rounded-md bg-primary px-4 text-[14px] font-semibold text-primary-foreground disabled:opacity-50">
         OK
       </button>
       {saved && <p className="text-[13px] text-emerald-700 sm:col-span-4">{t("cashSaved")}</p>}

@@ -32,7 +32,7 @@ import { Field, Notice } from "@/components/app/field";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SubmitButton } from "@/components/app/submit-button";
 import { BillView } from "@/components/views/bill-view";
-import { FloorView } from "@/components/views/floor-view";
+import { FloorView, TablesView } from "@/components/views/floor-view";
 import { IncomingView } from "@/components/views/incoming-view";
 import { MenuView } from "@/components/views/menu-view";
 import { OrderView } from "@/components/views/order-view";
@@ -291,6 +291,13 @@ export function DemoFloor() {
   return (
     <FloorView floor={floor(gate.state)} user={gate.staff.user} error={error} />
   );
+}
+
+export function DemoTables() {
+  const gate = useStaff(floorRoles);
+  const error = useErrors();
+  if (!gate) return <Loading />;
+  return <TablesView floor={floor(gate.state)} error={error} />;
 }
 
 export function DemoOrders() {

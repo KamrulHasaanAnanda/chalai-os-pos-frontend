@@ -88,10 +88,45 @@ export type FloorPickup = {
   billRequested: boolean;
 };
 
+/** A booking still to come today (or being held now). No table means it is on the waitlist. */
+export type FloorReservation = {
+  id: string;
+  name: string;
+  partySize: number;
+  at: string;
+  tableId: string | null;
+  tableLabel: string | null;
+};
+
 export type Floor = {
   areas: { id: string; name: string; tables: FloorTable[] }[];
   /** Missing from an older API. */
   pickups?: FloorPickup[];
+  /** Today's bookings still to come. Missing from an older API. */
+  reservations?: FloorReservation[];
+  /** Guests' "Call waiter" / "Water" taps nobody has answered yet, oldest first. Missing from an older API. */
+  calls?: FloorCall[];
+  /** Open takeaway (parcel) orders from the counter, by token. Missing from an older API. */
+  parcels?: FloorParcel[];
+};
+
+export type FloorParcel = {
+  id: string;
+  number: number;
+  tokenNo: number | null;
+  openedAt: string;
+  totalTaka: number;
+  readyRounds: number;
+  billRequested: boolean;
+};
+
+export type FloorCall = {
+  id: string;
+  tableId: string;
+  tableLabel: string;
+  type: "waiter" | "water";
+  orderId: string | null;
+  createdAt: string;
 };
 
 export type OrderStatus = "open" | "paid" | "cancelled";
@@ -160,6 +195,8 @@ export type Order = {
   subtotalTaka: number;
   discountTaka: number;
   discountReason: string | null;
+  /** The coupon on this bill: what it takes off now, or how much more to order for it (`shortTaka`). */
+  coupon?: OrderCoupon | null;
   vatPercent: number;
   vatTaka: number;
   totalTaka: number;
@@ -247,7 +284,8 @@ export type PaymentInput = {
 };
 
 /** A staff member's open shift on the POS. */
-export type Shift = { id: string; staffName: string; startedAt: string };
+/** `startedToday` is false for a shift left open from an earlier business day; missing from an older API. */
+export type Shift = { id: string; staffName: string; startedAt: string; startedToday?: boolean };
 
 /** Made by the API when a shift ends. Money is what this person took; cancellations and open tables are the branch's. */
 export type ShiftReport = {
@@ -278,7 +316,7 @@ export type ShiftReport = {
     orders: { number: number; reason: string | null }[];
     dishes: { name: string; quantity: number; reason: string | null }[];
   };
-  openTables: { label: string | null; number: number; dueTaka: number }[];
+  openTables: { label: string | null; number: number; type?: string; tokenNo?: number | null; dueTaka: number }[];
 };
 
 export type KotOutput = "screen" | "printer" | "both";
@@ -345,3 +383,13 @@ export type Receipt = {
 export type Customer = { id: string; name: string; phone: string; visitCount: number; lastVisitAt: string | null; points?: number };
 
 export type CashMovement = { direction: "in" | "out"; amountTaka: number; reason: string; at: string };
+
+export type OrderCoupon = {
+  code: string;
+  kind: "percent" | "amount";
+  percent: number | null;
+  amountTaka: number | null;
+  discountTaka: number;
+  minBillTaka: number;
+  shortTaka: number;
+};

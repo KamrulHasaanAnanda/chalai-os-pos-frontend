@@ -45,7 +45,7 @@ export async function openOrder(formData: FormData) {
   const existing = result.error.body.orderId;
   if (result.error.code === "table_busy" && typeof existing === "string")
     redirect(`/orders/${existing}`);
-  fail("/floor", result.error);
+  fail(formData.get("back") === "/tables" ? "/tables" : "/floor", result.error);
 }
 
 export async function approveRound(formData: FormData) {
@@ -145,20 +145,61 @@ export async function spendPoints(formData: FormData) {
   await requireStaff({ roles: billRoles });
   const path = `${orderPath(formData)}/bill`;
   const points = int(formData, "points");
-  if (!Number.isInteger(points) || points <= 0) fail(path, "bad_points", "loyalty");
-  const result = await act((api) => api.spendPoints(str(formData, "orderId", 64), points));
+  if (!Number.isInteger(points) || points <= 0)
+    fail(path, "bad_points", "loyalty");
+  const result = await act((api) =>
+    api.spendPoints(str(formData, "orderId", 64), points),
+  );
   if (!result.ok) fail(path, result.error, "loyalty");
-  done(path, result.data.status === "paid" ? "paid" : "pointsUsed", result.data.status === "paid" ? { n: String(result.data.number) } : {});
+  done(
+    path,
+    result.data.status === "paid" ? "paid" : "pointsUsed",
+    result.data.status === "paid" ? { n: String(result.data.number) } : {},
+  );
 }
 
 /** Takes the loyalty discount off the bill; the points go back to the customer. */
 export async function returnPoints(formData: FormData) {
   await requireStaff({ roles: billRoles });
   const path = `${orderPath(formData)}/bill`;
-  const result = await act((api) => api.returnPoints(str(formData, "orderId", 64)));
+  const result = await act((api) =>
+    api.returnPoints(str(formData, "orderId", 64)),
+  );
   if (!result.ok) fail(path, result.error, "loyalty");
   done(path, "pointsReturned");
 }
+
+/** A coupon code on the bill (rules in the API: src/coupons/coupon-rules.ts). From the order page or the bill page. */
+export async function applyCoupon(formData: FormData) {
+  await requireStaff({ roles: billRoles });
+  const path = couponPath(formData);
+  const code = str(formData, "code", 40).trim();
+  if (!code) fail(path, "coupon_not_found", "coupon");
+  const result = await act((api) =>
+    api.applyCoupon(str(formData, "orderId", 64), code),
+  );
+  if (!result.ok) fail(path, result.error, "coupon");
+  done(
+    path,
+    result.data.status === "paid" ? "paid" : "couponApplied",
+    result.data.status === "paid" ? { n: String(result.data.number) } : {},
+  );
+}
+
+export async function removeCoupon(formData: FormData) {
+  await requireStaff({ roles: billRoles });
+  const path = couponPath(formData);
+  const result = await act((api) =>
+    api.removeCoupon(str(formData, "orderId", 64)),
+  );
+  if (!result.ok) fail(path, result.error, "coupon");
+  done(path, "couponRemoved");
+}
+
+const couponPath = (formData: FormData) =>
+  str(formData, "back", 8) === "bill"
+    ? `${orderPath(formData)}/bill`
+    : orderPath(formData);
 
 const methods: PaymentMethod[] = ["cash", "bkash", "nagad", "card"];
 

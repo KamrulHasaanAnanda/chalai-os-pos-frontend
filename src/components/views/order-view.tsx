@@ -10,8 +10,15 @@ import {
 } from "@/actions/orders";
 import { Elapsed } from "@/components/elapsed";
 import { Icon } from "@/components/icons";
-import { MenuPicker } from "@/components/menu-picker";
+import {
+  CartBar,
+  CartPanel,
+  MenuPicker,
+  OrderCartProvider,
+  WhenCartEmpty,
+} from "@/components/menu-picker";
 import { OrderTotals } from "@/components/order-totals";
+import { CouponBox } from "@/components/coupon-box";
 import { PrintKotButton } from "@/components/print/kot-printer";
 import { OverrideFields } from "@/components/override-fields";
 import { OrderPill, RoundPill } from "@/components/status";
@@ -48,15 +55,16 @@ const ROUND_STRIP: Record<Round["status"], string> = {
 /** Big touch buttons used across the order ticket: one shape, colour says what it does. */
 const btn =
   "inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-[14.5px] font-semibold whitespace-nowrap transition-colors disabled:opacity-50 [&_svg]:size-[18px] [&_svg]:shrink-0";
+// Same as the owner app: black main buttons, orange only as an accent.
 const btnPrimary = cn(
   btn,
-  "bg-orange-600 text-white shadow-sm hover:bg-orange-500",
+  "bg-primary text-primary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.10)] hover:bg-primary/90",
 );
-const btnDark = cn(btn, "bg-zinc-900 text-white hover:bg-zinc-800");
+const btnDark = cn(btn, "bg-primary text-primary-foreground hover:bg-primary/90");
 const btnGreen = cn(btn, "bg-emerald-600 text-white hover:bg-emerald-500");
 const btnOutline = cn(
   btn,
-  "border border-zinc-300 bg-card text-zinc-900 hover:border-zinc-900 hover:bg-zinc-50",
+  "border border-input bg-white text-zinc-900 shadow-xs hover:border-zinc-400 hover:bg-zinc-50",
 );
 const btnDanger = cn(
   btn,
@@ -105,32 +113,28 @@ export function OrderView({
     <section
       aria-label={t("ticket")}
       className={cn(
-        "flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm",
+        "flex flex-col overflow-hidden rounded-2xl border bg-card shadow-xs",
         picker && "lg:h-full",
         adding && "max-lg:hidden",
       )}
     >
-      {/* Dark ticket head: back, table, order number, timer and what's due. */}
-      <header className="relative shrink-0 overflow-hidden bg-zinc-900 px-4 pt-3 pb-4 text-white">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-20 -right-20 size-48 rounded-full bg-orange-500/25 blur-3xl"
-        />
+      {/* Ticket head: back, table, order number, timer and what's due. */}
+      <header className="shrink-0 border-b bg-card px-4 pt-3 pb-4">
         <Link
           href="/floor"
-          className="relative -ml-1.5 inline-flex h-8 items-center gap-0.5 rounded-md px-1.5 text-[13px] font-semibold text-zinc-400 hover:bg-white/10 hover:text-white"
+          className="-ml-1.5 inline-flex h-8 items-center gap-0.5 rounded-md px-1.5 text-[13px] font-semibold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
         >
           <Icon name="back" className="size-4" />
           {t("backToFloor")}
         </Link>
-        <div className="relative mt-1.5 flex items-center gap-3">
+        <div className="mt-1.5 flex items-center gap-3">
           <span
             aria-hidden
             className={cn(
               "flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl px-2 text-[22px] font-bold",
               order.tableLabel
-                ? "bg-orange-500 text-white"
-                : "bg-white text-zinc-900",
+                ? "bg-orange-50 text-orange-600 ring-1 ring-orange-200"
+                : "bg-zinc-100 text-zinc-700",
             )}
           >
             {order.tableLabel ?? <Icon name="bag" className="size-6" />}
@@ -140,10 +144,10 @@ export function OrderView({
               {order.tableLabel
                 ? t("table", { table: order.tableLabel })
                 : order.tokenNo
-                ? t("pickup", { token: order.tokenNo })
-                : t("takeaway")}
+                  ? t("pickup", { token: order.tokenNo })
+                  : t("takeaway")}
             </h1>
-            <p className="truncate text-[12.5px] text-zinc-400">
+            <p className="truncate text-[12.5px] text-muted-foreground">
               {[
                 order.areaName,
                 t("number", { number: order.number }),
@@ -155,7 +159,7 @@ export function OrderView({
             </p>
           </div>
           <div className="shrink-0 text-right">
-            <p className="text-[11px] font-semibold tracking-wide text-zinc-400 uppercase">
+            <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
               {open ? t("dueNow") : t("totalLabel")}
             </p>
             <p className="text-[24px] leading-tight font-bold tabular-nums">
@@ -163,22 +167,22 @@ export function OrderView({
             </p>
           </div>
         </div>
-        <div className="relative mt-3 flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold">
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold">
           <OrderPill status={order.status} />
           {open ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 tabular-nums">
+            <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-zinc-700 tabular-nums">
               <Icon name="clock" className="size-3.5" />
               <span className="sr-only">{t("openFor")}</span>
               <Elapsed since={order.openedAt} />
             </span>
           ) : (
             order.closedAt && (
-              <span className="text-zinc-400">
+              <span className="text-muted-foreground">
                 {t("closedAt", { time: formatTime(order.closedAt, tz) })}
               </span>
             )
           )}
-          <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 tabular-nums">
+          <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-zinc-700 tabular-nums">
             <Icon name="utensils" className="size-3.5" />
             {t("itemsCount", { n: itemCount })}
           </span>
@@ -186,7 +190,7 @@ export function OrderView({
       </header>
 
       {/* The ticket body scrolls; head and bill buttons stay put. */}
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-zinc-50/70 p-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-zinc-50 p-3">
         {order.billRequestedAt && open && (
           <Notice tone="info">
             {t("billRequested", {
@@ -195,6 +199,7 @@ export function OrderView({
           </Notice>
         )}
         {roundsError && <Notice>{roundsError}</Notice>}
+        {picker && <CartPanel />}
 
         {pending.map((round) => (
           <article
@@ -274,18 +279,22 @@ export function OrderView({
         ))}
 
         {others.length === 0 && pending.length === 0 && (
-          <div className="flex flex-col items-center rounded-xl border-2 border-dashed border-zinc-300 bg-card px-5 py-8 text-center">
-            <span
-              aria-hidden
-              className="flex size-12 items-center justify-center rounded-xl bg-orange-100 text-orange-600"
-            >
-              <Icon name="utensils" className="size-6" />
-            </span>
-            <p className="mt-2.5 text-[15px] font-bold">{t("emptyTitle")}</p>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
-              {picker ? t("noRoundsPicker") : t("noRounds")}
-            </p>
-          </div>
+          <EmptyTicket picker={picker}>
+            <div className="flex flex-col items-center rounded-xl border border-dashed border-input bg-card px-5 py-10 text-center">
+              <span
+                aria-hidden
+                className="flex size-11 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500"
+              >
+                <Icon name="utensils" className="size-5" />
+              </span>
+              <p className="mt-3 text-[15px] font-semibold">
+                {t("emptyTitle")}
+              </p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                {picker ? t("noRoundsPicker") : t("noRounds")}
+              </p>
+            </div>
+          </EmptyTicket>
         )}
 
         {others.map((round) => {
@@ -393,93 +402,111 @@ export function OrderView({
       </div>
 
       {/* Totals and the bill buttons, always in view at the bottom of the ticket. */}
-      <footer className="shrink-0 border-t bg-card p-3">
-        <OrderTotals order={order} compact />
-        {(showBillButtons || picker) && (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {picker && (
-              <Link
-                href={withParams(orderHref(order.id), { tab: "add" })}
-                className={cn(btnDark, "col-span-2 lg:hidden")}
-              >
-                <Icon name="plus" />
-                {t("addItems")}
-              </Link>
-            )}
-            {open && !order.billRequestedAt && (
-              <form
-                action={requestBill}
-                className={cn(!(canBill && open) && "col-span-2")}
-              >
-                <input type="hidden" name="orderId" value={order.id} />
-                <button type="submit" className={cn(btnOutline, "w-full")}>
-                  <Icon name="receipt" />
-                  {t("requestBill")}
-                </button>
-              </form>
-            )}
-            {canBill && open && (
-              <Link
-                href={orderHref(order.id, "bill")}
-                className={cn(
-                  btnPrimary,
-                  order.billRequestedAt && "col-span-2",
-                )}
-              >
-                <Icon name="cash" />
-                {t("openBill")}
-              </Link>
-            )}
-            {order.status === "paid" && canBill && (
-              <Link
-                href={orderHref(order.id, "receipt")}
-                className={cn(btnDark, "col-span-2")}
-              >
-                <Icon name="printer" />
-                {t("receipt")}
-              </Link>
-            )}
-          </div>
-        )}
-      </footer>
+      <EmptyTicket picker={picker}>
+        <footer className="shrink-0 border-t bg-card p-3">
+          {canBill && open && itemCount > 0 && (
+            <CouponBox order={order} error={error} className="mb-3" />
+          )}
+          <OrderTotals order={order} compact />
+          {(showBillButtons || picker) && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {picker && (
+                <Link
+                  href={withParams(orderHref(order.id), { tab: "add" })}
+                  className={cn(btnDark, "col-span-2 lg:hidden")}
+                >
+                  <Icon name="plus" />
+                  {t("addItems")}
+                </Link>
+              )}
+              {open && !order.billRequestedAt && (
+                <form
+                  action={requestBill}
+                  className={cn(!(canBill && open) && "col-span-2")}
+                >
+                  <input type="hidden" name="orderId" value={order.id} />
+                  <button type="submit" className={cn(btnOutline, "w-full")}>
+                    <Icon name="receipt" />
+                    {t("requestBill")}
+                  </button>
+                </form>
+              )}
+              {canBill && open && (
+                <Link
+                  href={orderHref(order.id, "bill")}
+                  className={cn(
+                    btnPrimary,
+                    order.billRequestedAt && "col-span-2",
+                  )}
+                >
+                  <Icon name="cash" />
+                  {t("openBill")}
+                </Link>
+              )}
+              {order.status === "paid" && canBill && (
+                <Link
+                  href={orderHref(order.id, "receipt")}
+                  className={cn(btnDark, "col-span-2")}
+                >
+                  <Icon name="printer" />
+                  {t("receipt")}
+                </Link>
+              )}
+            </div>
+          )}
+        </footer>
+      </EmptyTicket>
     </section>
   );
 
   if (!picker) return <div className="mx-auto max-w-[560px]">{ticket}</div>;
 
   return (
-    <div className="mx-auto max-w-[1600px]">
-      {/* Phones: switch between the order and the menu. */}
-      <Segmented
-        label={t("tabs.label")}
-        className="mb-3 lg:hidden"
-        items={[
-          {
-            href: orderHref(order.id),
-            label: t("tabs.order"),
-            active: !adding,
-          },
-          {
-            href: withParams(orderHref(order.id), { tab: "add" }),
-            label: t("tabs.add"),
-            active: adding,
-          },
-        ]}
-      />
-      <div className="lg:grid lg:h-[calc(100dvh-7.5rem)] lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div
-          id="picker"
-          className={cn(
-            "max-lg:pb-40 lg:h-full lg:min-h-0",
-            !adding && "max-lg:hidden",
-          )}
-        >
-          <MenuPicker orderId={order.id} menu={menu} />
+    <OrderCartProvider orderId={order.id} menu={menu}>
+      <div className="mx-auto max-w-[1600px]">
+        {/* Phones: switch between the order and the menu. */}
+        <Segmented
+          label={t("tabs.label")}
+          className="mb-3 lg:hidden"
+          items={[
+            {
+              href: orderHref(order.id),
+              label: t("tabs.order"),
+              active: !adding,
+            },
+            {
+              href: withParams(orderHref(order.id), { tab: "add" }),
+              label: t("tabs.add"),
+              active: adding,
+            },
+          ]}
+        />
+        <div className="lg:grid lg:h-[calc(100dvh-7.5rem)] lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div
+            id="picker"
+            className={cn(
+              "max-lg:pb-40 lg:h-full lg:min-h-0",
+              !adding && "max-lg:hidden",
+            )}
+          >
+            <MenuPicker />
+          </div>
+          {ticket}
         </div>
-        {ticket}
+        {adding && <CartBar reviewHref={orderHref(order.id)} />}
       </div>
-    </div>
+    </OrderCartProvider>
   );
+}
+
+function EmptyTicket({
+  picker,
+  children,
+}: {
+  picker: boolean;
+  children: React.ReactNode;
+}) {
+  return picker ? <WhenCartEmpty>{children}</WhenCartEmpty> : <>{children}</>;
 }
 
 function RoundHeader({

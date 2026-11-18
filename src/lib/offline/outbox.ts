@@ -94,6 +94,13 @@ export async function retry(entry: OutboxEntry, patch: Partial<OutboxEntry> = {}
   void flush();
 }
 
+/** The live connection is back, so the server is reachable: clear "offline" now and replay anything queued. */
+export function markOnline() {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return;
+  set({ online: true });
+  void flush();
+}
+
 export async function refreshSnapshot(): Promise<boolean> {
   try {
     const response = await fetch("/api/offline/snapshot", { cache: "no-store" });

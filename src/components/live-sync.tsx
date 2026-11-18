@@ -8,25 +8,47 @@ import { io } from "socket.io-client";
 import { LiveStatus, type LiveLabels } from "@/components/live-status";
 import Link from "next/link";
 import { KITCHEN_CHANGED_EVENT } from "@/components/print/kot-printer";
-import { startOffline, useOutbox } from "@/lib/offline/outbox";
+import { markOnline, startOffline, useOutbox } from "@/lib/offline/outbox";
 
 const demo = process.env.CHALAI_DEMO === "1";
 
-type Payload = { tableId?: string; orderId?: string; roundId?: string; menuItemId?: string };
+/** Fired on every realtime event; the notification bell listens for it. */
+export const LIVE_CHANGED_EVENT = "chalai:live-changed";
+
+type Payload = {
+  tableId?: string;
+  orderId?: string;
+  roundId?: string;
+  menuItemId?: string;
+};
 type Rule = { events: string[]; pollMs: number; orderId?: string };
 
-const realtimeUrl = (process.env.NEXT_PUBLIC_REALTIME_URL ?? "http://localhost:4000").replace(/\/$/, "");
-const events = ["floor.changed", "order.changed", "kitchen.changed", "menu.changed"] as const;
+const realtimeUrl = (
+  process.env.NEXT_PUBLIC_REALTIME_URL ?? "http://localhost:4000"
+).replace(/\/$/, "");
+const events = [
+  "floor.changed",
+  "order.changed",
+  "kitchen.changed",
+  "menu.changed",
+] as const;
 
 /** Which events each page cares about, and how often it polls when the socket is disconnected. */
 function ruleFor(path: string): Rule | null {
-  if (path === "/floor") return { events: ["floor.changed", "order.changed"], pollMs: 20_000 };
-  if (path === "/kitchen") return { events: ["kitchen.changed"], pollMs: 15_000 };
-  if (path === "/orders") return { events: ["order.changed", "floor.changed"], pollMs: 30_000 };
+  if (path === "/floor")
+    return { events: ["floor.changed", "order.changed"], pollMs: 20_000 };
+  if (path === "/kitchen")
+    return { events: ["kitchen.changed"], pollMs: 15_000 };
+  if (path === "/orders")
+    return { events: ["order.changed", "floor.changed"], pollMs: 30_000 };
   if (path === "/menu") return { events: ["menu.changed"], pollMs: 30_000 };
   const order = path.match(/^\/orders\/([^/]+)(?:\/bill)?$/);
   if (order) {
-    return { events: ["order.changed", "kitchen.changed", "menu.changed"], pollMs: 20_000, orderId: decodeURIComponent(order[1]) };
+    return {
+      events: ["order.changed", "kitchen.changed", "menu.changed"],
+      pollMs: 20_000,
+      orderId: decodeURIComponent(order[1]),
+    };
   }
   return null;
 }
@@ -47,7 +69,9 @@ export function LiveSync({
   useEffect(() => {
     if (!demo) startOffline();
   }, []);
-  const [status, setStatus] = useState<"connecting" | "live" | "offline">("connecting");
+  const [status, setStatus] = useState<"connecting" | "live" | "offline">(
+    "connecting",
+  );
 
   // The event handler lives for the whole socket; it reads the current page through refs.
   const ruleRef = useRef<Rule | null>(null);
@@ -78,7 +102,9 @@ export function LiveSync({
               routerRef.current.refresh();
               return cb({});
             }
-            const body = response.ok ? ((await response.json()) as { ticket: string }) : null;
+            const body = response.ok
+              ? ((await response.json()) as { ticket: string })
+              : null;
             cb(body ? { ticket: body.ticket } : {});
           })
           .catch(() => cb({}));
@@ -90,6 +116,8 @@ export function LiveSync({
     let wasLive = false;
     socket.on("connect", () => {
       setStatus("live");
+      // A request that failed while the server was restarting may have marked the till offline.
+      markOnline();
       // Anything that happened while we were away was missed: catch up once.
       if (wasLive) refresh();
       wasLive = true;
@@ -97,7 +125,8 @@ export function LiveSync({
     socket.on("disconnect", (reason) => {
       setStatus("offline");
       // A server-side disconnect isn't retried automatically by socket.io.
-      if (reason === "io server disconnect" && !stopped) setTimeout(() => socket.connect(), 3_000);
+      if (reason === "io server disconnect" && !stopped)
+        setTimeout(() => socket.connect(), 3_000);
     });
     socket.on("connect_error", () => {
       setStatus("offline");
@@ -108,10 +137,19 @@ export function LiveSync({
     for (const name of events) {
       socket.on(name, (payload: Payload = {}) => {
         // The KOT printer listens on every page (components/print/kot-printer.tsx).
-        if (name === "kitchen.changed") window.dispatchEvent(new Event(KITCHEN_CHANGED_EVENT));
+        if (name === "kitchen.changed")
+          window.dispatchEvent(new Event(KITCHEN_CHANGED_EVENT));
+        // The notification bell refreshes on any change, whatever page is open.
+        window.dispatchEvent(new Event(LIVE_CHANGED_EVENT));
         const rule = ruleRef.current;
         if (!rule || !rule.events.includes(name)) return;
-        if (name === "order.changed" && rule.orderId && payload.orderId && payload.orderId !== rule.orderId) return;
+        if (
+          name === "order.changed" &&
+          rule.orderId &&
+          payload.orderId &&
+          payload.orderId !== rule.orderId
+        )
+          return;
         refresh();
       });
     }
@@ -138,13 +176,29 @@ export function LiveSync({
   }, [status, path, router]);
 
   const browserOffline = !demo && !outbox.online;
-  const shown = browserOffline ? "offline" : outbox.pending > 0 ? "connecting" : status;
-  const shownLabels = outbox.pending > 0 && offlineLabels ? { ...labels, connecting: offlineLabels.syncing.replace("{n}", String(outbox.pending)) } : labels;
+  const shown = browserOffline
+    ? "offline"
+    : outbox.pending > 0
+      ? "connecting"
+      : status;
+  const shownLabels =
+    outbox.pending > 0 && offlineLabels
+      ? {
+          ...labels,
+          connecting: offlineLabels.syncing.replace(
+            "{n}",
+            String(outbox.pending),
+          ),
+        }
+      : labels;
   return (
     <span className="inline-flex items-center gap-2">
       <LiveStatus status={shown} labels={shownLabels} dark={dark} />
       {browserOffline && offlineLabels && path !== "/kitchen" && (
-        <Link href="/offline" className="inline-flex h-8 items-center rounded-md bg-amber-400 px-2.5 text-[13px] font-semibold text-zinc-900">
+        <Link
+          href="/offline"
+          className="inline-flex h-8 items-center rounded-md bg-amber-400 px-2.5 text-[13px] font-semibold text-zinc-900"
+        >
           {offlineLabels.openTill}
         </Link>
       )}

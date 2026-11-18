@@ -2,6 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Light only, like the owner app: `dark:` styles apply under a .dark class, never from the computer's dark mode. */
+@custom-variant dark (&:is(.dark *));
+@custom-variant fullscreen (&:fullscreen);
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -21,6 +25,8 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-select: var(--select);
+  --color-select-foreground: var(--select-foreground);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -71,8 +77,8 @@
   --maroon-deep: #09090b;
   --maroon-soft: #27272a;
   --maroon-tint: #f4f4f5;
-  --brand: #c9431a;
-  --brand-soft: #fff4ee;
+  --brand: #e2531c;
+  --brand-soft: #fff3ed;
   --sun: #e2531c;
   --sun-tint: #fff4ee;
   --sun-soft: #ffe4d6;
@@ -82,22 +88,26 @@
   --surface: #ffffff;
   --surface-2: #fafafa;
   --rose: #fafafa;
-  --gray: #f4f4f5;
-  --line: #e4e4e7;
+  --gray: #eef3f3;
+  --line: #e3e9ea;
   --ok: #15803d;
   --ok-soft: #f0fdf4;
   --late: #dc2626;
   --brass: #e2531c;
   --brass-light: #ff8a5c;
 
-  --background: #f7f7f8;
+  --background: #f6f8f8;
   --foreground: var(--ink);
   --card: #ffffff;
   --card-foreground: var(--ink);
   --popover: #ffffff;
   --popover-foreground: var(--ink);
+  /* Main buttons: Chalai logo orange (darker shade so white text passes 4.5:1). */
   --primary: #c9431a;
   --primary-foreground: #ffffff;
+  /* Selected chips, tabs, toggles, badges and focus: teal. */
+  --select: #0f766e;
+  --select-foreground: #ffffff;
   --secondary: var(--gray);
   --secondary-foreground: var(--ink);
   --muted: var(--gray);
@@ -106,8 +116,8 @@
   --accent-foreground: var(--ink);
   --destructive: #dc2626;
   --border: var(--line);
-  --input: var(--line);
-  --ring: #18181b;
+  --input: #d5dee0;
+  --ring: #0f766e;
   --radius: 0.5rem;
 }
 
@@ -186,10 +196,15 @@ html {
 }
 
 /* Toast and dialog entrances */
-.toast-in { animation: toast-in 180ms ease-out; }
+.toast-in { animation: toast-in 220ms cubic-bezier(0.22, 1, 0.36, 1); }
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
   to { opacity: 1; transform: none; }
+}
+.toast-timer { animation: toast-timer 4s linear forwards; }
+@keyframes toast-timer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
 }
 dialog.sheet[open] { animation: sheet-in 180ms ease-out; }
 dialog.sheet[open]::backdrop { animation: fade-in 180ms ease-out; }
@@ -248,7 +263,7 @@ dialog.sheet[open]::backdrop { animation: fade-in 180ms ease-out; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton, .pulse-dot::after, .toast-in, dialog.sheet[open] { animation: none !important; }
+  .skeleton, .pulse-dot::after, .toast-in, .toast-timer, dialog.sheet[open] { animation: none !important; }
   html {
     scroll-behavior: auto;
   }
@@ -288,4 +303,17 @@ dialog.sheet[open]::backdrop { animation: fade-in 180ms ease-out; }
   select:disabled {
     cursor: not-allowed;
   }
+}
+
+/* The notification bell rings twice when something new arrives. */
+@keyframes bell-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(8deg); }
+  60% { transform: rotate(-6deg); }
+  75% { transform: rotate(3deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [class*="bell-ring"] { animation: none !important; }
 }

@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import { applyDiscount, returnPoints, spendPoints } from "@/actions/orders";
 import { Icon } from "@/components/icons";
 import { OrderTotals } from "@/components/order-totals";
+import { CouponBox } from "@/components/coupon-box";
 import { OverrideFields } from "@/components/override-fields";
 import { CustomerFields } from "@/components/customer-fields";
 import { PAY_FORM_ID, PaymentForm } from "@/components/payment-form";
@@ -36,6 +37,7 @@ export function BillView({
   const tOrder = useTranslations("order");
   const tMethod = useTranslations("paymentMethod");
   const open = order.status === "open";
+  const tCoupon = useTranslations("coupon");
   const pendingRounds = order.rounds.filter(
     (r) => r.status === "pending_approval",
   ).length;
@@ -49,40 +51,31 @@ export function BillView({
     <div className="mx-auto max-w-[1400px] lg:grid lg:h-[calc(100dvh-7.5rem)] lg:grid-cols-[minmax(0,1fr)_minmax(400px,460px)] lg:gap-4 max-lg:space-y-4">
       {/* The receipt. */}
       <section aria-labelledby="bill-items" className={cn(panel, "lg:h-full")}>
-        <header className="relative shrink-0 overflow-hidden bg-zinc-900 px-4 pt-3 pb-4 text-white sm:px-5">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-20 -right-20 size-48 rounded-full bg-orange-500/25 blur-3xl"
-          />
-          <div className="relative flex items-center justify-between gap-2">
+        <header className="shrink-0 border-b px-4 pt-3 pb-4 sm:px-5">
+          <div className="flex items-center justify-between gap-2">
             <Link
               href={orderHref(order.id)}
-              className="-ml-1.5 inline-flex h-8 items-center gap-0.5 rounded-md px-1.5 text-[13px] font-semibold text-zinc-400 hover:bg-white/10 hover:text-white"
+              className="-ml-1.5 inline-flex h-8 items-center gap-0.5 rounded-md px-1.5 text-[13px] font-semibold text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <Icon name="back" className="size-4" />
               {t("backToOrder")}
             </Link>
             <Link
               href={orderHref(order.id, "receipt")}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-[13px] font-semibold ring-1 ring-white/15 hover:bg-white/15"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white px-3 text-[13px] font-semibold shadow-xs ring-1 ring-zinc-300 hover:bg-zinc-50"
             >
               <Icon name="printer" className="size-4" />
               {t("printReceipt")}
             </Link>
           </div>
-          <div className="relative mt-2 flex items-center gap-3">
+          <div className="mt-2 flex items-center gap-3">
             <span
               aria-hidden
-              className={cn(
-                "flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl px-2 text-[22px] font-bold",
-                order.tableLabel
-                  ? "bg-orange-500 text-white"
-                  : "bg-white text-zinc-900",
-              )}
+              className="flex h-11 min-w-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 px-2 text-[20px] font-bold text-orange-700"
             >
-              {order.tableLabel ?? <Icon name="bag" className="size-6" />}
+              {order.tableLabel ?? <Icon name="bag" className="size-5" />}
             </span>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1
                 id="bill-items"
                 className="truncate text-[20px] leading-tight font-bold tracking-tight sm:text-[22px]"
@@ -91,11 +84,11 @@ export function BillView({
                   table: order.tableLabel
                     ? tOrder("table", { table: order.tableLabel })
                     : order.tokenNo
-                    ? tOrder("pickup", { token: order.tokenNo })
-                    : tOrder("takeaway"),
+                      ? tOrder("pickup", { token: order.tokenNo })
+                      : tOrder("takeaway"),
                 })}
               </h1>
-              <p className="truncate text-[12.5px] text-zinc-400">
+              <p className="truncate text-[13px] text-muted-foreground">
                 {[
                   order.areaName,
                   tOrder("number", { number: order.number }),
@@ -107,24 +100,20 @@ export function BillView({
             </div>
           </div>
           {/* Who looked after the table and who is taking the money. */}
-          <dl className="relative mt-3 flex flex-wrap gap-1.5 text-[12.5px]">
+          <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
             {[
               { icon: "serve" as const, label: t("servedBy"), value: waiter },
               { icon: "cash" as const, label: t("cashier"), value: user.name },
             ]
               .filter((row) => row.value)
               .map((row) => (
-                <div
-                  key={row.label}
-                  className="flex items-center gap-1.5 rounded-full bg-white/10 py-1 pr-3 pl-1.5 ring-1 ring-white/10"
-                >
-                  <span
+                <div key={row.label} className="flex items-center gap-1.5">
+                  <Icon
+                    name={row.icon}
                     aria-hidden
-                    className="flex size-5 items-center justify-center rounded-full bg-white/15"
-                  >
-                    <Icon name={row.icon} className="size-3" />
-                  </span>
-                  <dt className="text-zinc-400">{row.label}</dt>
+                    className="size-3.5 text-muted-foreground"
+                  />
+                  <dt className="text-muted-foreground">{row.label}</dt>
                   <dd className="font-semibold">{row.value}</dd>
                 </div>
               ))}
@@ -156,12 +145,12 @@ export function BillView({
           {/* Who the bill is for. While money is due the fields belong to the payment form (form=PAY_FORM_ID). */}
           <section
             aria-label={t("customer")}
-            className="mb-3 rounded-xl bg-sky-50 p-3 ring-1 ring-sky-200"
+            className="mb-4 rounded-xl border p-3"
           >
             <div className="flex items-center gap-3">
               <span
                 aria-hidden
-                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-sky-600 text-[16px] font-bold text-white"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[15px] font-bold text-sky-700"
               >
                 {order.guestName ? (
                   order.guestName.trim()[0]?.toUpperCase()
@@ -170,10 +159,10 @@ export function BillView({
                 )}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold tracking-wide text-sky-700 uppercase">
+                <p className="text-[12px] font-medium text-muted-foreground">
                   {t("customer")}
                 </p>
-                <p className="truncate text-[15px] font-bold">
+                <p className="truncate text-[14.5px] font-semibold">
                   {[order.guestName ?? t("walkIn"), order.guestPhone]
                     .filter(Boolean)
                     .join(" · ")}
@@ -205,7 +194,7 @@ export function BillView({
               </p>
               <Link
                 href={orderHref(order.id)}
-                className="mt-4 inline-flex h-11 items-center gap-2 rounded-xl bg-zinc-900 px-4 text-[14px] font-semibold text-white hover:bg-zinc-800"
+                className="mt-4 inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-[14px] font-semibold text-primary-foreground hover:bg-primary/90"
               >
                 <Icon name="plus" className="size-4" />
                 {t("addItems")}
@@ -213,100 +202,132 @@ export function BillView({
             </div>
           ) : (
             <>
-              <p className="flex items-center justify-between text-[12px] font-bold tracking-wide text-zinc-500 uppercase">
-                <span>{t("itemsCount", { n: itemCount })}</span>
-                <span>{t("amountCol")}</span>
-              </p>
-              <ul className="mt-1 divide-y divide-dashed divide-zinc-200">
-                {lines.map((line) => (
-                  <li
-                    key={line.key}
-                    className="flex items-center justify-between gap-3 py-2.5"
-                  >
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-zinc-100 px-1.5 text-[13px] font-bold tabular-nums">
-                        {line.quantity}×
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-[15px] font-semibold">
-                          {line.name}
-                        </span>
-                        <span className="block text-[12.5px] text-muted-foreground tabular-nums">
+              {/* The receipt: one row per dish, like the printed bill. */}
+              <table className="w-full text-[14px]">
+                <thead>
+                  <tr className="border-y-2 border-select text-[12px] font-semibold tracking-wide uppercase">
+                    <th scope="col" className="w-12 py-2 text-left">
+                      {t("colQty")}
+                    </th>
+                    <th scope="col" className="py-2 text-left">
+                      {t("colItem")}
+                    </th>
+                    <th
+                      scope="col"
+                      className="hidden py-2 text-right sm:table-cell"
+                    >
+                      {t("colPrice")}
+                    </th>
+                    <th scope="col" className="py-2 text-right">
+                      {t("amountCol")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-dotted divide-zinc-300">
+                  {lines.map((line) => (
+                    <tr key={line.key}>
+                      <td className="py-2.5 align-top font-semibold tabular-nums">
+                        {line.quantity}
+                      </td>
+                      <td className="py-2.5 pr-3 align-top">
+                        <span className="block font-medium">{line.name}</span>
+                        <span className="block text-[12.5px] text-muted-foreground tabular-nums sm:hidden">
                           {t("each", { price: formatTaka(line.unitPriceTaka) })}
                         </span>
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-[15px] font-bold tabular-nums">
-                      {formatTaka(line.totalTaka)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                      </td>
+                      <td className="hidden py-2.5 text-right align-top text-muted-foreground tabular-nums sm:table-cell">
+                        {formatTaka(line.unitPriceTaka)}
+                      </td>
+                      <td className="py-2.5 text-right align-top font-semibold tabular-nums">
+                        {formatTaka(line.totalTaka)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-select text-[12.5px] text-muted-foreground">
+                    <td colSpan={4} className="pt-1.5">
+                      {t("itemsCount", { n: itemCount })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </>
           )}
 
-          {open && order.customer && (order.loyalty || (order.customer.points ?? 0) > 0) && (
-            <section
-              id="loyalty"
-              aria-labelledby="loyalty-title"
-              className="mt-3 rounded-xl px-3 py-3 ring-1 ring-zinc-200"
-            >
-              <h3 id="loyalty-title" className="text-[14px] font-semibold">
-                {t("pointsTitle")}
-              </h3>
-              {error.forForm("loyalty") && (
-                <div className="mt-2">
-                  <Notice>{error.forForm("loyalty")}</Notice>
-                </div>
-              )}
-              {order.loyalty ? (
-                <form action={returnPoints} className="mt-1 flex items-center justify-between gap-3">
-                  <input type="hidden" name="orderId" value={order.id} />
-                  <p className="text-[13.5px] text-muted-foreground">
-                    {t("pointsUsed", { n: order.loyalty.spent })}
-                  </p>
-                  <button
-                    type="submit"
-                    className="h-10 shrink-0 rounded-lg px-3 text-[13.5px] font-semibold ring-1 ring-zinc-300 hover:bg-zinc-100"
-                  >
-                    {t("pointsRemove")}
-                  </button>
-                </form>
-              ) : (
-                <form action={spendPoints} className="mt-1">
-                  <input type="hidden" name="orderId" value={order.id} />
-                  <p className="text-[13.5px] text-muted-foreground">
-                    {t("pointsBalance", {
-                      name: order.customer.name,
-                      n: order.customer.points ?? 0,
-                    })}
-                  </p>
-                  <div className="mt-2 flex gap-2">
-                    <label className="block flex-1">
-                      <span className="sr-only">{t("pointsAmount")}</span>
-                      <input
-                        name="points"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        required
-                        defaultValue={Math.min(
-                          order.customer.points ?? 0,
-                          Math.floor(order.dueTaka),
-                        )}
-                        className={cn(inputClass, "font-bold tabular-nums")}
-                      />
-                    </label>
-                    <button
-                      type="submit"
-                      className="h-11 shrink-0 rounded-lg bg-zinc-900 px-4 text-[14px] font-semibold text-white hover:bg-zinc-800"
-                    >
-                      {t("pointsUse")}
-                    </button>
-                  </div>
-                </form>
-              )}
+          {open && (
+            <section aria-label={tCoupon("title")} className="mt-3">
+              <CouponBox order={order} error={error} back="bill" />
             </section>
           )}
+
+          {open &&
+            order.customer &&
+            (order.loyalty || (order.customer.points ?? 0) > 0) && (
+              <section
+                id="loyalty"
+                aria-labelledby="loyalty-title"
+                className="mt-3 rounded-xl px-3 py-3 ring-1 ring-zinc-200"
+              >
+                <h3 id="loyalty-title" className="text-[14px] font-semibold">
+                  {t("pointsTitle")}
+                </h3>
+                {error.forForm("loyalty") && (
+                  <div className="mt-2">
+                    <Notice>{error.forForm("loyalty")}</Notice>
+                  </div>
+                )}
+                {order.loyalty ? (
+                  <form
+                    action={returnPoints}
+                    className="mt-1 flex items-center justify-between gap-3"
+                  >
+                    <input type="hidden" name="orderId" value={order.id} />
+                    <p className="text-[13.5px] text-muted-foreground">
+                      {t("pointsUsed", { n: order.loyalty.spent })}
+                    </p>
+                    <button
+                      type="submit"
+                      className="h-10 shrink-0 rounded-lg px-3 text-[13.5px] font-semibold ring-1 ring-zinc-300 hover:bg-zinc-100"
+                    >
+                      {t("pointsRemove")}
+                    </button>
+                  </form>
+                ) : (
+                  <form action={spendPoints} className="mt-1">
+                    <input type="hidden" name="orderId" value={order.id} />
+                    <p className="text-[13.5px] text-muted-foreground">
+                      {t("pointsBalance", {
+                        name: order.customer.name,
+                        n: order.customer.points ?? 0,
+                      })}
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <label className="block flex-1">
+                        <span className="sr-only">{t("pointsAmount")}</span>
+                        <input
+                          name="points"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          required
+                          defaultValue={Math.min(
+                            order.customer.points ?? 0,
+                            Math.floor(order.dueTaka),
+                          )}
+                          className={cn(inputClass, "font-bold tabular-nums")}
+                        />
+                      </label>
+                      <button
+                        type="submit"
+                        className="h-11 shrink-0 rounded-lg bg-primary px-4 text-[14px] font-semibold text-primary-foreground hover:bg-primary/90"
+                      >
+                        {t("pointsUse")}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </section>
+            )}
 
           {open && lines.length > 0 && (
             <details
@@ -355,7 +376,7 @@ export function BillView({
                           defaultChecked={kind === "amount"}
                           className="peer sr-only"
                         />
-                        <span className="flex h-10 min-w-12 cursor-pointer items-center justify-center rounded-md px-3 text-[16px] font-bold text-zinc-500 peer-checked:bg-zinc-900 peer-checked:text-white peer-focus-visible:ring-3 peer-focus-visible:ring-zinc-900/30">
+                        <span className="flex h-10 min-w-12 cursor-pointer items-center justify-center rounded-md px-3 text-[16px] font-bold text-zinc-500 peer-checked:bg-select peer-checked:text-white peer-focus-visible:ring-3 peer-focus-visible:ring-select/30">
                           {kind === "amount" ? "৳" : "%"}
                         </span>
                       </label>
@@ -387,7 +408,7 @@ export function BillView({
                 <OverrideFields role={user.role} idPrefix="discount" />
                 <button
                   type="submit"
-                  className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 text-[14px] font-semibold text-white hover:bg-zinc-800"
+                  className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[14px] font-semibold text-primary-foreground hover:bg-primary/90"
                 >
                   <Icon name="percent" className="size-4" />
                   {t("applyDiscount")}
@@ -402,34 +423,34 @@ export function BillView({
         </footer>
       </section>
 
-      {/* Paying: dark checkout panel. */}
+      {/* Paying: the checkout panel. */}
       <section
         aria-label={t("payments")}
         id="payment"
-        className="flex flex-col overflow-hidden rounded-2xl bg-zinc-900 text-white shadow-sm lg:h-full"
+        className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm lg:h-full"
       >
         {open && error.forForm("payment") && (
           <p
             role="alert"
-            className="mx-5 mt-5 rounded-lg bg-red-500/15 px-3 py-2 text-[13.5px] font-semibold text-red-300 ring-1 ring-red-400/30"
+            className="mx-5 mt-5 rounded-lg bg-red-50 px-3 py-2 text-[13.5px] font-semibold text-red-700 ring-1 ring-red-200"
           >
             {error.forForm("payment")}
           </p>
         )}
         {order.payments.length > 0 && (
           <div className="mx-5 mt-5 shrink-0">
-            <p className="text-[11.5px] font-bold tracking-wide text-zinc-400 uppercase">
+            <p className="text-[13px] font-medium text-muted-foreground">
               {t("paidSoFar")}
             </p>
             <ul className="mt-1.5 space-y-1">
               {order.payments.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-white/5 px-3 py-1.5 text-[13px] ring-1 ring-white/10"
+                  className="flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-1.5 text-[13px] ring-1 ring-zinc-200"
                 >
                   <span className="min-w-0 truncate">
                     <span className="font-semibold">{tMethod(p.method)}</span>
-                    <span className="ml-1.5 text-zinc-400">
+                    <span className="ml-1.5 text-muted-foreground">
                       {[
                         formatTime(p.createdAt, tz),
                         p.receivedBy.name,
@@ -461,8 +482,8 @@ export function BillView({
               className={cn(
                 "flex size-14 items-center justify-center rounded-2xl",
                 order.status === "paid" || (open && lines.length > 0)
-                  ? "bg-emerald-500/15 text-emerald-400"
-                  : "bg-white/10 text-zinc-400",
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-zinc-100 text-zinc-500",
               )}
             >
               <Icon
@@ -483,7 +504,7 @@ export function BillView({
                     ? t("nothingToPay")
                     : t("allPaid")}
             </p>
-            <p className="mt-1 text-[13.5px] text-zinc-400 tabular-nums">
+            <p className="mt-1 text-[13.5px] text-muted-foreground tabular-nums">
               {t("dueDetail", {
                 total: formatTaka(order.totalTaka),
                 paid: formatTaka(order.paidTaka),

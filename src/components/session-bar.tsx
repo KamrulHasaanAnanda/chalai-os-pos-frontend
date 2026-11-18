@@ -1,5 +1,5 @@
 "use client";
-// The work-session strip in the dark Floor hero. Starting the day is a button on the strip, not a dialog. Ending it
+// The work-session strip at the top of the Floor. Starting the day is a button on the strip, not a dialog. Ending it
 // asks for the cash counted in the drawer, then shows the shift report the API made.
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -25,6 +25,7 @@ import {
   type WorkSession,
 } from "@/lib/work-session";
 import { cn } from "@/lib/utils";
+import { useSessionLocked } from "@/components/session-gate";
 
 export function useDuration() {
   const t = useTranslations("session");
@@ -38,7 +39,15 @@ export function useDuration() {
 const money = (taka: number) =>
   `৳${new Intl.NumberFormat("en-IN", { minimumFractionDigits: Number.isInteger(taka) ? 0 : 2, maximumFractionDigits: 2 }).format(taka)}`;
 
-export function SessionBar({ userId }: { userId: string; userName: string }) {
+export function SessionBar({
+  userId,
+  inGate = false,
+}: {
+  userId: string;
+  userName: string;
+  inGate?: boolean;
+}) {
+  const lockedPage = useSessionLocked();
   const t = useTranslations("session");
   const session = useWorkSession(userId);
   const minutes = useSessionMinutes(session);
@@ -52,12 +61,16 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
   const [moving, setMoving] = useState(false);
   const [opening, setOpening] = useState("");
   const openingValue = opening.trim() === "" ? null : Number(opening.trim());
-  const openingInvalid = openingValue !== null && (!Number.isFinite(openingValue) || openingValue < 0);
+  const openingInvalid =
+    openingValue !== null &&
+    (!Number.isFinite(openingValue) || openingValue < 0);
 
+  // On a locked page the lock card shows the bar; the page's own copy would be a second one.
+  if (lockedPage && !inGate) return null;
   if (session === "pending")
     return (
       <div
-        className="h-[68px] rounded-xl bg-white/5 ring-1 ring-white/10"
+        className="h-[58px] animate-pulse rounded-xl bg-white shadow-xs ring-1 ring-zinc-200"
         aria-hidden
       />
     );
@@ -83,27 +96,37 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
     <>
       <div
         className={cn(
-          "flex flex-col gap-3 rounded-xl p-3 ring-1 sm:flex-row sm:items-center sm:p-3.5",
+          "flex flex-col gap-3 rounded-xl ring-1 sm:flex-row sm:items-center",
           session
-            ? "bg-emerald-500/10 ring-emerald-400/25"
-            : "bg-amber-400/10 ring-amber-300/25",
+            ? "bg-white px-3 py-2.5 shadow-xs ring-zinc-200"
+            : "bg-amber-50 p-3 ring-amber-200 sm:p-3.5",
         )}
       >
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span
             aria-hidden
             className={cn(
-              "relative flex size-10 shrink-0 items-center justify-center rounded-lg text-white",
-              session ? "bg-emerald-600" : "bg-amber-500",
+              "relative flex shrink-0 items-center justify-center rounded-lg",
+              session
+                ? "size-9 bg-emerald-50 text-emerald-600"
+                : "size-10 bg-amber-500 text-white",
             )}
           >
-            <Icon name={session ? "timer" : "play"} className="size-5" />
+            <Icon
+              name={session ? "timer" : "play"}
+              className={session ? "size-[18px]" : "size-5"}
+            />
             {session && (
-              <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-zinc-900 bg-emerald-400" />
+              <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-emerald-500" />
             )}
           </span>
           <div className="min-w-0">
-            <p className="text-[14.5px] font-semibold">
+            <p
+              className={cn(
+                "font-semibold",
+                session ? "text-[14px]" : "text-[14.5px]",
+              )}
+            >
               {session
                 ? t("open", { time: clockTime(session.startedAt) })
                 : t("closed")}
@@ -111,7 +134,9 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
             <p
               className={cn(
                 "truncate text-[12.5px]",
-                startError ? "text-red-300" : "text-zinc-400",
+                // In the lock modal the text above says it; only an error shows here.
+                inGate && !startError && !soFarError && "hidden",
+                startError ? "text-red-700" : "text-zinc-600",
               )}
             >
               {startError
@@ -119,11 +144,11 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
                 : soFarError
                   ? t("reportFailed")
                   : session
-                  ? t("openDetail", {
-                      duration: duration(minutes),
-                      name: session.by,
-                    })
-                  : t("closedDetail")}
+                    ? t("openDetail", {
+                        duration: duration(minutes),
+                        name: session.by,
+                      })
+                    : t("closedDetail")}
             </p>
           </div>
         </div>
@@ -132,21 +157,24 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
             <Button
               variant="outline"
               onClick={() => setMoving(true)}
-              className="h-10 rounded-lg border-white/20 bg-transparent px-3 font-semibold text-white hover:bg-white/10 hover:text-white"
+              size="sm"
+              className="h-9 rounded-lg px-3 text-[13.5px] font-semibold"
             >
               {t("moveCash")}
             </Button>
             <Button
               variant="outline"
               onClick={() => void showSoFar()}
-              className="h-10 rounded-lg border-white/20 bg-transparent px-3 font-semibold text-white hover:bg-white/10 hover:text-white"
+              size="sm"
+              className="h-9 rounded-lg px-3 text-[13.5px] font-semibold"
             >
               {t("soFar")}
             </Button>
             <Button
-              variant="outline"
+              variant="destructive"
+              size="sm"
               onClick={() => setEnding(true)}
-              className="h-10 rounded-lg border-white/20 bg-transparent px-4 font-semibold text-white hover:bg-white/10 hover:text-white"
+              className="h-9 rounded-lg px-3 text-[13.5px] font-semibold"
             >
               <Icon name="stop" />
               {t("end")}
@@ -169,15 +197,18 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
               autoComplete="off"
               value={opening}
               onChange={(ev) => setOpening(ev.target.value)}
-              placeholder={t("openingLabel")}
+              placeholder={t("openingPlaceholder")}
               title={openingInvalid ? t("openingInvalid") : t("openingLabel")}
               aria-invalid={openingInvalid || undefined}
-              className="h-10 w-44 rounded-lg bg-white/10 px-3 text-[14px] text-white tabular-nums ring-1 ring-white/15 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-amber-300 aria-invalid:ring-red-400"
+              className={cn(
+                "h-10 rounded-lg bg-white px-3 text-[14px] tabular-nums ring-1 ring-zinc-300 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-amber-400 aria-invalid:ring-red-400",
+                inGate ? "w-40" : "w-56",
+              )}
             />
             <Button
               type="submit"
               disabled={starting || openingInvalid}
-              className="h-10 rounded-lg bg-amber-400 px-4 font-semibold text-zinc-900 hover:bg-amber-300"
+              className="h-10 rounded-lg bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90"
             >
               <Icon name="play" />
               {t("start")}
@@ -221,7 +252,13 @@ export function SessionBar({ userId }: { userId: string; userName: string }) {
 }
 
 /** Cash put into or taken out of the drawer during the shift, with a reason. */
-function CashMoveDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+function CashMoveDialog({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const t = useTranslations("session");
   const [direction, setDirection] = useState<"in" | "out">("out");
   const [amount, setAmount] = useState("");
@@ -261,8 +298,12 @@ function CashMoveDialog({ open, onClose }: { open: boolean; onClose: () => void 
     <Dialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle className="text-[22px] font-bold">{t("moveTitle")}</DialogTitle>
-          <DialogDescription className="text-[14.5px]">{t("moveBody")}</DialogDescription>
+          <DialogTitle className="text-[22px] font-bold">
+            {t("moveTitle")}
+          </DialogTitle>
+          <DialogDescription className="text-[14.5px]">
+            {t("moveBody")}
+          </DialogDescription>
         </DialogHeader>
         <form
           id="cash-move-form"
@@ -282,7 +323,9 @@ function CashMoveDialog({ open, onClose }: { open: boolean; onClose: () => void 
                 onClick={() => setDirection(d)}
                 className={cn(
                   "h-11 rounded-lg text-[14.5px] font-semibold ring-1",
-                  direction === d ? "bg-zinc-900 text-white ring-zinc-900" : "bg-background ring-border hover:bg-muted",
+                  direction === d
+                    ? "bg-select text-white ring-select"
+                    : "bg-background ring-border hover:bg-muted",
                 )}
               >
                 {d === "in" ? t("moveIn") : t("moveOut")}
@@ -317,7 +360,10 @@ function CashMoveDialog({ open, onClose }: { open: boolean; onClose: () => void 
               className="h-11 text-[15px]"
             />
           </div>
-          <p className="min-h-5 text-[12.5px] text-red-600" role={error ? "alert" : undefined}>
+          <p
+            className="min-h-5 text-[12.5px] text-red-600"
+            role={error ? "alert" : undefined}
+          >
             {error}
           </p>
         </form>
@@ -330,7 +376,7 @@ function CashMoveDialog({ open, onClose }: { open: boolean; onClose: () => void 
             form="cash-move-form"
             size="lg"
             disabled={busy}
-            className="bg-zinc-900 font-semibold text-white hover:bg-zinc-800"
+            className="bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
           >
             {t("moveSave")}
           </Button>
@@ -371,7 +417,8 @@ export function EndSessionDialog({
 
   const trimmed = cash.trim();
   const counted = trimmed === "" ? null : Number(trimmed);
-  const invalid = counted !== null && (!Number.isFinite(counted) || counted < 0);
+  const invalid =
+    counted !== null && (!Number.isFinite(counted) || counted < 0);
 
   async function submit() {
     if (invalid) return;
@@ -379,7 +426,8 @@ export function EndSessionDialog({
     setError(null);
     const failed = await onConfirm(counted);
     setBusy(false);
-    if (failed) setError(failed === "no_open_shift" ? t("alreadyEnded") : t("endFailed"));
+    if (failed)
+      setError(failed === "no_open_shift" ? t("alreadyEnded") : t("endFailed"));
     else setCash("");
   }
 
@@ -389,7 +437,7 @@ export function EndSessionDialog({
         <DialogHeader>
           <span
             aria-hidden
-            className="mb-1 flex size-12 items-center justify-center rounded-xl bg-zinc-900 text-white"
+            className="mb-1 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground"
           >
             <Icon name="stop" className="size-5" />
           </span>
@@ -447,7 +495,12 @@ export function EndSessionDialog({
           </p>
         </form>
         <DialogFooter>
-          <Button variant="outline" size="lg" onClick={onCancel} disabled={busy}>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={onCancel}
+            disabled={busy}
+          >
             {t("keepOpen")}
           </Button>
           <Button
@@ -455,7 +508,7 @@ export function EndSessionDialog({
             form="end-session-form"
             size="lg"
             disabled={busy || invalid}
-            className="bg-zinc-900 font-semibold text-white hover:bg-zinc-800"
+            className="bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
           >
             <Icon name="stop" />
             {confirm}
@@ -548,7 +601,10 @@ export function ShiftReportDialog({
             {t("cashDrawer")}
           </h3>
           {report.cash.openingTaka !== undefined && (
-            <Row label={t("cashOpening")} value={money(report.cash.openingTaka)} />
+            <Row
+              label={t("cashOpening")}
+              value={money(report.cash.openingTaka)}
+            />
           )}
           {(report.cash.movements ?? []).map((m, i) => (
             <Row
@@ -557,7 +613,10 @@ export function ShiftReportDialog({
               value={`${m.direction === "in" ? "+" : "−"}${money(m.amountTaka)}`}
             />
           ))}
-          <Row label={t("cashExpected")} value={money(report.cash.expectedTaka)} />
+          <Row
+            label={t("cashExpected")}
+            value={money(report.cash.expectedTaka)}
+          />
           <Row
             label={t("cashCounted")}
             value={
@@ -626,7 +685,15 @@ export function ShiftReportDialog({
                   <span>
                     {o.label
                       ? t("openTable", { table: o.label, n: o.number })
-                      : t("orderNo", { n: o.number })}
+                      : o.tokenNo != null
+                        ? t(
+                            o.type === "parcel" ? "openTakeaway" : "openPickup",
+                            {
+                              token: o.tokenNo,
+                              n: o.number,
+                            },
+                          )
+                        : t("orderNo", { n: o.number })}
                   </span>
                   <span className="font-semibold tabular-nums">
                     {t("due", { amount: money(o.dueTaka) })}
@@ -641,7 +708,7 @@ export function ShiftReportDialog({
           <Button
             size="lg"
             onClick={onClose}
-            className="bg-zinc-900 font-semibold text-white hover:bg-zinc-800"
+            className="bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
           >
             {closeLabel}
           </Button>

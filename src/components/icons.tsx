@@ -1,5 +1,6 @@
 import {
   Armchair,
+  TicketPercent,
   Ban,
   Banknote,
   BellRing,
@@ -81,6 +82,7 @@ const icons = {
   note: StickyNote,
   ban: Ban,
   percent: Percent,
+  coupon: TicketPercent,
   shield: ShieldCheck,
   inbox: Inbox,
   spinner: LoaderCircle,

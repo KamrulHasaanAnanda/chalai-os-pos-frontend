@@ -4,6 +4,7 @@
   },
   "common": {
     "logout": "Log out",
+    "pos": "Point of sale",
     "mainNav": "Main",
     "signedInAs": "{name} · {role}",
     "live": "Live",
@@ -16,7 +17,8 @@
     "featureKitchen": "Tickets straight to the kitchen",
     "featureBills": "Bills paid in cash, bKash or Nagad",
     "syncing": "Syncing ({n})",
-    "openTill": "Offline till"
+    "openTill": "Offline till",
+    "loading": "Loading…"
   },
   "roles": {
     "superadmin": "Super admin",
@@ -27,11 +29,15 @@
     "kitchen": "Kitchen"
   },
   "nav": {
+    "service": "Service",
+    "manage": "Manage",
+    "restaurant": "Restaurant",
     "floor": "Floor",
     "incoming": "Incoming",
     "orders": "Orders",
     "menu": "Menu",
-    "kitchen": "Kitchen"
+    "kitchen": "Kitchen",
+    "tables": "Tables"
   },
   "assistant": {
     "title": "Chalai assistant",
@@ -121,7 +127,15 @@
     "bad_points": "Enter a whole number of points.",
     "loyalty_off": "Loyalty points are turned off. The owner turns them on in the owner app.",
     "not_enough_points": "The customer doesn't have that many points.",
-    "above_due": "That's more points than is still due."
+    "above_due": "That's more points than is still due.",
+    "coupon_not_found": "There is no coupon with that code.",
+    "coupon_off": "This coupon is turned off.",
+    "coupon_not_started": "This coupon can't be used yet.",
+    "coupon_expired": "This coupon has expired.",
+    "coupon_used_up": "This coupon has been used up.",
+    "coupon_needs_customer": "This coupon is one per customer: add the customer's phone number to the bill first.",
+    "coupon_already_used": "This customer has already used this coupon.",
+    "coupon_min_bill": "The bill is below this coupon's minimum."
   },
   "login": {
     "title": "Staff log in",
@@ -196,7 +210,9 @@
     "stats": {
       "busy": "Tables busy",
       "open": "On open bills",
-      "seats": "Seats taken"
+      "seats": "Seats taken",
+      "booked": "Booked seats",
+      "bookedHint": "{n, plural, one {# booking} other {# bookings}} today"
     },
     "areaBusy": "{busy}/{total}",
     "open": "Open",
@@ -218,7 +234,40 @@
       "ready": "Ready to collect",
       "cooking": "In the kitchen"
     },
-    "booked": "Booked {time} · {name} ({n})"
+    "booked": "Booked {time} · {name} ({n})",
+    "reservations": {
+      "title": "Reservations today",
+      "empty": "No more bookings today.",
+      "emptyHint": "Bookings made in the owner app show up here.",
+      "people": "{n, plural, one {# guest} other {# guests}}",
+      "noTable": "No table yet",
+      "now": "Now"
+    },
+    "attention": "Needs attention",
+    "search": "Find a table",
+    "searchPlaceholder": "Table number",
+    "showLabel": "Show tables",
+    "show": {
+      "all": "All {n}",
+      "busy": "Busy {n}",
+      "free": "Free {n}"
+    },
+    "noMatch": "No table matches.",
+    "capped": "Showing {shown} of {total}. Search for a table number to find the rest.",
+    "tablesTitle": "Tables",
+    "busyTitle": "Busy tables",
+    "allTables": "All tables",
+    "noneBusy": "No table is busy. Open one from the Tables tab.",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Exit full screen",
+    "parcels": {
+      "title": "Takeaway orders",
+      "token": "#{token}",
+      "empty": "Nothing added yet",
+      "ready": "Ready to hand over",
+      "bill": "Bill asked",
+      "cooking": "In the kitchen"
+    }
   },
   "session": {
     "closed": "Session not started",
@@ -257,8 +306,8 @@
     "cashOver": "{amount} over",
     "cancelledTitle": "Cancelled at the branch during the shift",
     "cancelledOrder": "Order #{n} cancelled",
-    "openTablesTitle": "Tables still open",
-    "noOpenTables": "No tables left open.",
+    "openTablesTitle": "Orders still open",
+    "noOpenTables": "No orders left open.",
     "openTable": "Table {table} · Order #{n}",
     "orderNo": "Order #{n}",
     "due": "{amount} due",
@@ -282,7 +331,14 @@
     "soFar": "Report so far",
     "soFarTitle": "Shift so far",
     "soFarNote": "Your shift is still open. This is not the final report.",
-    "reportFailed": "Couldn't load the report. Try again."
+    "reportFailed": "Couldn't load the report. Try again.",
+    "openingPlaceholder": "Opening cash ৳ (optional)",
+    "lockTitle": "Start today's session to begin",
+    "lockBody": "Everything stays locked until you start your session. Enter the cash in the drawer if you counted it, then start.",
+    "staleTitle": "An earlier session is still open",
+    "staleBody": "End it first (count the drawer), then start today's session.",
+    "openTakeaway": "Takeaway #{token} · Order #{n}",
+    "openPickup": "Pickup #{token} · Order #{n}"
   },
   "incoming": {
     "title": "Incoming",
@@ -455,7 +511,14 @@
     "pointsUse": "Use points",
     "pointsAmount": "Points to use",
     "pointsUsed": "{n, plural, one {# point} other {# points}} used on this bill",
-    "pointsRemove": "Give points back"
+    "pointsRemove": "Give points back",
+    "total": "Total",
+    "paid": "Paid",
+    "keyBack": "Delete last digit",
+    "keyClear": "Clear",
+    "colQty": "Qty",
+    "colItem": "Item",
+    "colPrice": "Price"
   },
   "picker": {
     "title": "Add items",
@@ -471,7 +534,7 @@
     "add": "Add",
     "addOne": "Add one {name}",
     "removeOne": "Remove one {name}",
-    "addNote": "+ Note",
+    "addNote": "Add note",
     "itemNote": "Note for the kitchen",
     "itemNotePlaceholder": "e.g. Less spicy",
     "roundNote": "Note for this whole order",
@@ -484,7 +547,9 @@
     "review": "Review, add notes",
     "hideReview": "Hide review",
     "emptyCart": "Tap dishes to add them",
-    "left": "{n} left"
+    "left": "{n} left",
+    "newTitle": "{n, plural, one {# new item} other {# new items}} · not sent yet",
+    "clear": "Clear"
   },
   "receipt": {
     "title": "Receipt #{number}",
@@ -628,7 +693,9 @@
     "stock": "{number}: count saved.",
     "stockCleared": "{number} is no longer counted.",
     "pointsUsed": "Points used on the bill.",
-    "pointsReturned": "Points given back."
+    "pointsReturned": "Points given back.",
+    "couponApplied": "Coupon applied.",
+    "couponRemoved": "Coupon removed."
   },
   "demo": {
     "button": "Demo",
@@ -718,5 +785,36 @@
     "kot": "Kitchen slip",
     "receipt": "Receipt",
     "offlineNote": "Made offline"
+  },
+  "coupon": {
+    "title": "Coupon",
+    "placeholder": "Coupon code",
+    "apply": "Apply",
+    "remove": "Remove coupon",
+    "off": "−{amount} off",
+    "percent": "{percent}% off",
+    "flat": "{amount} off",
+    "short": "Add {amount} more to use it"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "open": "Notifications ({n} new)",
+    "empty": "You're all caught up",
+    "emptyBody": "QR orders, food to serve, bill requests and guest calls show up here.",
+    "approve": "{place}: new QR order to approve",
+    "ready": "{place}: food ready to serve",
+    "bill": "{place} asked for the bill",
+    "callWaiter": "{place} is calling a waiter",
+    "callWater": "{place} wants water",
+    "booking": "Booking at {time}: {name}, {n} {n, plural, one {guest} other {guests}}",
+    "bookingTable": "Table {table}",
+    "bookingWaitlist": "No table yet",
+    "table": "Table {label}",
+    "pickup": "Pickup #{token}",
+    "done": "Done",
+    "seeIncoming": "Open Incoming",
+    "ago": "{n} min ago",
+    "justNow": "Just now",
+    "failed": "Couldn't load notifications."
   }
 }

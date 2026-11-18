@@ -3,7 +3,14 @@
 // the server sends back an error for its form, and closes after a successful action redirect.
 import { useState, type ReactNode } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Dialog as ShadcnDialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog as ShadcnDialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { VariantProps } from "class-variance-authority";
 
 export type ButtonStyle = VariantProps<typeof buttonVariants>;
@@ -42,7 +49,11 @@ export function Dialog({
   return (
     <ShadcnDialog open={isOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" {...triggerStyle} className={triggerClassName}>
+        <Button
+          variant="outline"
+          {...triggerStyle}
+          className={triggerClassName}
+        >
           {trigger}
         </Button>
       </DialogTrigger>

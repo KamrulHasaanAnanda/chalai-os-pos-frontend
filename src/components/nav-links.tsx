@@ -6,29 +6,44 @@ import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
-export type NavItem = { href: string; label: string; icon: IconName };
+export type NavItem = { href: string; label: string; icon: IconName; tone?: string };
 
 export function NavLinks({ items, variant }: { items: NavItem[]; variant: "rail" | "bottom" }) {
   const path = usePathname();
   return (
-    <ul className={cn("flex", variant === "rail" ? "flex-col gap-0.5" : "w-full")}>
+    <ul className={cn("flex", variant === "rail" ? "flex-col" : "w-full")}>
       {items.map((item) => {
         const active = path === item.href || path.startsWith(`${item.href}/`);
+        if (variant === "rail") {
+          return (
+            <li key={item.href} className="py-px">
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-9 items-center gap-3 rounded-lg px-3 text-[14px] transition-colors [&>svg]:size-4 [&>svg]:shrink-0",
+                  active
+                    ? "bg-orange-500/[0.12] font-medium text-white [&>svg]:text-orange-400"
+                    : "text-zinc-300 hover:bg-white/[0.06] hover:text-white [&>svg]:text-zinc-500 hover:[&>svg]:text-zinc-300",
+                )}
+              >
+                <Icon name={item.icon} />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            </li>
+          );
+        }
         return (
-          <li key={item.href} className={variant === "bottom" ? "flex-1" : undefined}>
+          <li key={item.href} className="flex-1">
             <Link
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center transition-colors",
-                variant === "rail"
-                  ? "h-10 gap-2.5 rounded-md px-3 text-[14px]"
-                  : "h-16 flex-col justify-center gap-1 text-[11.5px] font-medium",
-                variant === "rail" && (active ? "bg-white/10 font-medium text-white shadow-[inset_2px_0_0_var(--sun)]" : "text-zinc-400 hover:bg-white/5 hover:text-white"),
-                variant === "bottom" && (active ? "font-semibold text-primary" : "text-muted-foreground"),
+                "flex h-16 flex-col items-center justify-center gap-1 text-[11.5px] font-medium transition-colors",
+                active ? "font-semibold text-primary" : "text-muted-foreground",
               )}
             >
-              <Icon name={item.icon} className={variant === "rail" ? "size-[18px]" : "size-5"} />
+              <Icon name={item.icon} className="size-5" />
               {item.label}
             </Link>
           </li>

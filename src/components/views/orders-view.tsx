@@ -136,7 +136,7 @@ export function OrdersView({
           </label>
           <button
             type="submit"
-            className="h-10 rounded-lg bg-zinc-900 px-3.5 text-[13.5px] font-semibold text-white hover:bg-zinc-800"
+            className="h-10 rounded-lg bg-primary px-3.5 text-[13.5px] font-semibold text-primary-foreground hover:bg-primary/90"
           >
             {t("show")}
           </button>
@@ -228,7 +228,7 @@ export function OrdersView({
       </nav>
 
       {orders.length === 0 && (
-        <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-zinc-300 px-6 py-14 text-center">
+        <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-input px-6 py-14 text-center">
           <span
             aria-hidden
             className="flex size-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400"
@@ -322,14 +322,14 @@ export function OrdersView({
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <Link
                       href={orderHref(order.id)}
-                      className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-zinc-300 text-[13.5px] font-semibold hover:border-zinc-900 hover:bg-zinc-50"
+                      className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-input text-[13.5px] font-semibold hover:border-select hover:bg-zinc-50"
                     >
                       <Icon name="list" className="size-4" />
                       {t("view")}
                     </Link>
                     <Link
                       href={orderHref(order.id, "bill")}
-                      className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-orange-600 text-[13.5px] font-semibold text-white hover:bg-orange-500"
+                      className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-primary text-[13.5px] font-semibold text-primary-foreground hover:bg-primary/90"
                     >
                       <Icon name="cash" className="size-4" />
                       {t("bill")}

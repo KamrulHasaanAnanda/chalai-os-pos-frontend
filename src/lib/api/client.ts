@@ -135,6 +135,8 @@ export function apiFor(token: string) {
       post<{ ticket: string; expiresAt: string }>("/realtime/ticket"),
 
     floor: () => get<Floor>("/pos/floor"),
+    /** A guest's call answered: it leaves everyone's notifications. */
+    callDone: (callId: string) => post<void>(`/pos/calls/${encodeURIComponent(callId)}/done`),
     openOrder: (tableId: string | null) =>
       post<Order>("/pos/orders", { tableId }),
     orders: (params: { status?: OrderStatus; date?: string }) =>
@@ -161,6 +163,13 @@ export function apiFor(token: string) {
       post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/loyalty`, { points }),
     returnPoints: (orderId: string) =>
       request<Order>(`/pos/orders/${encodeURIComponent(orderId)}/loyalty`, {
+        method: "DELETE",
+        token,
+      }),
+    applyCoupon: (orderId: string, code: string) =>
+      post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/coupon`, { code }),
+    removeCoupon: (orderId: string) =>
+      request<Order>(`/pos/orders/${encodeURIComponent(orderId)}/coupon`, {
         method: "DELETE",
         token,
       }),

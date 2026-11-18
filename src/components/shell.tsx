@@ -5,9 +5,11 @@ import { Suspense, type ReactNode } from "react";
 import { ChalaiBotMount } from "@/components/chalai-bot";
 import { Icon } from "@/components/icons";
 import { LiveSync } from "@/components/live-sync";
+import { NotificationBell } from "@/components/notification-bell";
 import { LanguageSwitch } from "@/components/language-switch";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLinks, type NavItem } from "@/components/nav-links";
+import { SessionGate } from "@/components/session-gate";
 import { KotPrinter } from "@/components/print/kot-printer";
 import { Avatar } from "@/components/app/staff-avatar";
 import { Toast } from "@/components/app/toast";
@@ -25,6 +27,7 @@ export function useNavItems(role: Role): NavItem[] {
   if (role !== "kitchen") {
     items.push(
       { href: "/floor", label: t("floor"), icon: "grid" },
+      { href: "/tables", label: t("tables"), icon: "seat" },
       { href: "/incoming", label: t("incoming"), icon: "bell" },
       { href: "/orders", label: t("orders"), icon: "list" },
     );
@@ -69,7 +72,10 @@ export function TopBar({
             connecting: t("connecting"),
             offline: t("offline"),
           }}
-          offlineLabels={{ syncing: t("syncing", { n: "{n}" }), openTill: t("openTill") }}
+          offlineLabels={{
+            syncing: t("syncing", { n: "{n}" }),
+            openTill: t("openTill"),
+          }}
         />
         <div className="hidden items-center gap-2.5 sm:flex">
           <Avatar
@@ -95,7 +101,11 @@ export function TopBar({
           </div>
         </div>
         <LanguageSwitch
-          className={cn(dark ? "border-white/20 text-white/80 hover:bg-white/10" : "hover:bg-gray")}
+          className={cn(
+            dark
+              ? "border-white/20 text-white/80 hover:bg-white/10"
+              : "hover:bg-gray",
+          )}
         />
         <LogoutButton
           userId={user.id}
@@ -124,7 +134,9 @@ function RestaurantMark({
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <img
-        src={dark ? "/brand/logo-en-on-dark.svg" : "/brand/logo-en-on-light.svg"}
+        src={
+          dark ? "/brand/logo-en-on-dark.svg" : "/brand/logo-en-on-light.svg"
+        }
         alt="Chalai OS"
         width={440}
         height={100}
@@ -156,49 +168,105 @@ export function PosShell({
   const t = useTranslations("common");
   const tRoles = useTranslations("roles");
   const tKot = useTranslations("kot");
+  const tNav = useTranslations("nav");
   const items = useNavItems(staff.user.role);
+  const service = items.filter((i) =>
+    ["/floor", "/tables", "/incoming", "/orders"].includes(i.href),
+  );
+  const manage = items.filter((i) => !service.includes(i));
   const { user } = staff;
 
   return (
     <div className="min-h-dvh bg-background">
       <aside
         aria-label={t("mainNav")}
-        className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col bg-zinc-900 text-zinc-100 md:flex print:hidden"
+        className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-[#18181b] text-zinc-300 md:flex print:hidden"
       >
-        <div className="flex h-16 items-center border-b border-white/10 px-4">
-          <RestaurantMark staff={staff} dark />
-        </div>
-        <nav className="flex-1 overflow-y-auto p-2">
-          <NavLinks items={items} variant="rail" />
-        </nav>
-        <div className="flex items-center gap-2.5 border-t border-white/10 p-3">
-          <Avatar
-            name={user.name}
-            role={user.role}
-            className="bg-white/10 text-white"
+        <div className="flex h-14 shrink-0 items-center border-b border-white/10 px-4">
+          <img
+            src="/brand/logo-en-on-dark.svg"
+            alt="Chalai OS"
+            width={440}
+            height={100}
+            className="h-5 w-auto"
           />
-          <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate text-[13px] font-medium" title={user.name}>
-              {user.name}
-            </p>
-            <p className="text-[12px] text-zinc-400">{tRoles(user.role)}</p>
+        </div>
+        <nav className="flex-1 overflow-y-auto px-2 py-2">
+          <GroupLabel>{tNav("restaurant")}</GroupLabel>
+          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] p-2">
+            <span
+              aria-hidden
+              className="flex size-8 shrink-0 items-center justify-center rounded-md bg-orange-500/15 text-[13px] font-semibold text-orange-300"
+            >
+              {staff.restaurant.name.trim().charAt(0).toUpperCase()}
+            </span>
+            <span className="min-w-0 leading-tight">
+              <span
+                className="block truncate text-[13.5px] font-medium text-white"
+                title={staff.restaurant.name}
+              >
+                {staff.restaurant.name}
+              </span>
+              <span className="block text-[11.5px] text-zinc-500">
+                {t("pos")}
+              </span>
+            </span>
+          </div>
+          <SessionGate nav userId={user.id} userName={user.name}>
+            {service.length > 0 && (
+              <>
+                <GroupLabel>{tNav("service")}</GroupLabel>
+                <NavLinks items={service} variant="rail" />
+              </>
+            )}
+            {manage.length > 0 && (
+              <>
+                <GroupLabel>{tNav("manage")}</GroupLabel>
+                <NavLinks items={manage} variant="rail" />
+              </>
+            )}
+          </SessionGate>
+        </nav>
+        <div className="flex flex-col gap-1 border-t border-white/10 p-2">
+          <div className="flex items-center gap-2.5 px-2 py-1.5">
+            <span
+              aria-hidden
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-[13px] font-semibold text-orange-300 uppercase"
+            >
+              {user.name.trim().charAt(0)}
+            </span>
+            <span className="min-w-0 leading-tight">
+              <span
+                className="block truncate text-[13.5px] font-medium text-white"
+                title={user.name}
+              >
+                {user.name}
+              </span>
+              <span className="block text-[11.5px] text-zinc-500">
+                {tRoles(user.role)}
+              </span>
+            </span>
           </div>
           <LogoutButton
             userId={user.id}
-            className="flex size-9 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+            formClassName="w-full"
+            className="flex h-9 w-full items-center gap-3 rounded-lg px-3 text-[13.5px] text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white [&>svg]:size-4 [&>svg]:text-zinc-500"
           >
-            <Icon name="logout" className="size-4" />
+            <Icon name="logout" />
+            <span>{t("logout")}</span>
           </LogoutButton>
         </div>
       </aside>
 
-      <div className="md:pl-56">
+      <div className="md:pl-64">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card px-4 sm:px-6 print:hidden">
           <div className="min-w-0 flex-1 md:hidden">
             <RestaurantMark staff={staff} />
           </div>
           <div className="hidden flex-1 md:block" />
           {extra}
+          {/* The demo has no API behind /api/notifications. */}
+          {!demo && user.role !== "kitchen" && <NotificationBell />}
           <LanguageSwitch className="hover:bg-muted" />
           <LiveSync
             labels={{
@@ -206,13 +274,19 @@ export function PosShell({
               connecting: t("connecting"),
               offline: t("offline"),
             }}
-            offlineLabels={{ syncing: t("syncing", { n: "{n}" }), openTill: t("openTill") }}
+            offlineLabels={{
+              syncing: t("syncing", { n: "{n}" }),
+              openTill: t("openTill"),
+            }}
           />
           {!demo && (
             <Suspense fallback={null}>
               {/* The till (cashier, manager, owner) prints for a silent kitchen; waiters' phones never pop a dialog. */}
               <KotPrinter
-                fallback={billRoles.includes(user.role) && staff.restaurant.printerFallback !== false}
+                fallback={
+                  billRoles.includes(user.role) &&
+                  staff.restaurant.printerFallback !== false
+                }
                 printingLabel={tKot("printing")}
               />
             </Suspense>
@@ -226,7 +300,13 @@ export function PosShell({
           </LogoutButton>
         </header>
         <main className="px-4 pt-6 pb-28 sm:px-6 md:pb-10 lg:px-8">
-          {children}
+          {user.role === "kitchen" ? (
+            children
+          ) : (
+            <SessionGate userId={user.id} userName={user.name}>
+              {children}
+            </SessionGate>
+          )}
         </main>
       </div>
 
@@ -234,13 +314,23 @@ export function PosShell({
         aria-label={t("mainNav")}
         className="fixed inset-x-0 bottom-0 z-40 border-t bg-card pb-[env(safe-area-inset-bottom)] md:hidden print:hidden"
       >
-        <NavLinks items={items} variant="bottom" />
+        <SessionGate nav userId={user.id} userName={user.name}>
+          <NavLinks items={items} variant="bottom" />
+        </SessionGate>
       </nav>
       <Suspense>
         <Toast />
       </Suspense>
       <ChalaiBotMount name={staff.restaurant.name} />
     </div>
+  );
+}
+
+function GroupLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex h-7 items-center px-2 pt-2 text-[11px] font-semibold tracking-wider text-zinc-500 uppercase first:pt-0 [&:not(:first-child)]:mt-2">
+      {children}
+    </p>
   );
 }
 

@@ -27,6 +27,11 @@ export function businessDate(timeZone: string, date = new Date()): string {
 }
 
 /** Whole minutes between an ISO time and now. */
+/** Whether a time has already come. */
+export function hasStarted(iso: string, now = Date.now()): boolean {
+  return new Date(iso).getTime() <= now;
+}
+
 export function minutesSince(iso: string, now = Date.now()): number {
   return Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60000));
 }

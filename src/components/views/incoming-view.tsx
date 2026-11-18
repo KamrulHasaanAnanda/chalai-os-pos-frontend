@@ -141,7 +141,7 @@ function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound;
             <span className="shrink-0 text-[14.5px] font-semibold tabular-nums">{formatTaka(line.lineTotalTaka)}</span>
           </li>
         ))}
-        <li className="flex items-baseline justify-between border-t border-zinc-200 py-3">
+        <li className="flex items-baseline justify-between border-t border-border py-3">
           <span className="text-[13.5px] font-medium text-muted-foreground">{t("roundTotal")}</span>
           <span className="text-[18px] font-semibold tabular-nums">{formatTaka(total)}</span>
         </li>

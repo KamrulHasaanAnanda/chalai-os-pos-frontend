@@ -29,7 +29,7 @@ export function MenuView({
   return (
     <div className="mx-auto max-w-[1100px] space-y-6">
       {/* Summary: how much of the menu guests can order right now. */}
-      <header className="relative overflow-hidden rounded-2xl bg-zinc-900 p-5 text-white sm:p-6">
+      <header className="relative overflow-hidden rounded-2xl bg-primary p-5 text-primary-foreground sm:p-6">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-orange-500/20 blur-3xl"
@@ -111,12 +111,12 @@ export function MenuView({
                   <input type="hidden" name="isAvailable" value="true" />
                   <button
                     type="submit"
-                    className="group flex h-10 items-center gap-3 rounded-lg border pr-1.5 pl-3.5 text-[14px] font-medium transition-colors hover:border-zinc-900"
+                    className="group flex h-10 items-center gap-3 rounded-lg border pr-1.5 pl-3.5 text-[14px] font-medium transition-colors hover:border-select"
                   >
                     <span className="text-zinc-500 line-through decoration-zinc-300">
                       {item.name}
                     </span>
-                    <span className="flex h-7 items-center rounded-md bg-zinc-900 px-2.5 text-[12px] font-semibold text-white">
+                    <span className="flex h-7 items-center rounded-md bg-primary px-2.5 text-[12px] font-semibold text-primary-foreground">
                       {t("bringBack")}
                     </span>
                   </button>
@@ -142,7 +142,7 @@ export function MenuView({
                 <li key={category.id} className="shrink-0">
                   <a
                     href={`#cat-${category.id}`}
-                    className="-mb-px flex h-11 items-center gap-1.5 border-b-2 border-transparent text-[14px] font-medium text-muted-foreground transition-colors hover:border-zinc-900 hover:text-foreground"
+                    className="-mb-px flex h-11 items-center gap-1.5 border-b-2 border-transparent text-[14px] font-medium text-muted-foreground transition-colors hover:border-select hover:text-foreground"
                   >
                     {category.name}
                     <span className="text-[12px] tabular-nums opacity-70">
@@ -251,7 +251,7 @@ function DishRow({
             </p>
             <span
               aria-hidden
-              className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-zinc-300"
+              className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-input"
             />
             <span
               className={cn(
@@ -298,7 +298,7 @@ function DishRow({
               className="mt-2.5 flex flex-wrap items-center gap-2"
             >
               <input type="hidden" name="itemId" value={item.id} />
-              <label className="flex h-9 items-center gap-2 rounded-lg border bg-background pr-1 pl-3 focus-within:border-zinc-900">
+              <label className="flex h-9 items-center gap-2 rounded-lg border bg-background pr-1 pl-3 focus-within:border-select">
                 <span className="text-[12.5px] font-medium text-muted-foreground">
                   {t("portionsLeft")}
                 </span>
@@ -315,7 +315,7 @@ function DishRow({
               </label>
               <button
                 type="submit"
-                className="h-9 rounded-lg bg-zinc-900 px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-zinc-700"
+                className="h-9 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 {t("saveCount")}
               </button>
@@ -357,7 +357,7 @@ function DishRow({
             className={cn(
               "relative mt-1 h-7 w-12 rounded-full transition-colors focus-visible:ring-3 focus-visible:ring-orange-500/40 focus-visible:outline-none",
               on
-                ? "bg-zinc-900 hover:bg-zinc-700"
+                ? "bg-select hover:bg-select/90"
                 : "bg-zinc-200 hover:bg-zinc-300",
             )}
           >

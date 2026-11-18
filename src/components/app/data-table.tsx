@@ -1,5 +1,9 @@
 import type { ComponentProps } from "react";
-import { Table as ShadcnTable, TableCell, TableHead } from "@/components/ui/table";
+import {
+  Table as ShadcnTable,
+  TableCell,
+  TableHead,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,10 +24,39 @@ export function Table({ className, ...props }: ComponentProps<"table">) {
   );
 }
 
-export function Th({ className, numeric, ...props }: ComponentProps<"th"> & { numeric?: boolean }) {
-  return <TableHead scope="col" className={cn("h-11 bg-muted/50 px-4 text-muted-foreground", numeric && "text-right", className)} {...props} />;
+export function Th({
+  className,
+  numeric,
+  ...props
+}: ComponentProps<"th"> & { numeric?: boolean }) {
+  return (
+    <TableHead
+      scope="col"
+      className={cn(
+        "h-11 bg-muted/50 px-4 text-muted-foreground",
+        numeric && "text-right",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
-export function Td({ className, numeric, label, ...props }: ComponentProps<"td"> & { numeric?: boolean; label: string }) {
-  return <TableCell data-label={label} className={cn("px-4 py-3 whitespace-normal", numeric && "text-right tabular-nums", className)} {...props} />;
+export function Td({
+  className,
+  numeric,
+  label,
+  ...props
+}: ComponentProps<"td"> & { numeric?: boolean; label: string }) {
+  return (
+    <TableCell
+      data-label={label}
+      className={cn(
+        "px-4 py-3 whitespace-normal",
+        numeric && "text-right tabular-nums",
+        className,
+      )}
+      {...props}
+    />
+  );
 }

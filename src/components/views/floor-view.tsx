@@ -7,50 +7,58 @@ import { EmptyState } from "@/components/app/empty-state";
 import { Notice } from "@/components/app/field";
 import { SubmitButton } from "@/components/app/submit-button";
 import { SessionBar } from "@/components/session-bar";
-import type { Floor, FloorTable, TableStatus, User } from "@/lib/api/types";
+import { FullscreenButton } from "@/components/fullscreen-button";
+import type {
+  Floor,
+  FloorReservation,
+  FloorTable,
+  TableStatus,
+  User,
+} from "@/lib/api/types";
 import type { ErrorReader } from "@/lib/error-reader";
-import { formatTaka, formatTime, minutesSince } from "@/lib/format";
+import { formatTaka, formatTime, hasStarted, minutesSince } from "@/lib/format";
 import { orderHref } from "@/lib/paths";
 import { billRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
-const columns = 5;
-const rows = 8;
+/** The most tiles drawn at once; past it, search or the busy/free filter narrows the list. */
+const MAX_TILES = 240;
+type Show = "all" | "busy" | "free";
 
-/** One colour per table state: solid for the badge, soft for the tile, so the floor reads from across the room. */
+/** One look per table state: the card, its status pill and the legend swatch. */
 const TONES: Record<
   TableStatus,
-  { icon: IconName; solid: string; tile: string; text: string }
+  { icon: IconName; tile: string; pill: string; swatch: string }
 > = {
   free: {
     icon: "plus",
-    solid: "bg-zinc-200 text-zinc-600",
-    tile: "border-2 border-dashed border-zinc-300 bg-card/60 hover:border-zinc-900 hover:bg-card",
-    text: "text-muted-foreground",
+    tile: "border-border bg-white shadow-xs hover:border-select hover:shadow-md",
+    pill: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ring-inset",
+    swatch: "bg-white ring-1 ring-zinc-300",
   },
   occupied: {
     icon: "users",
-    solid: "bg-zinc-900 text-white",
-    tile: "border-2 border-zinc-900 bg-card hover:bg-zinc-50",
-    text: "text-zinc-900",
+    tile: "border-zinc-900 bg-zinc-900 text-white shadow-sm hover:bg-zinc-800",
+    pill: "bg-white/15 text-white",
+    swatch: "bg-zinc-900",
   },
   needs_approval: {
     icon: "bell",
-    solid: "bg-orange-500 text-white",
-    tile: "border-2 border-orange-500 bg-orange-50 hover:bg-orange-100",
-    text: "text-orange-700",
+    tile: "border-orange-400 bg-orange-50 shadow-sm hover:bg-orange-100",
+    pill: "bg-orange-500 text-white",
+    swatch: "bg-orange-500",
   },
   food_ready: {
     icon: "checkCircle",
-    solid: "bg-emerald-600 text-white",
-    tile: "border-2 border-emerald-600 bg-emerald-50 hover:bg-emerald-100",
-    text: "text-emerald-700",
+    tile: "border-emerald-500 bg-emerald-50 shadow-sm hover:bg-emerald-100",
+    pill: "bg-emerald-600 text-white",
+    swatch: "bg-emerald-600",
   },
   bill_requested: {
     icon: "receipt",
-    solid: "bg-blue-600 text-white",
-    tile: "border-2 border-blue-600 bg-blue-50 hover:bg-blue-100",
-    text: "text-blue-700",
+    tile: "border-blue-500 bg-blue-50 shadow-sm hover:bg-blue-100",
+    pill: "bg-blue-600 text-white",
+    swatch: "bg-blue-600",
   },
 };
 
@@ -73,8 +81,6 @@ export function FloorView({
   const all = floor.areas.flatMap((a) => a.tables);
   const count = (status: TableStatus) =>
     all.filter((table) => table.status === status).length;
-  const area =
-    floor.areas.find((a) => a.id === error.param("area")) ?? floor.areas[0];
   const busy = all.filter((table) => table.status !== "free");
   const openTaka = busy.reduce(
     (sum, table) => sum + (table.order?.totalTaka ?? 0),
@@ -82,6 +88,8 @@ export function FloorView({
   );
   const seatsUsed = busy.reduce((sum, table) => sum + table.seats, 0);
   const seatsAll = all.reduce((sum, table) => sum + table.seats, 0);
+  const reservations = floor.reservations ?? [];
+  const bookedSeats = reservations.reduce((sum, r) => sum + r.partySize, 0);
   const busyShare = all.length
     ? Math.round((busy.length / all.length) * 100)
     : 0;
@@ -106,202 +114,257 @@ export function FloorView({
 
   return (
     <div className="mx-auto max-w-[1280px] space-y-5">
-      {/* Dark summary: who's logged in, how full the floor is, and the main action. */}
-      <section className="relative overflow-hidden rounded-2xl bg-zinc-900 p-5 text-white sm:p-6">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 -right-24 size-64 rounded-full bg-orange-500/20 blur-3xl"
-        />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* Title row like the owner app: icon tile, title and summary; actions on the right. */}
+      <header className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span
+            aria-hidden
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"
+          >
+            <Icon name="grid" className="size-5" />
+          </span>
           <div className="min-w-0">
-            <h1 className="text-[26px] leading-tight font-bold tracking-tight sm:text-[30px]">
+            <h1 className="text-[22px] leading-tight font-bold tracking-tight sm:text-[24px]">
               {t("title")}
             </h1>
-            <p className="mt-1 text-[14px] text-zinc-400">
+            <p className="mt-0.5 text-[14px] text-muted-foreground">
               {error.param("welcome") === "1"
                 ? t("welcome", { name: user.name, role: tRoles(user.role) })
                 : t("summary", { busy: busy.length, total: all.length })}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {receipt && (
-              <Button
-                asChild
-                variant="outline"
-                className="h-11 rounded-xl border-white/20 bg-white/5 px-4 font-semibold text-white hover:bg-white/10 hover:text-white"
-              >
-                <Link href={orderHref(receipt, "receipt")}>
-                  <Icon name="printer" />
-                  {t("printLast")}
-                </Link>
-              </Button>
-            )}
-            <form action={openOrder}>
-              <SubmitButton className="h-11 gap-0 rounded-xl bg-white pr-4 pl-1.5 text-[14px] font-semibold text-zinc-900 shadow-sm hover:bg-zinc-100">
-                <span
-                  aria-hidden
-                  className="flex size-8 items-center justify-center rounded-lg bg-orange-500 text-white"
-                >
-                  <Icon name="bag" className="size-4" />
-                </span>
-                {t("takeaway")}
-              </SubmitButton>
-            </form>
-          </div>
         </div>
-
-        <div className="relative mt-5">
-          <SessionBar userId={user.id} userName={user.name} />
+        <div className="flex flex-wrap gap-2">
+          {receipt && (
+            <Button
+              asChild
+              variant="outline"
+              className="h-10 rounded-lg px-4 font-semibold"
+            >
+              <Link href={orderHref(receipt, "receipt")}>
+                <Icon name="printer" />
+                {t("printLast")}
+              </Link>
+            </Button>
+          )}
+          <form action={openOrder}>
+            <SubmitButton className="h-10 rounded-lg bg-primary px-4 text-[14px] font-semibold text-primary-foreground shadow-sm hover:bg-primary/90">
+              <Icon name="bag" className="size-4" />
+              {t("takeaway")}
+            </SubmitButton>
+          </form>
         </div>
+      </header>
 
-        <dl className="relative mt-3 grid grid-cols-3 gap-2 sm:gap-3">
-          <HeroStat
-            label={t("stats.busy")}
-            value={`${busy.length}/${all.length}`}
-          >
-            <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-white/10">
-              <span
-                className="block h-full rounded-full bg-orange-500"
-                style={{ width: `${busyShare}%` }}
-              />
-            </span>
-          </HeroStat>
-          <HeroStat label={t("stats.open")} value={formatTaka(openTaka)} />
-          <HeroStat
-            label={t("stats.seats")}
-            value={`${seatsUsed}/${seatsAll}`}
-          />
-        </dl>
-      </section>
+      <SessionBar userId={user.id} userName={user.name} />
 
       {error.message && <Notice>{error.message}</Notice>}
 
-      {/* What needs someone now. QR approvals and bill requests are handled on Incoming; food ready is on each table. */}
-      <ul className="grid grid-cols-3 gap-2 sm:gap-3">
-        {counters.map(({ status, label, hint }) => {
+      {/* How full the floor is: four big numbers. */}
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Kpi
+          icon="seat"
+          tone="bg-violet-100 text-violet-700"
+          label={t("stats.busy")}
+          value={`${busy.length}/${all.length}`}
+        >
+          <span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-zinc-100">
+            <span
+              className="block h-full rounded-full bg-violet-500"
+              style={{ width: `${busyShare}%` }}
+            />
+          </span>
+        </Kpi>
+        <Kpi
+          icon="cash"
+          tone="bg-emerald-100 text-emerald-700"
+          label={t("stats.open")}
+          value={formatTaka(openTaka)}
+        />
+        <Kpi
+          icon="users"
+          tone="bg-sky-100 text-sky-700"
+          label={t("stats.seats")}
+          value={`${seatsUsed}/${seatsAll}`}
+        />
+        <Kpi
+          icon="clock"
+          tone="bg-cyan-100 text-cyan-700"
+          label={t("stats.booked")}
+          value={String(bookedSeats)}
+          note={t("stats.bookedHint", { n: reservations.length })}
+        />
+      </dl>
+
+      {/* What needs someone now: quiet when nothing is waiting, coloured when something is. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-[13px] font-semibold text-muted-foreground">
+          {t("attention")}
+        </span>
+        {counters.map(({ status, label }) => {
           const n = count(status);
           const tone = TONES[status];
-          const linked = n > 0 && status !== "food_ready";
+          const pill = cn(
+            "inline-flex h-9 items-center gap-2 rounded-md border pr-3 pl-1.5 text-[13.5px] font-medium transition-colors",
+            n > 0
+              ? "border-transparent bg-card shadow-sm ring-2 ring-inset"
+              : "bg-card text-muted-foreground",
+            n > 0 && status === "needs_approval" && "ring-orange-400",
+            n > 0 && status === "food_ready" && "ring-emerald-500",
+            n > 0 && status === "bill_requested" && "ring-blue-500",
+          );
+          const badge =
+            status === "needs_approval"
+              ? "bg-primary text-white"
+              : status === "food_ready"
+                ? "bg-emerald-600 text-white"
+                : "bg-sky-700 text-white";
           const body = (
             <>
               <span
                 aria-hidden
                 className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-xl sm:size-11",
-                  n > 0 ? tone.solid : "bg-zinc-100 text-zinc-400",
+                  "flex size-6 items-center justify-center rounded-full",
+                  n > 0 ? badge : "bg-zinc-100 text-zinc-400",
                 )}
               >
-                <Icon name={tone.icon} className="size-5" />
+                <Icon name={tone.icon} className="size-3.5" />
               </span>
-              <span className="min-w-0">
-                <span
-                  className={cn(
-                    "block text-[24px] leading-none font-bold tabular-nums sm:text-[28px]",
-                    n === 0 && "text-zinc-400",
-                  )}
-                >
-                  {n}
-                </span>
-                <span className="mt-1 block text-[12.5px] leading-tight font-semibold sm:text-[13.5px]">
-                  {label}
-                </span>
-                <span className="hidden text-[12.5px] text-muted-foreground lg:block">
-                  {hint}
-                </span>
+              {label}
+              <span
+                className={cn(
+                  "font-bold tabular-nums",
+                  n > 0 ? "text-foreground" : "text-zinc-400",
+                )}
+              >
+                {n}
               </span>
-              {linked && (
-                <Icon
-                  name="go"
-                  className="ml-auto hidden size-4 shrink-0 text-muted-foreground sm:block"
-                />
-              )}
             </>
           );
-          const box = cn(
-            "flex h-full flex-col gap-2.5 rounded-xl border bg-card p-3 sm:flex-row sm:items-center sm:gap-3 sm:p-4",
-            n > 0 &&
-              status === "needs_approval" &&
-              "border-orange-300 ring-2 ring-orange-500/15",
-          );
-          return (
-            <li key={status}>
-              {linked ? (
-                <Link
-                  href="/incoming"
-                  className={cn(
-                    box,
-                    "transition hover:border-zinc-900 hover:shadow-sm",
-                  )}
-                >
-                  {body}
-                </Link>
-              ) : (
-                <div className={box}>{body}</div>
-              )}
-            </li>
+          return n > 0 && status !== "food_ready" ? (
+            <Link
+              key={status}
+              href="/incoming"
+              className={cn(pill, "hover:bg-zinc-50")}
+            >
+              {body}
+            </Link>
+          ) : (
+            <span key={status} className={pill}>
+              {body}
+            </span>
           );
         })}
-      </ul>
+      </div>
 
-      <section className="rounded-2xl border bg-card p-3 sm:p-5">
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          {floor.areas.length > 1 ? (
-            <nav aria-label={t("areas")} className="max-w-full overflow-x-auto">
-              <ul className="inline-flex gap-1.5">
-                {floor.areas.map((a) => {
-                  const active = a.id === area?.id;
-                  const n = a.tables.filter(
-                    (table) => table.status !== "free",
-                  ).length;
-                  return (
-                    <li key={a.id}>
-                      <Link
-                        href={`/floor?area=${a.id}`}
-                        scroll={false}
-                        aria-current={active ? "page" : undefined}
-                        className={cn(
-                          "flex h-10 items-center gap-2 rounded-lg px-3.5 text-[14px] font-semibold whitespace-nowrap transition-colors",
-                          active
-                            ? "bg-zinc-900 text-white"
-                            : "bg-muted text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900",
-                        )}
-                      >
-                        {a.name}
-                        <span
-                          className={cn(
-                            "rounded-full px-1.5 py-0.5 text-[11.5px] leading-none tabular-nums",
-                            active
-                              ? "bg-white/15 text-white"
-                              : "bg-white text-zinc-600",
-                          )}
-                        >
-                          {t("areaBusy", { busy: n, total: a.tables.length })}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
+      {/* Floor shows only the busy tables; every table is on the Tables tab. */}
+      <section
+        aria-labelledby="busy-title"
+        className="overflow-hidden rounded-2xl border bg-card"
+      >
+        <header className="flex items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-5">
+          <div className="flex items-center gap-3">
+            <span
+              aria-hidden
+              className="flex size-9 items-center justify-center rounded-lg bg-orange-100 text-orange-700"
+            >
+              <Icon name="grid" className="size-[18px]" />
+            </span>
+            <div>
+              <h2 id="busy-title" className="text-[16px] font-bold">
+                {t("busyTitle")}
+              </h2>
+              <p className="text-[12.5px] text-muted-foreground tabular-nums">
+                {t("summary", { busy: busy.length, total: all.length })}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/tables"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-input bg-white px-3 text-[13.5px] font-semibold shadow-xs hover:bg-zinc-50"
+          >
+            {t("allTables")}
+            <Icon name="go" className="size-4" />
+          </Link>
+        </header>
+        <div className="p-3 sm:p-4">
+          {busy.length === 0 ? (
+            <p className="text-[13.5px] text-muted-foreground">
+              {t("noneBusy")}
+            </p>
           ) : (
-            <h2 className="text-[17px] font-bold">{area?.name}</h2>
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(156px,1fr))] sm:gap-3">
+              {busy.slice(0, MAX_TILES).map((table) => (
+                <li key={table.id}>
+                  <BoardCard table={table} back="/floor" />
+                </li>
+              ))}
+            </ul>
           )}
-          <Legend />
         </div>
-
-        {!area ? (
-          <EmptyState
-            icon="grid"
-            title={t("noTablesTitle")}
-            body={t("noTables")}
-          />
-        ) : (
-          <AreaGrid tables={area.tables} />
-        )}
       </section>
 
+      <Reservations reservations={reservations} />
+
+      {(floor.parcels?.length ?? 0) > 0 && (
+        <section
+          aria-labelledby="parcels-title"
+          className="rounded-2xl border bg-card p-3 sm:p-5"
+        >
+          <h2 id="parcels-title" className="mb-3 text-[15px] font-semibold">
+            {t("parcels.title")}
+          </h2>
+          <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+            {floor.parcels!.map((p) => {
+              const empty = p.totalTaka === 0;
+              return (
+                <li key={p.id}>
+                  <Link
+                    href={orderHref(p.id)}
+                    className="flex h-full flex-col gap-1 rounded-xl border bg-white p-3 hover:border-zinc-400 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <span className="flex items-center gap-1.5 text-[18px] font-bold tabular-nums">
+                      <Icon name="bag" className="size-4 text-orange-600" />
+                      {p.tokenNo != null
+                        ? t("parcels.token", { token: p.tokenNo })
+                        : `#${p.number}`}
+                    </span>
+                    <span className="text-[13px] font-semibold tabular-nums">
+                      {formatTaka(p.totalTaka)}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-auto w-fit rounded-full px-2 py-0.5 text-[12px] font-semibold",
+                        empty
+                          ? "bg-zinc-100 text-zinc-600"
+                          : p.readyRounds > 0
+                            ? "bg-emerald-100 text-emerald-900"
+                            : p.billRequested
+                              ? "bg-sky-100 text-sky-900"
+                              : "bg-amber-100 text-amber-900",
+                      )}
+                    >
+                      {empty
+                        ? t("parcels.empty")
+                        : p.readyRounds > 0
+                          ? t("parcels.ready")
+                          : p.billRequested
+                            ? t("parcels.bill")
+                            : t("parcels.cooking")}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {(floor.pickups?.length ?? 0) > 0 && (
-        <section aria-labelledby="pickups-title" className="rounded-2xl border bg-card p-3 sm:p-5">
+        <section
+          aria-labelledby="pickups-title"
+          className="rounded-2xl border bg-card p-3 sm:p-5"
+        >
           <h2 id="pickups-title" className="mb-3 text-[15px] font-semibold">
             {t("pickups.title")}
           </h2>
@@ -316,8 +379,14 @@ export function FloorView({
                     <Icon name="bag" className="size-4 text-orange-600" />
                     {t("pickups.token", { token: p.tokenNo })}
                   </span>
-                  {p.guestName && <span className="truncate text-[13.5px] text-muted-foreground">{p.guestName}</span>}
-                  <span className="text-[13px] font-semibold tabular-nums">{formatTaka(p.totalTaka)}</span>
+                  {p.guestName && (
+                    <span className="truncate text-[13.5px] text-muted-foreground">
+                      {p.guestName}
+                    </span>
+                  )}
+                  <span className="text-[13px] font-semibold tabular-nums">
+                    {formatTaka(p.totalTaka)}
+                  </span>
                   <span
                     className={cn(
                       "mt-auto w-fit rounded-full px-2 py-0.5 text-[12px] font-semibold",
@@ -346,25 +415,310 @@ export function FloorView({
   );
 }
 
-function HeroStat({
+/** The Tables tab: every table, by area, with search and the busy/free filter. */
+export function TablesSection({
+  floor,
+  error,
+}: {
+  floor: Floor;
+  error: ErrorReader;
+}) {
+  const t = useTranslations("floor");
+  const area =
+    floor.areas.find((a) => a.id === error.param("area")) ?? floor.areas[0];
+  const query = error.param("q") ?? "";
+  const show: Show =
+    (["busy", "free"] as const).find((v) => v === error.param("show")) ?? "all";
+  const areaId = floor.areas.length > 1 ? (area?.id ?? null) : null;
+  const tables = area?.tables ?? [];
+  const busyCount = tables.filter((table) => table.status !== "free").length;
+  const href = (next: { area?: string; show?: Show }) => {
+    const params = new URLSearchParams();
+    const a = next.area ?? areaId;
+    if (a) params.set("area", a);
+    // A new area starts fresh; a new filter keeps the search.
+    if (!next.area && query.trim()) params.set("q", query.trim());
+    const sh = next.show ?? (next.area ? "all" : show);
+    if (sh !== "all") params.set("show", sh);
+    const qs = params.toString();
+    return qs ? `/tables?${qs}` : "/tables";
+  };
+  const segment = (active: boolean) =>
+    cn(
+      "flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold whitespace-nowrap tabular-nums transition-colors",
+      active
+        ? "bg-white text-zinc-900 shadow-sm ring-1 ring-black/5"
+        : "text-zinc-600 hover:text-zinc-900",
+    );
+
+  return (
+    <section
+      id="tables-board"
+      aria-label={t("tablesTitle")}
+      className="overflow-hidden rounded-2xl border bg-card shadow-xs fullscreen:overflow-y-auto fullscreen:rounded-none fullscreen:border-0 fullscreen:bg-background"
+    >
+      {/* One toolbar: area, search, busy/free, full screen. Stays on top while the cards scroll. */}
+      <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b bg-card px-3 py-3 sm:px-4">
+        {floor.areas.length > 1 && (
+          <nav
+            aria-label={t("areas")}
+            className="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-zinc-100 p-1"
+          >
+            {floor.areas.map((a) => {
+              const active = a.id === area?.id;
+              const n = a.tables.filter(
+                (table) => table.status !== "free",
+              ).length;
+              return (
+                <Link
+                  key={a.id}
+                  href={href({ area: a.id })}
+                  scroll={false}
+                  aria-current={active ? "page" : undefined}
+                  className={segment(active)}
+                >
+                  {a.name}
+                  <span
+                    className={cn(
+                      "text-[11.5px] font-medium",
+                      active ? "text-select" : "text-zinc-500",
+                    )}
+                  >
+                    {t("areaBusy", { busy: n, total: a.tables.length })}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+        <form
+          action="/tables"
+          className="relative w-full sm:w-52"
+          role="search"
+        >
+          {areaId && <input type="hidden" name="area" value={areaId} />}
+          {show !== "all" && <input type="hidden" name="show" value={show} />}
+          <Icon
+            name="search"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+          />
+          <label className="sr-only" htmlFor="floor-q">
+            {t("search")}
+          </label>
+          <input
+            id="floor-q"
+            type="search"
+            name="q"
+            defaultValue={query}
+            placeholder={t("searchPlaceholder")}
+            className="h-10 w-full rounded-lg border border-input bg-white pr-3 pl-9 text-[14px] shadow-xs outline-none focus:border-select focus:ring-3 focus:ring-select/15"
+          />
+        </form>
+        <nav
+          aria-label={t("showLabel")}
+          className="flex gap-1 rounded-lg bg-zinc-100 p-1"
+        >
+          {(
+            [
+              ["all", t("show.all", { n: tables.length })],
+              ["busy", t("show.busy", { n: busyCount })],
+              ["free", t("show.free", { n: tables.length - busyCount })],
+            ] as const
+          ).map(([value, text]) => (
+            <Link
+              key={value}
+              href={href({ show: value })}
+              scroll={false}
+              aria-current={show === value ? "page" : undefined}
+              className={segment(show === value)}
+            >
+              {text}
+            </Link>
+          ))}
+        </nav>
+        <div className="ml-auto">
+          <FullscreenButton targetId="tables-board" />
+        </div>
+      </div>
+
+      <div className="p-3 sm:p-4">
+        {!area ? (
+          <EmptyState
+            icon="grid"
+            title={t("noTablesTitle")}
+            body={t("noTables")}
+          />
+        ) : (
+          <TableBoard tables={tables} query={query} show={show} />
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** The Tables tab: a title like the other pages, then every table. */
+export function TablesView({
+  floor,
+  error,
+}: {
+  floor: Floor;
+  error: ErrorReader;
+}) {
+  const t = useTranslations("floor");
+  const tNav = useTranslations("nav");
+  const all = floor.areas.flatMap((a) => a.tables);
+  const busy = all.filter((table) => table.status !== "free").length;
+  return (
+    <div className="mx-auto max-w-[1280px] space-y-5">
+      <header className="flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3.5">
+          <span
+            aria-hidden
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-primary"
+          >
+            <Icon name="seat" className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-[22px] leading-tight font-bold tracking-tight sm:text-[24px]">
+              {tNav("tables")}
+            </h1>
+            <p className="mt-0.5 text-[14px] text-muted-foreground">
+              {t("summary", { busy, total: all.length })}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <Legend />
+        </div>
+      </header>
+      {error.message && <Notice>{error.message}</Notice>}
+      <TablesSection floor={floor} error={error} />
+    </div>
+  );
+}
+
+function Kpi({
+  icon,
+  tone,
   label,
   value,
+  note,
   children,
 }: {
+  icon: IconName;
+  tone: string;
   label: string;
   value: string;
+  note?: string;
   children?: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 rounded-xl bg-white/5 p-3 ring-1 ring-white/10 sm:p-4">
-      <dt className="truncate text-[11.5px] font-semibold tracking-wide text-zinc-400 uppercase sm:text-[12px]">
-        {label}
-      </dt>
-      <dd className="mt-1 truncate text-[20px] leading-tight font-bold tabular-nums sm:text-[26px]">
+    <div className="min-w-0 rounded-xl border bg-card p-4 shadow-xs">
+      <div className="flex items-start justify-between gap-3">
+        <dt className="truncate text-[13px] font-medium text-muted-foreground">
+          {label}
+        </dt>
+        <span
+          aria-hidden
+          className={cn(
+            "flex size-8 shrink-0 items-center justify-center rounded-lg",
+            tone,
+          )}
+        >
+          <Icon name={icon} className="size-4" />
+        </span>
+      </div>
+      <dd className="-mt-1 truncate text-[26px] leading-tight font-bold tracking-tight tabular-nums">
         {value}
       </dd>
+      {note && (
+        <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">
+          {note}
+        </p>
+      )}
       {children}
     </div>
+  );
+}
+
+/** Today's bookings in time order: who, how many, which table. A booking with no table is waiting for one. */
+function Reservations({ reservations }: { reservations: FloorReservation[] }) {
+  const t = useTranslations("floor.reservations");
+  return (
+    <section
+      aria-labelledby="reservations-title"
+      className="overflow-hidden rounded-2xl border bg-card"
+    >
+      <header className="flex items-center gap-3 border-b px-4 py-3">
+        <span
+          aria-hidden
+          className="flex size-9 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700"
+        >
+          <Icon name="clock" className="size-[18px]" />
+        </span>
+        <h2
+          id="reservations-title"
+          className="flex-1 text-[15px] font-semibold"
+        >
+          {t("title")}
+        </h2>
+        {reservations.length > 0 && (
+          <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[12px] font-semibold text-cyan-800 tabular-nums">
+            {reservations.length}
+          </span>
+        )}
+      </header>
+      {reservations.length === 0 ? (
+        <p className="px-4 py-3.5 text-[13.5px] text-muted-foreground">
+          <span className="font-medium text-foreground">{t("empty")}</span>{" "}
+          {t("emptyHint")}
+        </p>
+      ) : (
+        <ul className="grid divide-y sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 [&>li]:sm:border-b [&>li]:sm:border-r">
+          {reservations.map((r) => {
+            const started = hasStarted(r.at);
+            return (
+              <li
+                key={r.id}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3",
+                  started && "bg-cyan-50/70",
+                )}
+              >
+                <span className="w-16 shrink-0">
+                  <span className="block text-[14.5px] font-bold tabular-nums">
+                    {formatTime(r.at, "Asia/Dhaka")}
+                  </span>
+                  {started && (
+                    <span className="text-[11.5px] font-semibold text-cyan-700">
+                      {t("now")}
+                    </span>
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-semibold">
+                    {r.name}
+                  </span>
+                  <span className="flex items-center gap-1 text-[12.5px] text-muted-foreground">
+                    <Icon name="users" aria-hidden className="size-3.5" />
+                    {t("people", { n: r.partySize })}
+                  </span>
+                </span>
+                {r.tableLabel ? (
+                  <span className="shrink-0 rounded-lg bg-primary px-2.5 py-1 text-[13px] font-bold text-primary-foreground">
+                    {r.tableLabel}
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[12px] font-semibold text-amber-800 ring-1 ring-amber-200">
+                    {t("noTable")}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -387,12 +741,7 @@ function Legend() {
         <li key={status} className="flex items-center gap-1.5">
           <span
             aria-hidden
-            className={cn(
-              "size-3 rounded-[4px]",
-              status === "free"
-                ? "border-2 border-dashed border-zinc-400"
-                : TONES[status].solid,
-            )}
+            className={cn("size-3 rounded-[4px]", TONES[status].swatch)}
           />
           {tStatus(status)}
         </li>
@@ -401,173 +750,174 @@ function Legend() {
   );
 }
 
-function AreaGrid({ tables }: { tables: FloorTable[] }) {
+/** The cards in table-number order, so a table is always in the same place. Capped at MAX_TILES. */
+function TableBoard({
+  tables,
+  query,
+  show,
+}: {
+  tables: FloorTable[];
+  query: string;
+  show: Show;
+}) {
   const t = useTranslations("floor");
-  const placed = tables.filter(
-    (table) => table.gridX !== null && table.gridY !== null,
-  );
-  const unplaced = tables.filter(
-    (table) => table.gridX === null || table.gridY === null,
-  );
-  // Only rows that have a table: an empty row in the plan is just an aisle, not worth a row of blank boxes.
-  const usedRows = [...new Set(placed.map((table) => table.gridY ?? 0))]
-    .filter((y) => y < rows)
-    .sort((a, b) => a - b);
-  const at = (x: number, y: number) =>
-    placed.find((table) => table.gridX === x && table.gridY === y);
-
+  const q = query.trim().toLowerCase();
+  const matches = tables
+    .filter(
+      (table) =>
+        (!q || table.label.toLowerCase().includes(q)) &&
+        (show === "all" ||
+          (show === "busy"
+            ? table.status !== "free"
+            : table.status === "free")),
+    )
+    .sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { numeric: true }),
+    );
+  const shown = matches.slice(0, MAX_TILES);
+  if (shown.length === 0)
+    return (
+      <p className="rounded-xl border border-dashed py-12 text-center text-[14px] text-muted-foreground">
+        {t("noMatch")}
+      </p>
+    );
   return (
-    <div className="space-y-4">
-      {placed.length > 0 && (
-        <div
-          className="grid gap-2 sm:gap-3"
-          style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-        >
-          {usedRows
-            .flatMap((y) =>
-              Array.from({ length: columns }, (_, x) => ({ x, y })),
-            )
-            .map(({ x, y }, i) => {
-              const table = at(x, y);
-              return table ? (
-                <TableTile key={table.id} table={table} />
-              ) : (
-                <div key={i} aria-hidden />
-              );
-            })}
-        </div>
+    <>
+      <ul className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(156px,1fr))] sm:gap-3">
+        {shown.map((table) => (
+          <li key={table.id}>
+            <BoardCard table={table} back="/tables" />
+          </li>
+        ))}
+      </ul>
+      {matches.length > shown.length && (
+        <p className="mt-3 text-center text-[13px] text-muted-foreground">
+          {t("capped", { shown: shown.length, total: matches.length })}
+        </p>
       )}
-      {unplaced.length > 0 && (
-        <div>
-          <h3 className="text-[14px] font-semibold text-muted-foreground">
-            {t("unplaced")}
-          </h3>
-          <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
-            {unplaced.map((table) => (
-              <TableTile key={table.id} table={table} />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
-function TableTile({ table }: { table: FloorTable }) {
+/**
+ * One table: number and status pill on top, seats (or the bill and time) below.
+ * Free tables are plain white, seated ones dark, the ones that need someone use their status colour.
+ */
+function BoardCard({
+  table,
+  back,
+}: {
+  table: FloorTable;
+  back: "/floor" | "/tables";
+}) {
   const t = useTranslations("floor");
   const tStatus = useTranslations("tableStatus");
   const tone = TONES[table.status];
-  const free = table.status === "free";
+  const dark = table.status === "occupied";
   const label = t("tableAria", {
     table: table.label,
     status: tStatus(table.status),
   });
-  const tile = cn(
-    "group relative flex min-h-[88px] w-full flex-col justify-between gap-2 rounded-xl p-2 text-left transition sm:min-h-[124px] sm:p-3.5",
-    tone.tile,
-    !free && "shadow-sm",
-  );
   const minutes = table.order ? minutesSince(table.order.openedAt) : 0;
   const time =
     minutes < 60
       ? t("minutes", { n: minutes })
       : t("hours", { h: Math.floor(minutes / 60), m: minutes % 60 });
-
+  const card = cn(
+    "group flex h-[108px] w-full flex-col justify-between rounded-xl border p-3 text-left transition-[border-color,box-shadow,background-color] duration-150 focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none",
+    tone.tile,
+  );
   const body = (
     <>
-      <span className="flex items-start justify-between gap-1.5">
+      <span className="flex items-start justify-between gap-2">
         <span
           className={cn(
-            "flex h-9 min-w-9 items-center justify-center rounded-lg px-1.5 text-[17px] leading-none font-bold sm:h-11 sm:min-w-11 sm:text-[20px]",
-            free
-              ? "bg-zinc-100 text-zinc-500 group-hover:bg-zinc-900 group-hover:text-white"
-              : tone.solid,
+            "min-w-0 truncate text-[24px] leading-none font-bold tracking-tight tabular-nums",
+            !dark && "text-zinc-900",
           )}
           title={table.label}
         >
-          <span className="truncate">{table.label}</span>
+          {table.label}
         </span>
-        {table.order ? (
-          <span className="hidden text-[15px] font-bold tabular-nums sm:block">
-            {formatTaka(table.order.totalTaka)}
-          </span>
-        ) : (
-          <span className="hidden items-center gap-1 text-[12.5px] font-medium text-muted-foreground sm:flex">
-            <Icon name="seat" className="size-3.5" />
-            {table.seats}
-          </span>
-        )}
+        <span
+          className={cn(
+            "inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2 text-[11.5px] font-semibold",
+            tone.pill,
+          )}
+        >
+          {table.status !== "free" && (
+            <Icon
+              name={tone.icon}
+              className={cn(
+                "size-3.5",
+                table.status === "needs_approval" && "animate-pulse",
+              )}
+            />
+          )}
+          {tStatus(table.status)}
+        </span>
       </span>
-      {table.nextReservation && (
-        <span className="flex items-center gap-1 truncate text-[11.5px] font-semibold text-sky-700 sm:text-[12.5px]">
-          <Icon name="clock" className="hidden size-3.5 shrink-0 sm:block" />
-          <span className="truncate">
-            {t("booked", {
-              time: formatTime(table.nextReservation.at, "Asia/Dhaka"),
-              name: table.nextReservation.name,
-              n: table.nextReservation.partySize,
-            })}
-          </span>
+      {table.nextReservation && table.status === "free" && (
+        <span className="truncate text-[11.5px] font-semibold text-sky-700">
+          {t("booked", {
+            time: formatTime(table.nextReservation.at, "Asia/Dhaka"),
+            name: table.nextReservation.name,
+            n: table.nextReservation.partySize,
+          })}
         </span>
       )}
-      {free ? (
-        <span className="flex items-center gap-1 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
-          <span className="truncate">{tStatus("free")}</span>
-          <span className="ml-auto hidden items-center gap-0.5 font-semibold text-zinc-900 opacity-0 transition group-hover:opacity-100 sm:flex">
-            <Icon name="plus" className="size-3.5" />
-            {t("open")}
-          </span>
-        </span>
-      ) : (
-        <span className="space-y-0.5">
-          {table.order && (
-            <span className="block text-[13px] font-bold tabular-nums sm:hidden">
-              {formatTaka(table.order.totalTaka)}
-            </span>
-          )}
-          <span className="flex items-center justify-between gap-1.5 text-[12px] sm:text-[13px]">
+      <span
+        className={cn(
+          "flex items-center justify-between gap-2 text-[13px] font-medium tabular-nums",
+          dark ? "text-zinc-300" : "text-zinc-500",
+        )}
+      >
+        {table.order ? (
+          <>
             <span
               className={cn(
-                "flex min-w-0 items-center gap-1 truncate font-bold",
-                tone.text,
+                "truncate text-[15px] font-bold",
+                dark ? "text-white" : "text-zinc-900",
               )}
             >
-              <Icon
-                name={tone.icon}
-                className={cn(
-                  "hidden size-3.5 shrink-0 sm:block",
-                  table.status === "needs_approval" && "animate-pulse",
-                )}
-              />
-              <span className="truncate">{tStatus(table.status)}</span>
+              {formatTaka(table.order.totalTaka)}
             </span>
-            {table.order && (
-              <span className="hidden shrink-0 items-center gap-1 font-medium text-muted-foreground tabular-nums sm:flex">
-                <Icon name="clock" className="size-3.5" />
-                {time}
-              </span>
-            )}
-          </span>
-        </span>
-      )}
+            <span className="flex shrink-0 items-center gap-1">
+              <Icon name="clock" className="size-3.5" />
+              {time}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="flex items-center gap-1">
+              <Icon name="seat" className="size-3.5" />
+              {t("seats", { n: table.seats })}
+            </span>
+            <span className="flex items-center gap-0.5 font-semibold text-select opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+              <Icon name="plus" className="size-3.5" />
+              {t("open")}
+            </span>
+          </>
+        )}
+      </span>
     </>
   );
-
   if (table.order) {
     return (
       <Link
         href={orderHref(table.order.id)}
         aria-label={label}
-        className={tile}
+        className={card}
       >
         {body}
       </Link>
     );
   }
   return (
-    <form action={openOrder} className="contents">
+    <form action={openOrder}>
       <input type="hidden" name="tableId" value={table.id} />
-      <button type="submit" aria-label={label} className={tile}>
+      <input type="hidden" name="back" value={back} />
+      <button type="submit" aria-label={label} className={card}>
         {body}
       </button>
     </form>

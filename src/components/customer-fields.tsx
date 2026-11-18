@@ -17,7 +17,7 @@ function localPhone(input: string): string | null {
 }
 
 const fieldClass =
-  "flex h-11 items-center gap-2 rounded-lg bg-white px-3 ring-1 ring-sky-200 focus-within:ring-2 focus-within:ring-sky-500";
+  "flex h-11 items-center gap-2 rounded-lg bg-white px-3 ring-1 ring-zinc-300 focus-within:ring-2 focus-within:ring-orange-400";
 const inputClass =
   "min-w-0 flex-1 bg-transparent text-[14.5px] font-semibold outline-none placeholder:font-normal placeholder:text-zinc-400";
 
@@ -98,7 +98,7 @@ export function CustomerFields({
     <div className="mt-2.5">
       <div className="grid gap-2 sm:grid-cols-2">
         <label className={fieldClass}>
-          <Icon name="phone" className="size-4 shrink-0 text-sky-600" />
+          <Icon name="phone" className="size-4 shrink-0 text-zinc-400" />
           <span className="sr-only">{t("customerPhone")}</span>
           <input
             form={formId}
@@ -114,7 +114,7 @@ export function CustomerFields({
           />
         </label>
         <label className={fieldClass}>
-          <Icon name="users" className="size-4 shrink-0 text-sky-600" />
+          <Icon name="users" className="size-4 shrink-0 text-zinc-400" />
           <span className="sr-only">{t("customerName")}</span>
           <input
             form={formId}
@@ -128,7 +128,8 @@ export function CustomerFields({
           />
         </label>
       </div>
-      <div className="mt-2 flex min-h-8 flex-wrap items-center gap-2 text-[13px]">
+      {/* Only takes room when there is something to say or do. */}
+      <div className="flex flex-wrap items-center gap-2 text-[13px] has-[button,p>*]:mt-2">
         <p className="flex-1 text-sky-800" role="status">
           {error ? (
             <span className="text-red-600">{error}</span>

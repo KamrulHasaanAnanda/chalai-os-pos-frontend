@@ -3,8 +3,13 @@ import type { Role } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 export function initials(name: string): string {
-  const letters = name.split(/\s+/).filter(Boolean).map((word) => word[0]);
-  return (letters.length > 1 ? letters[0] + letters[1] : (letters[0] ?? "?")).toUpperCase();
+  const letters = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0]);
+  return (
+    letters.length > 1 ? letters[0] + letters[1] : (letters[0] ?? "?")
+  ).toUpperCase();
 }
 
 /** Soft tint + strong letter per role, so a list of staff reads at a glance. */
@@ -18,10 +23,23 @@ export const roleTint: Record<Role, string> = {
 };
 
 /** shadcn Avatar showing the first letter, tinted by role. */
-export function Avatar({ name, role, className }: { name: string; role?: Role; className?: string }) {
+export function Avatar({
+  name,
+  role,
+  className,
+}: {
+  name: string;
+  role?: Role;
+  className?: string;
+}) {
   return (
     <ShadcnAvatar aria-hidden className={cn("size-9", className)}>
-      <AvatarFallback className={cn("text-sm font-semibold", role ? roleTint[role] : "bg-muted text-foreground")}>
+      <AvatarFallback
+        className={cn(
+          "text-sm font-semibold",
+          role ? roleTint[role] : "bg-muted text-foreground",
+        )}
+      >
         {initials(name).slice(0, 1)}
       </AvatarFallback>
     </ShadcnAvatar>

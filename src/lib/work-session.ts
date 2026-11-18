@@ -5,7 +5,13 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { currentShift, endShift, startShift } from "@/actions/shifts";
 import type { ShiftReport } from "@/lib/api/types";
 
-export type WorkSession = { id: string; startedAt: string; by: string };
+/** `today` is false for a session left open from an earlier day: work stays locked until it is ended. */
+export type WorkSession = {
+  id: string;
+  startedAt: string;
+  by: string;
+  today: boolean;
+};
 type State = WorkSession | null | "pending";
 
 // One shared copy per signed-in user, so the Floor bar and the logout button always agree.
@@ -26,15 +32,29 @@ async function load(userId: string) {
     const result = await currentShift();
     // When the API can't be reached, show "not started" rather than spinning; starting will try again.
     set(userId, result.ok && result.data ? toSession(result.data) : null);
+  } catch {
+    // A failed request must not leave the bar loading forever.
+    set(userId, null);
   } finally {
     loading.delete(userId);
   }
 }
 
-const toSession = (s: { id: string; startedAt: string; staffName: string }): WorkSession => ({
+/** The calendar day in Dhaka, for an API that doesn't say whether the shift is today's. */
+const dhakaDay = (d: Date) =>
+  d.toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
+
+const toSession = (s: {
+  id: string;
+  startedAt: string;
+  staffName: string;
+  startedToday?: boolean;
+}): WorkSession => ({
   id: s.id,
   startedAt: s.startedAt,
   by: s.staffName,
+  today:
+    s.startedToday ?? dhakaDay(new Date(s.startedAt)) === dhakaDay(new Date()),
 });
 
 function subscribe(onChange: () => void) {
@@ -46,7 +66,8 @@ function subscribe(onChange: () => void) {
 export function useWorkSession(userId: string): State {
   const state = useSyncExternalStore(
     subscribe,
-    () => states.get(userId) ?? "pending",
+    // null is a real answer (no shift open), so only a missing entry means still loading.
+    () => (states.has(userId) ? (states.get(userId) as State) : "pending"),
     () => "pending" as const,
   );
   useEffect(() => {
@@ -56,7 +77,10 @@ export function useWorkSession(userId: string): State {
 }
 
 /** Starts the shift on the server. Returns an error code when it failed. */
-export async function startWorkSession(userId: string, openingCashTaka: number | null = null): Promise<string | null> {
+export async function startWorkSession(
+  userId: string,
+  openingCashTaka: number | null = null,
+): Promise<string | null> {
   const result = await startShift(openingCashTaka);
   if (!result.ok) return result.error;
   set(userId, toSession(result.data));
@@ -86,7 +110,10 @@ export function useSessionMinutes(session: State): number {
     return () => window.clearInterval(id);
   }, []);
   if (!session || session === "pending") return 0;
-  return Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000));
+  return Math.max(
+    0,
+    Math.floor((now - new Date(session.startedAt).getTime()) / 60000),
+  );
 }
 
 export const clockTime = (iso: string) =>
