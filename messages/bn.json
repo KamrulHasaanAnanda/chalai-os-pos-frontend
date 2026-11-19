@@ -228,11 +228,12 @@
     "legend": "টেবিলের রং",
     "noTablesTitle": "এখনো কোনো টেবিল নেই",
     "pickups": {
-      "title": "অনলাইন পিকআপ",
+      "title": "অনলাইন অর্ডার",
       "token": "#{token}",
       "toApprove": "অনুমোদন করতে হবে",
       "ready": "নেওয়ার জন্য রেডি",
-      "cooking": "কিচেনে"
+      "cooking": "কিচেনে",
+      "delivery": "ডেলিভারি"
     },
     "booked": "বুকড {time} · {name} ({n})",
     "reservations": {
@@ -358,7 +359,12 @@
     "askedAt": "{time}-এ চেয়েছে",
     "takePayment": "টাকা নিন",
     "tellCashier": "ক্যাশিয়ারকে বলুন: এই টেবিল বিল চায়।",
-    "pickupAt": "{time}-এ নেবেন"
+    "pickupAt": "{time}-এ নেবেন",
+    "delivery": "ডেলিভারি #{token}",
+    "deliverAt": "{time}-এর মধ্যে পৌঁছাতে হবে",
+    "payCash": "খাবার পেয়ে ক্যাশ দেবেন",
+    "payBkash": "বিকাশে টাকা দেওয়া",
+    "deliverTo": "ঠিকানা"
   },
   "order": {
     "title": "অর্ডার #{number}",
@@ -414,7 +420,13 @@
       "items": "আইটেম",
       "rounds": "রাউন্ড",
       "total": "এ পর্যন্ত বিল"
-    }
+    },
+    "delivery": "ডেলিভারি #{token}",
+    "deliverTo": "ঠিকানা",
+    "deliverAt": "{time}-এর মধ্যে পৌঁছাতে হবে",
+    "payCash": "খাবার পেয়ে ক্যাশ দেবেন",
+    "payBkash": "বিকাশে, অনলাইনে দেওয়া",
+    "deliveryFee": "ডেলিভারি চার্জ {amount}"
   },
   "override": {
     "title": "ম্যানেজারের অনুমোদন",
@@ -568,7 +580,9 @@
     "change": "ফেরত",
     "due": "বাকি",
     "thanks": "ধন্যবাদ! আবার আসবেন।",
-    "poweredBy": "চালাই দ্বারা চালিত"
+    "poweredBy": "চালাই দ্বারা চালিত",
+    "deliveryFee": "ডেলিভারি চার্জ",
+    "deliverTo": "ঠিকানা"
   },
   "menu": {
     "title": "মেনুতে কী আছে",

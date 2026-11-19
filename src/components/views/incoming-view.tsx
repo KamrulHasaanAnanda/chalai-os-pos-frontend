@@ -87,7 +87,9 @@ export function IncomingView({
 }
 
 function where(order: Order, t: ReturnType<typeof useTranslations<"incoming">>) {
-  return order.tableLabel ? t("table", { table: order.tableLabel }) : order.tokenNo ? t("pickup", { token: order.tokenNo }) : t("takeaway");
+  if (order.tableLabel) return t("table", { table: order.tableLabel });
+  if (!order.tokenNo) return t("takeaway");
+  return order.type === "delivery" ? t("delivery", { token: order.tokenNo }) : t("pickup", { token: order.tokenNo });
 }
 
 function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound; tz: string; error: ErrorReader }) {
@@ -99,12 +101,17 @@ function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound;
   const rejectError = error.forForm(rejectForm);
   const firstRound = order.rounds[0]?.id === round.id;
 
-  const pickup = order.type === "pickup" && order.pickupAt;
+  const timed = (order.type === "pickup" || order.type === "delivery") && order.pickupAt;
+  const delivery = order.type === "delivery" ? order.delivery : null;
   const meta = [
     order.areaName,
     order.guestName,
     order.guestPhone,
-    pickup ? t("pickupAt", { time: formatTime(order.pickupAt!, tz) }) : firstRound ? t("firstOrder") : t("moreOrder"),
+    timed
+      ? t(order.type === "delivery" ? "deliverAt" : "pickupAt", { time: formatTime(order.pickupAt!, tz) })
+      : firstRound
+        ? t("firstOrder")
+        : t("moreOrder"),
     t("sentAt", { time: formatTime(round.createdAt, tz) }),
   ]
     .filter(Boolean)
@@ -127,6 +134,8 @@ function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound;
       {round.note && (
         <p className="mx-5 mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] font-medium text-amber-900">{tOrder("note", { note: round.note })}</p>
       )}
+
+      {delivery && <DeliveryBox delivery={delivery} className="mx-5 mt-3" />}
 
       <ul className="mt-4 px-5">
         {live.map((line) => (
@@ -210,5 +219,18 @@ function BillCard({ order, tz, canBill }: { order: Order; tz: string; canBill: b
         )}
       </div>
     </li>
+  );
+}
+
+/** Where the rider goes and how the guest pays, on a delivery's Incoming card. */
+function DeliveryBox({ delivery, className }: { delivery: NonNullable<Order["delivery"]>; className?: string }) {
+  const t = useTranslations("incoming");
+  return (
+    <div className={cn("rounded-lg bg-emerald-50 px-3 py-2.5 text-[13.5px] text-emerald-950 ring-1 ring-emerald-200", className)}>
+      <p>
+        <span className="font-semibold">{t("deliverTo")}:</span> {delivery.address}
+      </p>
+      <p className="mt-1 font-semibold">{delivery.payMethod === "bkash" ? t("payBkash") : t("payCash")}</p>
+    </div>
   );
 }

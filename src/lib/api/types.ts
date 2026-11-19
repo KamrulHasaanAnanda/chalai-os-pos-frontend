@@ -74,13 +74,17 @@ export type FloorTable = {
   nextReservation?: { name: string; partySize: number; at: string } | null;
 };
 
-/** An online pickup order (online-ordering spec): no table, a token number for the day. */
+/** A website order, pickup or delivery: no table, a token number for the day. */
 export type FloorPickup = {
   id: string;
   number: number;
   tokenNo: number;
+  /** For a delivery, when it should arrive. */
   pickupAt: string;
   guestName: string | null;
+  /** Missing from an older API: a pickup. */
+  type?: "pickup" | "delivery";
+  delivery?: { address: string; payMethod: "cash" | "bkash" } | null;
   openedAt: string;
   totalTaka: number;
   pendingRounds: number;
@@ -171,9 +175,14 @@ export type Payment = {
   createdAt: string;
 };
 
+/** A website delivery: where to, the flat charge on the bill, and how the guest pays. */
+export type OrderDelivery = { address: string; feeTaka: number; payMethod: "cash" | "bkash" };
+
 export type Order = {
-  type?: "dine_in" | "pickup";
+  type?: "dine_in" | "pickup" | "parcel" | "delivery";
   pickupAt?: string | null;
+  /** Delivery orders only; missing from an older API. */
+  delivery?: OrderDelivery | null;
   id: string;
   number: number;
   tableId: string | null;
@@ -373,6 +382,10 @@ export type Receipt = {
   vatMode: "exclusive" | "inclusive";
   vatTaka: number;
   roundingTaka: number;
+  /** Delivery orders: the charge, and the address and phone for the rider. Missing from an older API. */
+  deliveryFeeTaka?: number;
+  deliveryAddress?: string | null;
+  guestPhone?: string | null;
   totalTaka: number;
   paidTaka: number;
   dueTaka: number;

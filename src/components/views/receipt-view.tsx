@@ -59,6 +59,12 @@ export function ReceiptView({ receipt, timeZone: tz }: { receipt: Receipt; timeZ
             {t("order", { number: receipt.billNumber })} · {receipt.tableLabel ? tOrder("table", { table: receipt.tableLabel }) : receipt.tokenNo ? tOrder("pickup", { token: receipt.tokenNo }) : tOrder("takeaway")}
           </p>
           {receipt.guestName && <p>{receipt.guestName}</p>}
+          {receipt.deliveryAddress && (
+            <p>
+              {t("deliverTo")}: {receipt.deliveryAddress}
+              {receipt.guestPhone && <> · {receipt.guestPhone}</>}
+            </p>
+          )}
           {receipt.status !== "paid" && <p className="mt-1 font-semibold">{receipt.status === "open" ? t("unpaid") : t("cancelled")}</p>}
         </header>
 
@@ -98,6 +104,12 @@ export function ReceiptView({ receipt, timeZone: tz }: { receipt: Receipt; timeZ
           <span>{t(receipt.vatMode === "inclusive" ? "vatIncluded" : "vat", { percent: receipt.vatPercent })}</span>
           <span>{formatTaka(receipt.vatTaka)}</span>
         </p>
+        {!!receipt.deliveryFeeTaka && (
+          <p className={row}>
+            <span>{t("deliveryFee")}</span>
+            <span>{formatTaka(receipt.deliveryFeeTaka)}</span>
+          </p>
+        )}
         {receipt.roundingTaka !== 0 && (
           <p className={row}>
             <span>{t("rounding")}</span>

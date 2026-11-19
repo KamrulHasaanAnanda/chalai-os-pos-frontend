@@ -144,7 +144,9 @@ export function OrderView({
               {order.tableLabel
                 ? t("table", { table: order.tableLabel })
                 : order.tokenNo
-                  ? t("pickup", { token: order.tokenNo })
+                  ? order.type === "delivery"
+                    ? t("delivery", { token: order.tokenNo })
+                    : t("pickup", { token: order.tokenNo })
                   : t("takeaway")}
             </h1>
             <p className="truncate text-[12.5px] text-muted-foreground">
@@ -199,6 +201,33 @@ export function OrderView({
           </Notice>
         )}
         {roundsError && <Notice>{roundsError}</Notice>}
+        {order.type === "delivery" && order.delivery && (
+          <section className="rounded-xl bg-card p-3 text-[14px] ring-1 ring-emerald-200">
+            <p className="text-[12px] font-semibold tracking-wide text-emerald-800 uppercase">
+              {t("deliverTo")}
+            </p>
+            <p className="mt-0.5 font-medium">{order.delivery.address}</p>
+            <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+              {order.pickupAt && (
+                <span>
+                  {t("deliverAt", { time: formatTime(order.pickupAt, tz) })}
+                </span>
+              )}
+              <span className="font-semibold text-foreground">
+                {order.delivery.payMethod === "bkash"
+                  ? t("payBkash")
+                  : t("payCash")}
+              </span>
+              {order.delivery.feeTaka > 0 && (
+                <span>
+                  {t("deliveryFee", {
+                    amount: formatTaka(order.delivery.feeTaka),
+                  })}
+                </span>
+              )}
+            </p>
+          </section>
+        )}
         {picker && <CartPanel />}
 
         {pending.map((round) => (

@@ -378,6 +378,11 @@ export function FloorView({
                   <span className="flex items-center gap-1.5 text-[18px] font-bold tabular-nums">
                     <Icon name="bag" className="size-4 text-orange-600" />
                     {t("pickups.token", { token: p.tokenNo })}
+                    {p.type === "delivery" && (
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11.5px] font-semibold text-emerald-800 ring-1 ring-emerald-200">
+                        {t("pickups.delivery")}
+                      </span>
+                    )}
                   </span>
                   {p.guestName && (
                     <span className="truncate text-[13.5px] text-muted-foreground">

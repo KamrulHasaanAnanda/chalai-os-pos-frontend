@@ -228,11 +228,12 @@
     "legend": "Table colours",
     "noTablesTitle": "No tables yet",
     "pickups": {
-      "title": "Online pickups",
+      "title": "Online orders",
       "token": "#{token}",
       "toApprove": "To approve",
       "ready": "Ready to collect",
-      "cooking": "In the kitchen"
+      "cooking": "In the kitchen",
+      "delivery": "Delivery"
     },
     "booked": "Booked {time} · {name} ({n})",
     "reservations": {
@@ -358,7 +359,12 @@
     "askedAt": "asked at {time}",
     "takePayment": "Take payment",
     "tellCashier": "Tell the cashier: this table wants the bill.",
-    "pickupAt": "Pick up at {time}"
+    "pickupAt": "Pick up at {time}",
+    "delivery": "Delivery #{token}",
+    "deliverAt": "Deliver by {time}",
+    "payCash": "Cash on delivery",
+    "payBkash": "Paid by bKash",
+    "deliverTo": "Deliver to"
   },
   "order": {
     "title": "Order #{number}",
@@ -414,7 +420,13 @@
       "items": "Items",
       "rounds": "Rounds",
       "total": "Bill so far"
-    }
+    },
+    "delivery": "Delivery #{token}",
+    "deliverTo": "Deliver to",
+    "deliverAt": "Deliver by {time}",
+    "payCash": "Cash on delivery",
+    "payBkash": "bKash, paid online",
+    "deliveryFee": "Delivery charge {amount}"
   },
   "override": {
     "title": "Manager approval",
@@ -568,7 +580,9 @@
     "change": "Change",
     "due": "Due",
     "thanks": "Thank you! Please come again.",
-    "poweredBy": "Powered by Chalai"
+    "poweredBy": "Powered by Chalai",
+    "deliveryFee": "Delivery charge",
+    "deliverTo": "Deliver to"
   },
   "menu": {
     "title": "Menu availability",
