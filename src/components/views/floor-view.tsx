@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { AttendanceBar } from "@/components/attendance-bar";
 import { openOrder } from "@/actions/orders";
 import { Icon, type IconName } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -66,10 +67,13 @@ const TONES: Record<
 export function FloorView({
   floor,
   user,
+  timeZone,
   error,
 }: {
   floor: Floor;
   user: User;
+  /** Missing in the demo, which has no attendance. */
+  timeZone?: string;
   error: ErrorReader;
 }) {
   const t = useTranslations("floor");
@@ -156,7 +160,8 @@ export function FloorView({
         </div>
       </header>
 
-      <SessionBar userId={user.id} userName={user.name} />
+      <SessionBar userId={user.id} userName={user.name} canRecordExpense={user.role === "owner" || user.role === "manager"} />
+      {timeZone && <AttendanceBar isStaff={user.role !== "owner"} canGiveAdvance={user.role === "owner" || user.role === "manager"} timeZone={timeZone} />}
 
       {error.message && <Notice>{error.message}</Notice>}
 

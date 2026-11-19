@@ -17,5 +17,22 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/or
   const order = await getOrder(id);
   // The menu is only needed while items can still be added.
   const menu = order.status === "open" ? await load((api) => api.menu()) : null;
-  return <OrderView order={order} menu={menu} user={user} timeZone={restaurant.timezone} error={await readError(searchParams)} />;
+  // Other open tables this one can be merged into (merge tables spec).
+  const canMerge = order.status === "open" && (order.type ?? "dine_in") === "dine_in" && order.payments.length === 0;
+  const mergeTargets = canMerge
+    ? (await load((api) => api.floor())).areas
+        .flatMap((a) => a.tables)
+        .filter((tb) => tb.order && tb.order.id !== order.id)
+        .map((tb) => ({ orderId: tb.order!.id, label: tb.label, number: tb.order!.number, totalTaka: tb.order!.totalTaka }))
+    : [];
+  return (
+    <OrderView
+      order={order}
+      menu={menu}
+      user={user}
+      timeZone={restaurant.timezone}
+      mergeTargets={mergeTargets}
+      error={await readError(searchParams)}
+    />
+  );
 }

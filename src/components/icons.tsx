@@ -36,6 +36,7 @@ import {
   Sparkles,
   Smartphone,
   StickyNote,
+  Store,
   Timer,
   TriangleAlert,
   Users,
@@ -91,6 +92,7 @@ const icons = {
   serve: HandPlatter,
   maximize: Maximize,
   seat: Armchair,
+  store: Store,
   clipboard: ClipboardList,
   sparkles: Sparkles,
 } satisfies Record<string, LucideIcon>;

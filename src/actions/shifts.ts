@@ -40,3 +40,10 @@ export async function moveCash(direction: "in" | "out", amountTaka: number, reas
   const result = await act((api) => api.moveCash(direction === "in" ? "in" : "out", amountTaka, String(reason).slice(0, 120)));
   return result.ok ? { ok: true, data: null } : { ok: false, error: result.error.code };
 }
+
+/** A cash-out that is also an expense: the API records both in one go (owner and managers only). */
+export async function recordExpense(category: string, amountTaka: number, note: string): Promise<ShiftResult<null>> {
+  await requireStaff();
+  const result = await act((api) => api.recordExpense(category, amountTaka, String(note).slice(0, 200)));
+  return result.ok ? { ok: true, data: null } : { ok: false, error: result.error.code };
+}

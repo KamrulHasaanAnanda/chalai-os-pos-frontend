@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function FloorPage({ searchParams }: PageProps<"/floor">) {
-  const { user } = await requireStaff({ roles: floorRoles });
+  const { user, restaurant } = await requireStaff({ roles: floorRoles });
   const floor = await load((api) => api.floor());
-  return <FloorView floor={floor} user={user} error={await readError(searchParams)} />;
+  return <FloorView floor={floor} user={user} timeZone={restaurant.timezone} error={await readError(searchParams)} />;
 }

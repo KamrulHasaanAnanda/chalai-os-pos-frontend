@@ -16,13 +16,14 @@ export const PAY_FORM_ID = "pay-form";
 const methods: {
   id: PaymentMethod;
   dot: string;
-  icon: "cash" | "phone" | "card";
+  icon: "cash" | "phone" | "card" | "book";
 }[] = [
   { id: "cash", dot: "bg-emerald-500", icon: "cash" },
   { id: "bkash", dot: "bg-bkash", icon: "phone" },
   { id: "nagad", dot: "bg-nagad", icon: "phone" },
   { id: "card", dot: "bg-blue-500", icon: "card" },
 ];
+const creditMethod = { id: "credit" as const, dot: "bg-amber-500", icon: "book" as const };
 
 const toInt = (value: string) =>
   /^\d+$/.test(value.trim()) ? Number(value.trim()) : NaN;
@@ -41,11 +42,14 @@ export function PaymentForm({
   dueTaka,
   paidTaka,
   totalTaka,
+  credit = null,
 }: {
   orderId: string;
   dueTaka: number;
   paidTaka: number;
   totalTaka: number;
+  /** Shown when credit is on and this person may give it. The customer comes from the bill. */
+  credit?: { customerName: string | null } | null;
 }) {
   const t = useTranslations("bill");
   const tMethod = useTranslations("paymentMethod");
@@ -73,6 +77,7 @@ export function PaymentForm({
           : (v + key).replace(/^0+(?=\d)/, "").slice(0, 7),
     );
   const quick = quickCash(shown);
+  const keys = credit ? [...methods, creditMethod] : methods;
 
   return (
     <form
@@ -146,9 +151,12 @@ export function PaymentForm({
         <div
           role="radiogroup"
           aria-label={t("method")}
-          className="mt-2 grid grid-cols-4 gap-2"
+          className={cn(
+            "mt-2 grid gap-2",
+            credit ? "grid-cols-5" : "grid-cols-4",
+          )}
         >
-          {methods.map((m) => (
+          {keys.map((m) => (
             <button
               key={m.id}
               type="button"
@@ -302,6 +310,18 @@ export function PaymentForm({
               </button>
             </div>
           </>
+        ) : method === "credit" ? (
+          <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+            <p className="text-[13px] font-medium text-amber-900">
+              {t("creditTo")}
+            </p>
+            <p className="mt-0.5 text-[18px] font-bold text-zinc-900">
+              {credit?.customerName ?? t("creditNoCustomer")}
+            </p>
+            <p className="mt-1.5 text-[13px] text-amber-900">
+              {t("creditHint")}
+            </p>
+          </div>
         ) : (
           <label className="mt-3 block">
             <span className="text-[13px] font-medium text-muted-foreground">

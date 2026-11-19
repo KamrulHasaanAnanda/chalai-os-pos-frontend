@@ -1,12 +1,17 @@
 import "server-only";
-import type {
+import type { ClockState, StockGood,
   CashMovement,
   Customer,
+  CustomerCredit,
   DiscountInput,
   Floor,
   KitchenTicket,
   Kot,
   LoginResult,
+  ManageBranch,
+  ManageBranchPatch,
+  ManageCoupon,
+  ManageCouponInput,
   Me,
   MenuCategory,
   MenuItem,
@@ -180,6 +185,8 @@ export function apiFor(token: string) {
         reason,
         ...withOverride(override),
       }),
+    mergeOrder: (orderId: string, intoOrderId: string) =>
+      post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/merge`, { intoOrderId }),
     pay: (orderId: string, input: PaymentInput) =>
       post<Order>(`/pos/orders/${encodeURIComponent(orderId)}/payments`, input),
 
@@ -190,6 +197,8 @@ export function apiFor(token: string) {
         openingCashTaka === null ? {} : { openingCashTaka },
       ),
     shiftSoFar: () => get<ShiftReport>("/pos/shifts/current/report"),
+    recordExpense: (category: string, amountTaka: number, note: string) =>
+      post<unknown>("/pos/expenses", { category, amountTaka, note }),
     moveCash: (direction: "in" | "out", amountTaka: number, reason: string) =>
       post<CashMovement>("/pos/shifts/current/cash", { direction, amountTaka, reason }),
     endShift: (countedCashTaka: number | null) =>
@@ -217,11 +226,55 @@ export function apiFor(token: string) {
         token,
       }),
 
+    /** Staff-permissions manage APIs (owner grants on the Staff page). */
+    manageCoupons: () => get<ManageCoupon[]>("/pos/manage/coupons"),
+    createManageCoupon: (body: ManageCouponInput) =>
+      post<ManageCoupon>("/pos/manage/coupons", body),
+    updateManageCoupon: (id: string, body: Partial<ManageCouponInput> & { active?: boolean }) =>
+      request<ManageCoupon>(`/pos/manage/coupons/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body,
+        token,
+      }),
+    removeManageCoupon: (id: string) =>
+      request<void>(`/pos/manage/coupons/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        token,
+      }),
+    manageBranch: () => get<ManageBranch>("/pos/manage/branch"),
+    updateManageBranch: (body: Partial<ManageBranchPatch>) =>
+      request<ManageBranch>("/pos/manage/branch", {
+        method: "PATCH",
+        body,
+        token,
+      }),
+
     tickets: () => get<KitchenTicket[]>("/kitchen/tickets"),
     kitchenHeartbeat: () => post<{ heardAt: string }>("/kitchen/heartbeat"),
 
     findCustomer: (phone: string) =>
       get<{ customer: Customer | null }>(`/pos/customers${q({ phone })}`),
+    myAttendance: () => get<ClockState | null>("/pos/attendance/me"),
+    clock: (body: { mobile?: string; pin?: string }) => post<ClockState>("/pos/attendance/clock", body),
+    advanceStaff: () => get<{ id: string; name: string; role: string }[]>("/pos/advances/staff"),
+    giveAdvance: (staffId: string, amountTaka: number, note: string) => post<unknown>("/pos/advances", { staffId, amountTaka, note }),
+    stock: () => get<StockGood[]>("/pos/stock"),
+    stockBranches: () => get<{ id: string; name: string }[]>("/pos/stock/branches"),
+    sendStock: (goodId: string, toBranchId: string, quantity: number) =>
+      post<unknown>("/pos/stock/transfers", { goodId, toBranchId, quantity }),
+    customerCredit: (customerId: string) =>
+      get<CustomerCredit>(`/pos/customers/${encodeURIComponent(customerId)}/credit`),
+    collectCredit: (
+      customerId: string,
+      body: { method: "cash" | "bkash" | "nagad" | "card"; amountTaka: number; note?: string },
+      idempotencyKey: string,
+    ) =>
+      request<CustomerCredit>(`/pos/customers/${encodeURIComponent(customerId)}/credit/collect`, {
+        method: "POST",
+        body,
+        token,
+        idempotencyKey,
+      }),
     attachCustomer: (orderId: string, name: string, phone: string) =>
       request<Customer>(`/pos/orders/${encodeURIComponent(orderId)}/customer`, {
         method: "PUT",

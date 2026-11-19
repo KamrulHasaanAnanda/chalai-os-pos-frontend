@@ -26,11 +26,14 @@ export function BillView({
   order,
   user,
   timeZone: tz,
+  creditEnabled = false,
   error,
 }: {
   order: Order;
   user: User;
   timeZone: string;
+  /** The owner turned customer credit (বাকি) on. */
+  creditEnabled?: boolean;
   error: ErrorReader;
 }) {
   const t = useTranslations("bill");
@@ -45,6 +48,12 @@ export function BillView({
   // The staff member who sent the first round from the POS; QR-only orders have none.
   const waiter = order.rounds.find((r) => r.createdBy)?.createdBy?.name ?? null;
   const payable = open && order.dueTaka > 0;
+  // Owner and managers always may give credit; a cashier only with the owner's grant.
+  const canGiveCredit =
+    creditEnabled &&
+    (user.role === "owner" ||
+      user.role === "manager" ||
+      Boolean(user.permissions?.credit));
   const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
 
   return (
@@ -474,6 +483,11 @@ export function BillView({
             dueTaka={order.dueTaka}
             paidTaka={order.paidTaka}
             totalTaka={order.totalTaka}
+            credit={
+              canGiveCredit
+                ? { customerName: order.customer?.name ?? null }
+                : null
+            }
           />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">

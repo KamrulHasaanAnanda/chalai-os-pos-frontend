@@ -108,6 +108,17 @@ export async function cancelOrder(formData: FormData) {
   done("/floor", "orderCancelled", { n: String(result.data.number) });
 }
 
+/** Folds this table's order into another open table's (merge tables spec). Goes to the merged order. */
+export async function mergeOrder(formData: FormData) {
+  await requireStaff({ roles: floorRoles });
+  const path = orderPath(formData);
+  const into = str(formData, "intoOrderId", 64);
+  if (!into) fail(path, "merge_target_required", "merge-order");
+  const result = await act((api) => api.mergeOrder(str(formData, "orderId", 64), into));
+  if (!result.ok) fail(path, result.error, "merge-order");
+  done(`/orders/${result.data.id}`, "merged", { n: String(result.data.number) });
+}
+
 export async function requestBill(formData: FormData) {
   await requireStaff({ roles: floorRoles });
   const path = orderPath(formData);

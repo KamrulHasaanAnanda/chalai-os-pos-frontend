@@ -100,6 +100,24 @@ export async function requireStaff({
   return { user: me.user, restaurant: me.restaurant };
 }
 
+/** Menu / coupons / branch manage screens: role *or* an owner grant. */
+export async function requireManage(
+  area: "coupons" | "menu" | "branchInfo",
+  roles?: Role[],
+): Promise<Staff> {
+  const staff = await requireStaff();
+  const perms = staff.user.permissions ?? {};
+  const granted =
+    area === "coupons"
+      ? Boolean(perms.coupons)
+      : area === "menu"
+        ? Boolean(perms.menu)
+        : Boolean(perms.branchInfo);
+  if (granted) return staff;
+  if (roles?.includes(staff.user.role)) return staff;
+  redirect(homeFor(staff.user.role));
+}
+
 type ActionResult<T> = { ok: true; data: T } | { ok: false; error: ApiError };
 
 /**

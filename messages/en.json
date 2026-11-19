@@ -37,7 +37,11 @@
     "orders": "Orders",
     "menu": "Menu",
     "kitchen": "Kitchen",
-    "tables": "Tables"
+    "tables": "Tables",
+    "coupons": "Coupons",
+    "branch": "Branch",
+    "credit": "Credit",
+    "stock": "Stock"
   },
   "assistant": {
     "title": "Chalai assistant",
@@ -135,7 +139,17 @@
     "coupon_used_up": "This coupon has been used up.",
     "coupon_needs_customer": "This coupon is one per customer: add the customer's phone number to the bill first.",
     "coupon_already_used": "This customer has already used this coupon.",
-    "coupon_min_bill": "The bill is below this coupon's minimum."
+    "coupon_min_bill": "The bill is below this coupon's minimum.",
+    "credit_off": "Credit is turned off. The owner turns it on in the owner app.",
+    "customer_required": "Add the customer's phone number on the bill to give credit.",
+    "over_credit_limit": "This would take the customer above their credit limit.",
+    "above_balance": "That's more than the customer owes.",
+    "no_permission": "The owner hasn't allowed you to give credit.",
+    "merge_target_required": "Pick the table to merge into.",
+    "source_has_payments": "This table has a payment or discount. Remove it before merging.",
+    "not_dine_in": "Only dine-in tables can be merged.",
+    "different_branch": "Both tables must be at this branch.",
+    "same_order": "Pick a different table."
   },
   "login": {
     "title": "Staff log in",
@@ -191,7 +205,8 @@
     "cash": "Cash",
     "bkash": "bKash",
     "nagad": "Nagad",
-    "card": "Card"
+    "card": "Card",
+    "credit": "Credit"
   },
   "floor": {
     "title": "Floor",
@@ -339,7 +354,9 @@
     "staleTitle": "An earlier session is still open",
     "staleBody": "End it first (count the drawer), then start today's session.",
     "openTakeaway": "Takeaway #{token} · Order #{n}",
-    "openPickup": "Pickup #{token} · Order #{n}"
+    "openPickup": "Pickup #{token} · Order #{n}",
+    "moveExpense": "Is this an expense?",
+    "moveNotExpense": "No, just cash out"
   },
   "incoming": {
     "title": "Incoming",
@@ -426,7 +443,12 @@
     "deliverAt": "Deliver by {time}",
     "payCash": "Cash on delivery",
     "payBkash": "bKash, paid online",
-    "deliveryFee": "Delivery charge {amount}"
+    "deliveryFee": "Delivery charge {amount}",
+    "mergeOrder": "Merge into another table",
+    "mergeBody": "Everything ordered at {table} moves to the table you pick, on one bill. This table becomes free.",
+    "mergeInto": "Merge into",
+    "mergeWarning": "This can't be undone. A bill already printed for that table will be out of date.",
+    "confirmMerge": "Merge tables"
   },
   "override": {
     "title": "Manager approval",
@@ -530,7 +552,10 @@
     "keyClear": "Clear",
     "colQty": "Qty",
     "colItem": "Item",
-    "colPrice": "Price"
+    "colPrice": "Price",
+    "creditTo": "Credit to",
+    "creditNoCustomer": "Add the customer's phone on the bill first",
+    "creditHint": "The amount goes on the customer's credit account. Any branch can collect it later."
   },
   "picker": {
     "title": "Add items",
@@ -583,6 +608,40 @@
     "poweredBy": "Powered by Chalai",
     "deliveryFee": "Delivery charge",
     "deliverTo": "Deliver to"
+  },
+  "manageCoupons": {
+    "title": "Coupons",
+    "lead": "Discount codes guests and cashiers can use on a bill.",
+    "addTitle": "New percent coupon",
+    "codePlaceholder": "CODE",
+    "add": "Add",
+    "invalid": "Enter a code and a percent greater than zero.",
+    "empty": "No coupons yet",
+    "emptyBody": "Add a code above. The owner can also manage coupons in the owner app.",
+    "percentOff": "{n}% off",
+    "amountOff": "{amount} off",
+    "uses": "{n} uses",
+    "on": "On",
+    "off": "Off",
+    "turnOn": "Turn on",
+    "turnOff": "Turn off",
+    "remove": "Remove coupon"
+  },
+  "manageBranch": {
+    "title": "Branch info",
+    "lead": "Phone, address and ordering for this branch.",
+    "phone": "Phone",
+    "whatsapp": "WhatsApp",
+    "address": "Address",
+    "prep": "Prep minutes",
+    "pickup": "Pickup",
+    "pickupHelp": "Guests can order for pickup.",
+    "delivery": "Delivery",
+    "deliveryHelp": "Guests can order for delivery.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "badPrep": "Prep time must be between 5 and 180 minutes."
   },
   "menu": {
     "title": "Menu availability",
@@ -709,7 +768,8 @@
     "pointsUsed": "Points used on the bill.",
     "pointsReturned": "Points given back.",
     "couponApplied": "Coupon applied.",
-    "couponRemoved": "Coupon removed."
+    "couponRemoved": "Coupon removed.",
+    "merged": "Tables merged. This is the combined bill, order #{number}."
   },
   "demo": {
     "button": "Demo",
@@ -830,5 +890,93 @@
     "ago": "{n} min ago",
     "justNow": "Just now",
     "failed": "Couldn't load notifications."
+  },
+  "credit": {
+    "title": "Customer credit",
+    "lead": "Find a customer by phone, see what they owe, and take money back.",
+    "phone": "Phone number",
+    "find": "Find",
+    "notFound": "No customer with this number.",
+    "owes": "Owes",
+    "limit": "Limit {amount}",
+    "method": "Paid with",
+    "amount": "Amount",
+    "notePlaceholder": "Note (optional)",
+    "collect": "Collect",
+    "collected": "{amount} collected.",
+    "badAmount": "Enter a valid amount.",
+    "history": "History",
+    "noHistory": "Nothing owed yet.",
+    "given": "Credit given, order #{number}",
+    "paidBack": "Paid back, {method}",
+    "writtenOff": "Written off"
+  },
+  "expenseCategory": {
+    "food_supplies": "Market shopping",
+    "utilities": "Electricity, gas, water",
+    "transport": "Transport",
+    "cleaning": "Cleaning",
+    "repairs": "Repairs",
+    "salaries": "Salary or advance",
+    "marketing": "Marketing",
+    "other": "Other expense",
+    "rent": "Rent",
+    "internet_phone": "Internet and phone"
+  },
+  "stock": {
+    "title": "Stock",
+    "lead": "What this branch has. The owner records stock in the owner app.",
+    "empty": "No goods are counted yet.",
+    "low": "Low",
+    "expired": "Expired: {qty}",
+    "soon": "Goes off soon: {qty}",
+    "runsOut": "Runs out in ~{days} days",
+    "send": "Send",
+    "sendTo": "Send to",
+    "quantity": "Quantity",
+    "confirm": "Send",
+    "cancel": "Cancel",
+    "sent": "Sent.",
+    "units": {
+      "piece": "pcs",
+      "packet": "packets",
+      "bottle": "bottles",
+      "kg": "kg"
+    },
+    "errors": {
+      "not_enough": "There isn't that much here.",
+      "bad_quantity": "Check the quantity. Only kg can have decimals.",
+      "forbidden": "The owner hasn't let you send stock.",
+      "failed": "Couldn't send. Try again."
+    }
+  },
+  "attendance": {
+    "clockIn": "Clock in",
+    "clockOut": "Clock out",
+    "in": "Clocked in at {time}",
+    "inLate": "Clocked in at {time} ({minutes} min late)",
+    "out": "Clocked out, {hours} h {minutes} min today",
+    "notIn": "Not clocked in today",
+    "ownerHint": "Staff clock in and out here.",
+    "someoneElse": "Clock someone else",
+    "otherTitle": "Clock in or out",
+    "otherBody": "Each person types their own mobile number and PIN.",
+    "mobile": "Mobile number",
+    "pin": "PIN",
+    "clock": "Clock in / out",
+    "cancel": "Cancel",
+    "wrongPin": "Wrong mobile number or PIN.",
+    "failed": "Couldn't save. Try again.",
+    "advance": "Salary advance",
+    "advanceTitle": "Salary advance",
+    "advanceBody": "Cash from this drawer. It comes off their salary this month.",
+    "who": "Who",
+    "amount": "Amount (৳)",
+    "note": "Note (optional)",
+    "giveAdvance": "Give advance",
+    "advanceDone": "Advance of ৳{amount} to {name} recorded.",
+    "noShift": "Start your shift first.",
+    "monthPaid": "This month's salary is already paid.",
+    "badAmount": "Enter a whole amount."
   }
 }

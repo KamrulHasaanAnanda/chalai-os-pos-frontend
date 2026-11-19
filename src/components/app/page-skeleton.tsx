@@ -1,7 +1,10 @@
-// Soft pulse blocks that stand in for a page while the server answers. Same shapes as the owner app's
-// (chalai-os-owner-app/src/components/page-skeleton.tsx), plus the POS page header with its icon tile.
+// Soft pulse blocks that stand in for a page while the server answers. Same quiet shapes as the
+// owner app (chalai-os-owner-app/src/components/page-skeleton.tsx), plus the POS page header.
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+const bar = "bg-zinc-200/75";
+const soft = "bg-zinc-100";
 
 /** The page header: icon tile, title and one line, and a button on the right. */
 export function PageHeaderSkeleton({
@@ -15,12 +18,14 @@ export function PageHeaderSkeleton({
     <div
       className={cn("mb-6 flex items-center gap-4 border-b pb-5", className)}
     >
-      <Skeleton className="size-12 shrink-0 rounded-xl" />
+      <Skeleton className={cn("size-12 shrink-0 rounded-xl", bar)} />
       <div className="grid flex-1 gap-2">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-4 w-56 max-w-full" />
+        <Skeleton className={cn("h-5 w-40", bar)} />
+        <Skeleton className={cn("h-3.5 w-56 max-w-full", soft)} />
       </div>
-      {action && <Skeleton className="hidden h-10 w-40 rounded-lg sm:block" />}
+      {action && (
+        <Skeleton className={cn("hidden h-10 w-36 rounded-lg sm:block", bar)} />
+      )}
     </div>
   );
 }
@@ -36,13 +41,10 @@ export function StatsSkeleton({
   return (
     <div className={cn("grid grid-cols-2 gap-3 lg:grid-cols-4", className)}>
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="rounded-xl border bg-card p-4 shadow-xs">
-          <div className="flex items-start justify-between gap-2">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="size-9 rounded-lg" />
-          </div>
-          <Skeleton className="mt-3 h-8 w-16" />
-          <Skeleton className="mt-3 h-1.5 w-full rounded-full" />
+        <div key={i} className="rounded-xl border bg-card px-4 py-4 shadow-xs">
+          <Skeleton className={cn("h-3 w-20", soft)} />
+          <Skeleton className={cn("mt-3 h-7 w-14", bar)} />
+          <Skeleton className={cn("mt-3 h-1.5 w-full rounded-full", soft)} />
         </div>
       ))}
     </div>
@@ -67,17 +69,17 @@ export function TileGridSkeleton({
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="rounded-xl border bg-card p-4 shadow-xs">
           <div className="flex items-start justify-between gap-2">
-            <Skeleton className="size-10 rounded-lg" />
-            <Skeleton className="h-6 w-16 rounded-full" />
+            <Skeleton className={cn("size-9 rounded-lg", soft)} />
+            <Skeleton className={cn("h-5 w-14 rounded-md", bar)} />
           </div>
-          <Skeleton className="mt-6 h-4 w-14" />
+          <Skeleton className={cn("mt-6 h-3.5 w-16", bar)} />
         </div>
       ))}
     </div>
   );
 }
 
-/** A list or table of rows: orders, incoming QR orders, menu items. */
+/** A list of rows: orders, incoming, menu items — name + meta, trailing value. */
 export function ListSkeleton({
   rows = 6,
   className,
@@ -93,13 +95,24 @@ export function ListSkeleton({
       )}
     >
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
-          <Skeleton className="size-9 shrink-0 rounded-md" />
+        <div key={i} className="flex items-center gap-4 px-4 py-3.5 sm:px-5">
           <div className="grid min-w-0 flex-1 gap-1.5">
-            <Skeleton className="h-4 w-40 max-w-full" />
-            <Skeleton className="h-3 w-28 max-w-[70%]" />
+            <Skeleton
+              className={cn(
+                "h-3.5 max-w-full",
+                bar,
+                i % 3 === 0 ? "w-44" : i % 3 === 1 ? "w-36" : "w-52",
+              )}
+            />
+            <Skeleton
+              className={cn(
+                "h-3 max-w-[70%]",
+                soft,
+                i % 2 === 0 ? "w-28" : "w-24",
+              )}
+            />
           </div>
-          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className={cn("h-3.5 w-14 shrink-0", bar)} />
         </div>
       ))}
     </div>
@@ -111,30 +124,29 @@ export function OrderSkeleton() {
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
       <div className="rounded-xl border bg-card p-5 shadow-xs">
-        <Skeleton className="h-5 w-32" />
-        <div className="mt-5 grid gap-4">
+        <Skeleton className={cn("h-4 w-28", bar)} />
+        <div className="mt-5 grid gap-3.5">
           {Array.from({ length: 5 }, (_, i) => (
             <div key={i} className="flex items-center gap-3">
-              <Skeleton className="h-4 w-8" />
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-4 w-16" />
+              <Skeleton className={cn("h-3.5 w-6", soft)} />
+              <Skeleton className={cn("h-3.5 flex-1", bar)} />
+              <Skeleton className={cn("h-3.5 w-14", bar)} />
             </div>
           ))}
         </div>
-        <Skeleton className="mt-6 h-px w-full" />
-        <div className="mt-4 flex justify-between">
-          <Skeleton className="h-5 w-20" />
-          <Skeleton className="h-5 w-24" />
+        <div className="mt-6 border-t pt-4 flex justify-between">
+          <Skeleton className={cn("h-4 w-16", soft)} />
+          <Skeleton className={cn("h-4 w-20", bar)} />
         </div>
       </div>
       <div className="rounded-xl border bg-card p-5 shadow-xs">
-        <Skeleton className="h-24 w-full rounded-lg" />
+        <Skeleton className={cn("h-20 w-full rounded-lg", soft)} />
         <div className="mt-4 grid grid-cols-4 gap-2">
           {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-14 rounded-lg" />
+            <Skeleton key={i} className={cn("h-12 rounded-lg", bar)} />
           ))}
         </div>
-        <Skeleton className="mt-4 h-48 w-full rounded-lg" />
+        <Skeleton className={cn("mt-4 h-40 w-full rounded-lg", soft)} />
       </div>
     </div>
   );

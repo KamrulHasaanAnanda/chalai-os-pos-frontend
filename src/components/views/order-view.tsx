@@ -4,6 +4,7 @@ import {
   approveRound,
   cancelItem,
   cancelOrder,
+  mergeOrder,
   rejectRound,
   requestBill,
   serveRound,
@@ -80,12 +81,15 @@ export function OrderView({
   menu,
   user,
   timeZone: tz,
+  mergeTargets = [],
   error,
 }: {
   order: Order;
   menu: MenuCategory[] | null;
   user: User;
   timeZone: string;
+  /** Other open tables at this branch this order can be folded into. */
+  mergeTargets?: { orderId: string; label: string; number: number; totalTaka: number }[];
   error: ErrorReader;
 }) {
   const t = useTranslations("order");
@@ -387,6 +391,62 @@ export function OrderView({
             </article>
           );
         })}
+
+        {open && mergeTargets.length > 0 && (
+          <details
+            id="merge-order"
+            open={!!error.forForm("merge-order")}
+            className="group rounded-xl"
+          >
+            <summary className="flex h-10 cursor-pointer list-none items-center justify-center gap-1.5 rounded-lg text-[13px] font-semibold text-zinc-700 hover:bg-zinc-100">
+              <Icon name="seat" className="size-4" />
+              {t("mergeOrder")}
+            </summary>
+            <form
+              action={mergeOrder}
+              className="mt-1 rounded-xl border border-border bg-card p-3"
+            >
+              <input type="hidden" name="orderId" value={order.id} />
+              <p className="text-[13.5px] text-muted-foreground">
+                {t("mergeBody", { table: order.tableLabel ?? "" })}
+              </p>
+              {error.forForm("merge-order") && (
+                <div className="mt-2">
+                  <Notice>{error.forForm("merge-order")}</Notice>
+                </div>
+              )}
+              <fieldset className="mt-2 grid gap-1.5">
+                <legend className="text-[14px] font-semibold">
+                  {t("mergeInto")}
+                </legend>
+                {mergeTargets.map((m) => (
+                  <label
+                    key={m.orderId}
+                    className="flex h-11 cursor-pointer items-center gap-3 rounded-lg border border-input bg-white px-3 text-[14px] has-[:checked]:border-select has-[:checked]:bg-zinc-50"
+                  >
+                    <input
+                      type="radio"
+                      name="intoOrderId"
+                      value={m.orderId}
+                      required
+                      className="accent-zinc-900"
+                    />
+                    <span className="flex-1 font-semibold">{m.label}</span>
+                    <span className="text-muted-foreground tabular-nums">
+                      #{m.number} · {formatTaka(m.totalTaka)}
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+              <p className="mt-2 text-[12.5px] text-muted-foreground">
+                {t("mergeWarning")}
+              </p>
+              <button type="submit" className={cn(btnPrimary, "mt-3 w-full")}>
+                {t("confirmMerge")}
+              </button>
+            </form>
+          </details>
+        )}
 
         {open && order.payments.length === 0 && (
           <details

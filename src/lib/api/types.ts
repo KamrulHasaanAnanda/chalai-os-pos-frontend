@@ -3,6 +3,33 @@
 export type Role =
   "superadmin" | "owner" | "manager" | "cashier" | "waiter" | "kitchen";
 
+export type StaffPermissionScope = "branch" | "restaurant";
+
+/** Owner-granted POS manage rights (staff-permissions design). */
+export type StaffPermissions = {
+  coupons?: StaffPermissionScope;
+  menu?: StaffPermissionScope;
+  branchInfo?: true;
+  /** May close a bill on customer credit (বাকি). */
+  credit?: true;
+  /** A manager may send stock to another branch. */
+  stock?: true;
+};
+
+/** One good at this branch (stock spec). */
+export type StockGood = {
+  id: string;
+  name: string;
+  unit: "piece" | "packet" | "bottle" | "kg";
+  quantity: number;
+  low: boolean;
+  expiredQuantity: number;
+  expiringSoonQuantity: number;
+  nextExpiry: string | null;
+  daysLeft: number | null;
+  suggestedOrder: number | null;
+};
+
 export type User = {
   id: string;
   role: Role;
@@ -13,6 +40,8 @@ export type User = {
   isActive: boolean;
   restaurantId: string | null;
   lastLoginAt: string | null;
+  /** Missing on older API builds. Owner always has all three at restaurant scope. */
+  permissions?: StaffPermissions;
 };
 
 export type Restaurant = {
@@ -34,6 +63,8 @@ export type Restaurant = {
   kotOutput?: KotOutput;
   receiptWidthMm?: ReceiptWidth;
   printerFallback?: boolean;
+  /** Bills may close on customer credit (বাকি). Missing on older API builds and in the demo: off. */
+  creditEnabled?: boolean;
   subscription: {
     status: string;
     billingPeriod: string;
@@ -50,6 +81,76 @@ export type Me = {
 };
 
 export type LoginResult = { token: string; expiresAt: string; user: User };
+
+/** Coupon row from GET /pos/manage/coupons. */
+export type ManageCoupon = {
+  id: string;
+  code: string;
+  kind: "percent" | "amount";
+  percent: number | null;
+  amountTaka: number | null;
+  maxDiscountTaka: number | null;
+  minBillTaka: number;
+  startsOn: string | null;
+  endsOn: string | null;
+  maxUses: number | null;
+  oncePerCustomer: boolean;
+  active: boolean;
+  uses: number;
+  createdAt: string;
+};
+
+export type ManageCouponInput = {
+  code: string;
+  kind: "percent" | "amount";
+  percent?: number | null;
+  amountTaka?: number | null;
+  maxDiscountTaka?: number | null;
+  minBillTaka?: number;
+  startsOn?: string | null;
+  endsOn?: string | null;
+  maxUses?: number | null;
+  oncePerCustomer?: boolean;
+  active?: boolean;
+};
+
+/** Branch info from GET /pos/manage/branch. */
+export type ManageBranch = {
+  id: string;
+  name: string;
+  district: string;
+  upazila: string;
+  address: string;
+  seats: number;
+  phone: string | null;
+  whatsapp: string | null;
+  pickupEnabled: boolean;
+  deliveryEnabled: boolean;
+  deliveryMinTaka: number;
+  deliveryFeeTaka: number;
+  deliveryArea: string;
+  prepMinutes: number;
+  hours: unknown;
+  closures: unknown[];
+};
+
+export type ManageBranchPatch = {
+  name?: string;
+  district?: string;
+  upazila?: string;
+  address?: string;
+  seats?: number;
+  phone?: string | null;
+  whatsapp?: string | null;
+  pickupEnabled?: boolean;
+  deliveryEnabled?: boolean;
+  deliveryMinTaka?: number;
+  deliveryFeeTaka?: number;
+  deliveryArea?: string;
+  prepMinutes?: number;
+  hours?: unknown;
+  closures?: unknown[];
+};
 
 export type TableStatus =
   "free" | "occupied" | "needs_approval" | "food_ready" | "bill_requested";
@@ -136,7 +237,7 @@ export type FloorCall = {
 export type OrderStatus = "open" | "paid" | "cancelled";
 export type RoundStatus =
   "pending_approval" | "rejected" | "queued" | "preparing" | "ready" | "served";
-export type PaymentMethod = "cash" | "bkash" | "nagad" | "card";
+export type PaymentMethod = "cash" | "bkash" | "nagad" | "card" | "credit";
 
 export type OrderItem = {
   id: string;
@@ -393,7 +494,26 @@ export type Receipt = {
 };
 
 /** A guest the restaurant knows by phone (customers spec). */
-export type Customer = { id: string; name: string; phone: string; visitCount: number; lastVisitAt: string | null; points?: number };
+export type Customer = { id: string; name: string; phone: string; visitCount: number; lastVisitAt: string | null; points?: number; creditBalanceTaka?: number; creditLimitTaka?: number | null };
+
+/** Customer credit (বাকি): balance, limit and recent entries (customer credit spec). */
+export type CreditEntry = {
+  id: string;
+  kind: "given" | "collected" | "written_off";
+  amountTaka: number;
+  method: "cash" | "bkash" | "nagad" | "card" | null;
+  note: string;
+  orderNumber: number | null;
+  staffName: string;
+  at: string;
+};
+export type CustomerCredit = {
+  customer: { id: string; name: string; phone: string };
+  balanceTaka: number;
+  limitTaka: number | null;
+  since: string | null;
+  entries: CreditEntry[];
+};
 
 export type CashMovement = { direction: "in" | "out"; amountTaka: number; reason: string; at: string };
 
@@ -405,4 +525,15 @@ export type OrderCoupon = {
   discountTaka: number;
   minBillTaka: number;
   shortTaka: number;
+};
+
+/** Clock in / out state for one person today (attendance spec). */
+export type ClockState = {
+  name?: string;
+  clockedIn: boolean;
+  since: string | null;
+  firstInToday: string | null;
+  late: boolean;
+  lateMinutes: number;
+  minutesToday: number;
 };

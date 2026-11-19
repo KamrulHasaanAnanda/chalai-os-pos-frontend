@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { moveCash, shiftSoFar } from "@/actions/shifts";
+import { moveCash, recordExpense, shiftSoFar } from "@/actions/shifts";
 import type { PaymentMethod, ShiftReport } from "@/lib/api/types";
 import {
   clockTime,
@@ -42,10 +42,13 @@ const money = (taka: number) =>
 export function SessionBar({
   userId,
   inGate = false,
+  canRecordExpense = false,
 }: {
   userId: string;
   userName: string;
   inGate?: boolean;
+  /** Owner and managers may file a cash-out as an expense (expenses-and-profit spec). */
+  canRecordExpense?: boolean;
 }) {
   const lockedPage = useSessionLocked();
   const t = useTranslations("session");
@@ -264,21 +267,28 @@ export function SessionBar({
         closeLabel={t("done")}
         onClose={() => setSoFar(null)}
       />
-      <CashMoveDialog open={moving} onClose={() => setMoving(false)} />
+      <CashMoveDialog open={moving} canRecordExpense={canRecordExpense} onClose={() => setMoving(false)} />
     </>
   );
 }
 
 /** Cash put into or taken out of the drawer during the shift, with a reason. */
+const EXPENSE_CATEGORIES = ["food_supplies", "utilities", "transport", "cleaning", "repairs", "salaries", "marketing", "other"] as const;
+
 function CashMoveDialog({
   open,
   onClose,
+  canRecordExpense,
 }: {
   open: boolean;
   onClose: () => void;
+  canRecordExpense: boolean;
 }) {
   const t = useTranslations("session");
+  const tExpense = useTranslations("expenseCategory");
   const [direction, setDirection] = useState<"in" | "out">("out");
+  // Empty: a plain cash-out. A category: also recorded as that expense for the profit page.
+  const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -293,7 +303,10 @@ function CashMoveDialog({
     }
     setBusy(true);
     setError(null);
-    const result = await moveCash(direction, value, reason.trim());
+    const asExpense = canRecordExpense && direction === "out" && category !== "";
+    const result = asExpense
+      ? await recordExpense(category, value, reason.trim())
+      : await moveCash(direction, value, reason.trim());
     setBusy(false);
     if (!result.ok) {
       setError(
@@ -309,6 +322,7 @@ function CashMoveDialog({
     }
     setAmount("");
     setReason("");
+    setCategory("");
     onClose();
   }
 
@@ -386,6 +400,26 @@ function CashMoveDialog({
               className="h-11 text-[15px]"
             />
           </div>
+          {canRecordExpense && direction === "out" && (
+            <div className="grid gap-1.5">
+              <label htmlFor="move-expense" className="text-[14px] font-semibold">
+                {t("moveExpense")}
+              </label>
+              <select
+                id="move-expense"
+                value={category}
+                onChange={(ev) => setCategory(ev.target.value)}
+                className="h-11 rounded-lg bg-background px-3 text-[15px] ring-1 ring-input outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">{t("moveNotExpense")}</option>
+                {EXPENSE_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {tExpense(c)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <p
             className="min-h-5 text-[12.5px] text-red-600"
             role={error ? "alert" : undefined}

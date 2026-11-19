@@ -13,16 +13,25 @@ import { SessionGate } from "@/components/session-gate";
 import { KotPrinter } from "@/components/print/kot-printer";
 import { Avatar } from "@/components/app/staff-avatar";
 import { Toast } from "@/components/app/toast";
-import type { Role } from "@/lib/api/types";
-import { billRoles } from "@/lib/roles";
+import type { StaffPermissions, User } from "@/lib/api/types";
+import { billRoles, managerRoles } from "@/lib/roles";
 import type { Staff } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
 /** The static demo has no API to print from. */
 const demo = process.env.CHALAI_DEMO === "1";
 
-export function useNavItems(role: Role): NavItem[] {
+function effectivePermissions(user: User): StaffPermissions {
+  if (user.role === "owner") {
+    return { coupons: "restaurant", menu: "restaurant", branchInfo: true };
+  }
+  return user.permissions ?? {};
+}
+
+export function useNavItems(user: User, creditEnabled = false): NavItem[] {
   const t = useTranslations("nav");
+  const role = user.role;
+  const perms = effectivePermissions(user);
   const items: NavItem[] = [];
   if (role !== "kitchen") {
     items.push(
@@ -32,8 +41,15 @@ export function useNavItems(role: Role): NavItem[] {
       { href: "/orders", label: t("orders"), icon: "list" },
     );
   }
-  if (role === "owner" || role === "manager")
+  if (creditEnabled && billRoles.includes(role))
+    items.push({ href: "/credit", label: t("credit"), icon: "receipt" });
+  items.push({ href: "/stock", label: t("stock"), icon: "list" });
+  if (managerRoles.includes(role) || perms.menu)
     items.push({ href: "/menu", label: t("menu"), icon: "book" });
+  if (perms.coupons)
+    items.push({ href: "/manage/coupons", label: t("coupons"), icon: "coupon" });
+  if (perms.branchInfo)
+    items.push({ href: "/manage/branch", label: t("branch"), icon: "store" });
   if (role === "owner" || role === "manager" || role === "kitchen")
     items.push({ href: "/kitchen", label: t("kitchen"), icon: "chef" });
   return items;
@@ -169,7 +185,7 @@ export function PosShell({
   const tRoles = useTranslations("roles");
   const tKot = useTranslations("kot");
   const tNav = useTranslations("nav");
-  const items = useNavItems(staff.user.role);
+  const items = useNavItems(staff.user, staff.restaurant.creditEnabled ?? false);
   const service = items.filter((i) =>
     ["/floor", "/tables", "/incoming", "/orders"].includes(i.href),
   );
