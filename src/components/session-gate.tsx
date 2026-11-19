@@ -54,12 +54,12 @@ export function SessionGate({
     <SessionLocked.Provider value={true}>
       <div className="relative">
         {/* Centred on the screen (beside the sidebar), over the greyed-out page. */}
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-zinc-950/45 p-4 pb-24 backdrop-blur-[2px] md:left-64 md:pb-4">
+        <div className="fixed inset-0 z-30 flex items-end justify-center bg-zinc-950/45 p-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:items-center sm:p-4 md:left-64 md:pb-4">
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="session-lock-title"
-            className="w-full max-w-[600px] rounded-2xl border bg-card p-5 shadow-[0_32px_64px_-16px_rgb(0_0_0/0.45)] sm:p-6"
+            className="max-h-[min(90dvh,720px)] w-full max-w-[420px] overflow-y-auto rounded-2xl border bg-card p-4 shadow-[0_32px_64px_-16px_rgb(0_0_0/0.45)] sm:max-w-[480px] sm:p-5"
           >
             <div className="mb-4 flex items-start gap-3">
               <span

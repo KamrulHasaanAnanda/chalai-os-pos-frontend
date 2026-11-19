@@ -4,10 +4,8 @@ import { approveRound, rejectRound } from "@/actions/orders";
 import { Elapsed } from "@/components/elapsed";
 import { Icon } from "@/components/icons";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { cardClass } from "@/components/app/surface";
 import { EmptyState } from "@/components/app/empty-state";
 import { inputClass, Notice } from "@/components/app/field";
-import { PageHeader } from "@/components/app/page-header";
 import { SubmitButton } from "@/components/app/submit-button";
 import type { Order, User } from "@/lib/api/types";
 import type { ErrorReader } from "@/lib/error-reader";
@@ -37,50 +35,87 @@ export function IncomingView({
   const generalError = error.forForm("rounds") ?? error.general;
   const waiting = rounds.length + bills.length > 0;
   const both = rounds.length > 0 && bills.length > 0;
-  const summary = [rounds.length > 0 && t("qrTitle", { n: rounds.length }), bills.length > 0 && t("billsTitle", { n: bills.length })]
+  const summary = [
+    rounds.length > 0 && t("qrTitle", { n: rounds.length }),
+    bills.length > 0 && t("billsTitle", { n: bills.length }),
+  ]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <div className="mx-auto max-w-[760px] space-y-6">
-      <PageHeader title={t("title")} description={waiting ? summary : undefined} />
+    <div className="mx-auto max-w-[640px]">
+      <header className="mb-5 border-b border-zinc-200 pb-4">
+        <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900">
+          {t("title")}
+        </h1>
+        {waiting && (
+          <p className="mt-1 text-[13.5px] text-zinc-500">{summary}</p>
+        )}
+      </header>
 
-      {generalError && <Notice>{generalError}</Notice>}
+      {generalError && <Notice className="mb-4">{generalError}</Notice>}
 
       {!waiting ? (
-        <EmptyState icon="inbox" title={t("emptyTitle")} body={t("emptyBody")} className="rounded-xl border bg-card py-16" />
+        <EmptyState
+          icon="inbox"
+          title={t("emptyTitle")}
+          body={t("emptyBody")}
+          className="border border-dashed border-zinc-300 bg-transparent py-14"
+        />
       ) : (
-        <>
+        <div className="space-y-6">
           {rounds.length > 0 && (
-            <section aria-labelledby={both ? "qr-title" : undefined} className="space-y-3">
+            <section
+              aria-labelledby={both ? "qr-title" : undefined}
+              className="space-y-3"
+            >
               {both && (
-                <h2 id="qr-title" className="text-[13px] font-semibold tracking-wide text-muted-foreground uppercase">
+                <h2
+                  id="qr-title"
+                  className="text-[11px] font-semibold tracking-[0.12em] text-zinc-400 uppercase"
+                >
                   {t("qrTitle", { n: rounds.length })}
                 </h2>
               )}
               <ul className="space-y-3">
                 {rounds.map((item) => (
-                  <RoundCard key={item.round.id} item={item} tz={tz} error={error} />
+                  <RoundCard
+                    key={item.round.id}
+                    item={item}
+                    tz={tz}
+                    error={error}
+                  />
                 ))}
               </ul>
             </section>
           )}
 
           {bills.length > 0 && (
-            <section aria-labelledby={both ? "bills-title" : undefined} className="space-y-3">
+            <section
+              aria-labelledby={both ? "bills-title" : undefined}
+              className="space-y-3"
+            >
               {both && (
-                <h2 id="bills-title" className="text-[13px] font-semibold tracking-wide text-muted-foreground uppercase">
+                <h2
+                  id="bills-title"
+                  className="text-[11px] font-semibold tracking-[0.12em] text-zinc-400 uppercase"
+                >
                   {t("billsTitle", { n: bills.length })}
                 </h2>
               )}
               <ul className="grid gap-3 sm:grid-cols-2">
                 {bills.map((order) => (
-                  <BillCard key={order.id} order={order} tz={tz} canBill={billRoles.includes(user.role)} />
+                  <BillCard
+                    key={order.id}
+                    order={order}
+                    tz={tz}
+                    canBill={billRoles.includes(user.role)}
+                  />
                 ))}
               </ul>
             </section>
           )}
-        </>
+        </div>
       )}
     </div>
   );
@@ -89,10 +124,20 @@ export function IncomingView({
 function where(order: Order, t: ReturnType<typeof useTranslations<"incoming">>) {
   if (order.tableLabel) return t("table", { table: order.tableLabel });
   if (!order.tokenNo) return t("takeaway");
-  return order.type === "delivery" ? t("delivery", { token: order.tokenNo }) : t("pickup", { token: order.tokenNo });
+  return order.type === "delivery"
+    ? t("delivery", { token: order.tokenNo })
+    : t("pickup", { token: order.tokenNo });
 }
 
-function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound; tz: string; error: ErrorReader }) {
+function RoundCard({
+  item: { order, round },
+  tz,
+  error,
+}: {
+  item: IncomingRound;
+  tz: string;
+  error: ErrorReader;
+}) {
   const t = useTranslations("incoming");
   const tOrder = useTranslations("order");
   const live = round.items.filter((i) => !i.cancelledAt);
@@ -101,14 +146,17 @@ function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound;
   const rejectError = error.forForm(rejectForm);
   const firstRound = order.rounds[0]?.id === round.id;
 
-  const timed = (order.type === "pickup" || order.type === "delivery") && order.pickupAt;
+  const timed =
+    (order.type === "pickup" || order.type === "delivery") && order.pickupAt;
   const delivery = order.type === "delivery" ? order.delivery : null;
   const meta = [
     order.areaName,
     order.guestName,
     order.guestPhone,
     timed
-      ? t(order.type === "delivery" ? "deliverAt" : "pickupAt", { time: formatTime(order.pickupAt!, tz) })
+      ? t(order.type === "delivery" ? "deliverAt" : "pickupAt", {
+          time: formatTime(order.pickupAt!, tz),
+        })
       : firstRound
         ? t("firstOrder")
         : t("moreOrder"),
@@ -118,104 +166,180 @@ function RoundCard({ item: { order, round }, tz, error }: { item: IncomingRound;
     .join(" · ");
 
   return (
-    <li className={cn(cardClass, "overflow-hidden")}>
-      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+    <li className="overflow-hidden border border-zinc-200 bg-white">
+      <div className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3.5 sm:px-5">
         <div className="min-w-0">
-          <h3 className="font-heading text-[22px] leading-tight font-semibold tracking-tight">{where(order, t)}</h3>
-          <p className="mt-1 text-[13.5px] text-muted-foreground">{meta}</p>
+          <h3 className="text-[17px] leading-tight font-semibold text-zinc-900 sm:text-[18px]">
+            {where(order, t)}
+          </h3>
+          <p className="mt-1 text-[12.5px] leading-snug text-zinc-500">
+            {meta}
+          </p>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[13px] font-semibold text-amber-900 tabular-nums ring-1 ring-amber-200">
-          <Icon name="clock" className="size-3.5" />
+        <span className="inline-flex shrink-0 items-center gap-1 pt-0.5 text-[13px] font-semibold text-zinc-600 tabular-nums">
+          <Icon name="clock" className="size-3.5 text-zinc-400" />
           <span className="sr-only">{t("waiting")}</span>
           <Elapsed since={round.createdAt} />
         </span>
       </div>
 
       {round.note && (
-        <p className="mx-5 mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[13.5px] font-medium text-amber-900">{tOrder("note", { note: round.note })}</p>
+        <p className="border-b border-amber-100 bg-amber-50/80 px-4 py-2 text-[13px] font-medium text-amber-950 sm:px-5">
+          {tOrder("note", { note: round.note })}
+        </p>
       )}
 
-      {delivery && <DeliveryBox delivery={delivery} className="mx-5 mt-3" />}
+      {delivery && (
+        <DeliveryBox
+          delivery={delivery}
+          className="border-b border-zinc-100 px-4 py-2.5 sm:px-5"
+        />
+      )}
 
-      <ul className="mt-4 px-5">
-        {live.map((line) => (
-          <li key={line.id} className="flex items-baseline gap-3 border-t border-zinc-100 py-2.5 first:border-t-0">
-            <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-md bg-zinc-100 px-1.5 text-[12.5px] font-bold tabular-nums">
-              {line.quantity}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-medium">{line.name}</span>
-              {line.note && <span className="block text-[13px] text-muted-foreground">{line.note}</span>}
-            </span>
-            <span className="shrink-0 text-[14.5px] font-semibold tabular-nums">{formatTaka(line.lineTotalTaka)}</span>
-          </li>
-        ))}
-        <li className="flex items-baseline justify-between border-t border-border py-3">
-          <span className="text-[13.5px] font-medium text-muted-foreground">{t("roundTotal")}</span>
-          <span className="text-[18px] font-semibold tabular-nums">{formatTaka(total)}</span>
-        </li>
-      </ul>
+      <table className="w-full border-collapse text-[14px]">
+        <tbody>
+          {live.map((line) => (
+            <tr key={line.id} className="border-b border-zinc-100 last:border-b-0">
+              <td className="w-8 py-2.5 pr-2 pl-4 align-top font-semibold text-zinc-500 tabular-nums sm:pl-5">
+                {line.quantity}
+              </td>
+              <td className="py-2.5 pr-3 align-top">
+                <span className="block font-medium text-zinc-900">
+                  {line.name}
+                </span>
+                {line.note && (
+                  <span className="mt-0.5 block text-[12.5px] text-zinc-500">
+                    {line.note}
+                  </span>
+                )}
+              </td>
+              <td className="py-2.5 pr-4 text-right align-top font-semibold tabular-nums sm:pr-5">
+                {formatTaka(line.lineTotalTaka)}
+              </td>
+            </tr>
+          ))}
+          <tr className="border-t border-zinc-300">
+            <td
+              colSpan={2}
+              className="py-3 pl-4 text-[13px] font-medium tracking-wide text-zinc-500 uppercase sm:pl-5"
+            >
+              {t("roundTotal")}
+            </td>
+            <td className="py-3 pr-4 text-right text-[17px] font-semibold tabular-nums sm:pr-5">
+              {formatTaka(total)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-      <div className="flex flex-wrap items-start gap-2 border-t bg-zinc-50/80 px-5 py-3">
-        <form action={approveRound}>
-          <input type="hidden" name="back" value="incoming" />
-          <input type="hidden" name="orderId" value={order.id} />
-          <input type="hidden" name="roundId" value={round.id} />
-          <SubmitButton variant="success">
-            <Icon name="check" />
-            {tOrder("approve")}
-          </SubmitButton>
-        </form>
-        <details className="group" open={!!rejectError} id={rejectForm}>
-          <summary className={cn(buttonVariants({ variant: "destructive" }), "w-fit cursor-pointer list-none [&::-webkit-details-marker]:hidden")}>
-            <Icon name="x" />
-            {tOrder("reject")}
-          </summary>
-          <form action={rejectRound} className="mt-3 w-80 max-w-full">
+      <div className="grid gap-2 border-t border-zinc-200 bg-zinc-50/60 px-4 py-3 sm:px-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <form action={approveRound} className="sm:min-w-0 sm:flex-1">
             <input type="hidden" name="back" value="incoming" />
             <input type="hidden" name="orderId" value={order.id} />
             <input type="hidden" name="roundId" value={round.id} />
-            {rejectError && <Notice>{rejectError}</Notice>}
-            <label className="block text-[14px] font-semibold">
-              {tOrder("rejectReason")}
-              <input name="reason" required maxLength={200} placeholder={tOrder("rejectPlaceholder")} className={cn(inputClass, "mt-1.5")} />
-            </label>
-            <button type="submit" className={cn(buttonVariants({ variant: "destructive" }), "mt-2")}>
-              {tOrder("confirmReject")}
-            </button>
+            <SubmitButton
+              variant="success"
+              className="h-11 w-full rounded-none font-semibold sm:h-10"
+            >
+              <Icon name="check" />
+              {tOrder("approve")}
+            </SubmitButton>
           </form>
-        </details>
-        <Link href={orderHref(order.id)} className="ml-auto inline-flex h-12 items-center px-2 text-[14px] font-semibold text-zinc-500 hover:text-zinc-900">
-          {t("openOrder")}
-        </Link>
+          <details className="group" open={!!rejectError} id={rejectForm}>
+            <summary
+              className={cn(
+                buttonVariants({ variant: "outline" }),
+                "h-11 w-full cursor-pointer list-none rounded-none border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 sm:h-10 sm:w-auto [&::-webkit-details-marker]:hidden",
+              )}
+            >
+              <Icon name="x" />
+              {tOrder("reject")}
+            </summary>
+            <form
+              action={rejectRound}
+              className="mt-2 w-full border border-zinc-200 bg-white p-3 sm:w-80"
+            >
+              <input type="hidden" name="back" value="incoming" />
+              <input type="hidden" name="orderId" value={order.id} />
+              <input type="hidden" name="roundId" value={round.id} />
+              {rejectError && <Notice>{rejectError}</Notice>}
+              <label className="block text-[13px] font-semibold">
+                {tOrder("rejectReason")}
+                <input
+                  name="reason"
+                  required
+                  maxLength={200}
+                  placeholder={tOrder("rejectPlaceholder")}
+                  className={cn(inputClass, "mt-1.5 rounded-none")}
+                />
+              </label>
+              <button
+                type="submit"
+                className={cn(
+                  buttonVariants({ variant: "destructive" }),
+                  "mt-2 h-10 w-full rounded-none",
+                )}
+              >
+                {tOrder("confirmReject")}
+              </button>
+            </form>
+          </details>
+          <Link
+            href={orderHref(order.id)}
+            className="inline-flex h-10 items-center justify-center text-[13.5px] font-semibold text-zinc-500 underline-offset-2 hover:text-zinc-900 hover:underline sm:ml-auto"
+          >
+            {t("openOrder")}
+          </Link>
+        </div>
       </div>
     </li>
   );
 }
 
-function BillCard({ order, tz, canBill }: { order: Order; tz: string; canBill: boolean }) {
+function BillCard({
+  order,
+  tz,
+  canBill,
+}: {
+  order: Order;
+  tz: string;
+  canBill: boolean;
+}) {
   const t = useTranslations("incoming");
   return (
-    <li className={cn(cardClass, "flex flex-col overflow-hidden")}>
-      <div className="flex items-start justify-between gap-3 p-5">
+    <li className="flex flex-col overflow-hidden border border-zinc-200 bg-white">
+      <div className="flex items-start justify-between gap-3 px-4 py-3.5 sm:px-5">
         <div className="min-w-0">
-          <h3 className="font-heading text-[22px] leading-tight font-semibold tracking-tight">{where(order, t)}</h3>
-          <p className="mt-1 text-[13.5px] text-muted-foreground">
-            {[order.areaName, order.billRequestedAt && t("askedAt", { time: formatTime(order.billRequestedAt, tz) })].filter(Boolean).join(" · ")}
+          <h3 className="text-[17px] leading-tight font-semibold text-zinc-900">
+            {where(order, t)}
+          </h3>
+          <p className="mt-1 text-[12.5px] text-zinc-500">
+            {[
+              order.areaName,
+              order.billRequestedAt &&
+                t("askedAt", { time: formatTime(order.billRequestedAt, tz) }),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         </div>
-        <span className="shrink-0 text-[20px] font-semibold tabular-nums">{formatTaka(order.dueTaka)}</span>
+        <span className="shrink-0 text-[18px] font-semibold tabular-nums">
+          {formatTaka(order.dueTaka)}
+        </span>
       </div>
-      <div className="border-t bg-zinc-50/80 px-5 py-3">
+      <div className="mt-auto border-t border-zinc-200 bg-zinc-50/60 px-4 py-3 sm:px-5">
         {canBill ? (
-          <Button asChild className="w-full">
+          <Button asChild className="h-10 w-full rounded-none font-semibold">
             <Link href={orderHref(order.id, "bill")}>
               <Icon name="receipt" />
               {t("takePayment")}
             </Link>
           </Button>
         ) : (
-          <p className="rounded-lg bg-white px-3 py-2 text-[14px] font-medium text-zinc-600 ring-1 ring-zinc-200">{t("tellCashier")}</p>
+          <p className="border border-zinc-200 bg-white px-3 py-2 text-[13.5px] font-medium text-zinc-600">
+            {t("tellCashier")}
+          </p>
         )}
       </div>
     </li>
@@ -223,14 +347,23 @@ function BillCard({ order, tz, canBill }: { order: Order; tz: string; canBill: b
 }
 
 /** Where the rider goes and how the guest pays, on a delivery's Incoming card. */
-function DeliveryBox({ delivery, className }: { delivery: NonNullable<Order["delivery"]>; className?: string }) {
+function DeliveryBox({
+  delivery,
+  className,
+}: {
+  delivery: NonNullable<Order["delivery"]>;
+  className?: string;
+}) {
   const t = useTranslations("incoming");
   return (
-    <div className={cn("rounded-lg bg-emerald-50 px-3 py-2.5 text-[13.5px] text-emerald-950 ring-1 ring-emerald-200", className)}>
+    <div className={cn("text-[13px] text-zinc-700", className)}>
       <p>
-        <span className="font-semibold">{t("deliverTo")}:</span> {delivery.address}
+        <span className="font-semibold text-zinc-900">{t("deliverTo")}:</span>{" "}
+        {delivery.address}
       </p>
-      <p className="mt-1 font-semibold">{delivery.payMethod === "bkash" ? t("payBkash") : t("payCash")}</p>
+      <p className="mt-0.5 font-semibold text-zinc-900">
+        {delivery.payMethod === "bkash" ? t("payBkash") : t("payCash")}
+      </p>
     </div>
   );
 }

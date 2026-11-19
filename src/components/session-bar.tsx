@@ -92,11 +92,16 @@ export function SessionBar({
     else setSoFarError(true);
   }
 
+  const actionBtn =
+    "h-10 rounded-lg px-3 text-[13.5px] font-semibold sm:h-9";
+
   return (
     <>
       <div
         className={cn(
-          "flex flex-col gap-3 rounded-xl ring-1 sm:flex-row sm:items-center",
+          // Gate modal is ~600px: keep actions under the status, not beside it.
+          "flex flex-col gap-3 rounded-xl ring-1",
+          !inGate && "md:flex-row md:items-center",
           session
             ? "bg-white px-3 py-2.5 shadow-xs ring-zinc-200"
             : "bg-amber-50 p-3 ring-amber-200 sm:p-3.5",
@@ -153,12 +158,19 @@ export function SessionBar({
           </div>
         </div>
         {session ? (
-          <div className="flex flex-wrap gap-2">
+          <div
+            className={cn(
+              "flex gap-2",
+              inGate
+                ? "w-full flex-col"
+                : "flex-wrap md:justify-end",
+            )}
+          >
             <Button
               variant="outline"
               onClick={() => setMoving(true)}
               size="sm"
-              className="h-9 rounded-lg px-3 text-[13.5px] font-semibold"
+              className={cn(actionBtn, inGate && "w-full")}
             >
               {t("moveCash")}
             </Button>
@@ -166,7 +178,7 @@ export function SessionBar({
               variant="outline"
               onClick={() => void showSoFar()}
               size="sm"
-              className="h-9 rounded-lg px-3 text-[13.5px] font-semibold"
+              className={cn(actionBtn, inGate && "w-full")}
             >
               {t("soFar")}
             </Button>
@@ -174,7 +186,7 @@ export function SessionBar({
               variant="destructive"
               size="sm"
               onClick={() => setEnding(true)}
-              className="h-9 rounded-lg px-3 text-[13.5px] font-semibold"
+              className={cn(actionBtn, inGate && "w-full")}
             >
               <Icon name="stop" />
               {t("end")}
@@ -186,7 +198,10 @@ export function SessionBar({
               ev.preventDefault();
               void start();
             }}
-            className="flex items-center gap-2"
+            className={cn(
+              "flex gap-2",
+              inGate ? "w-full flex-col" : "flex-wrap items-center",
+            )}
           >
             <label className="sr-only" htmlFor="opening-cash">
               {t("openingLabel")}
@@ -201,14 +216,17 @@ export function SessionBar({
               title={openingInvalid ? t("openingInvalid") : t("openingLabel")}
               aria-invalid={openingInvalid || undefined}
               className={cn(
-                "h-10 rounded-lg bg-white px-3 text-[14px] tabular-nums ring-1 ring-zinc-300 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-amber-400 aria-invalid:ring-red-400",
-                inGate ? "w-40" : "w-56",
+                "h-10 min-w-0 rounded-lg bg-white px-3 text-[14px] tabular-nums ring-1 ring-zinc-300 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-amber-400 aria-invalid:ring-red-400",
+                inGate ? "w-full" : "w-40 sm:w-56",
               )}
             />
             <Button
               type="submit"
               disabled={starting || openingInvalid}
-              className="h-10 rounded-lg bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90"
+              className={cn(
+                "h-10 rounded-lg bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90",
+                inGate && "w-full",
+              )}
             >
               <Icon name="play" />
               {t("start")}
@@ -336,15 +354,23 @@ function CashMoveDialog({
             <label htmlFor="move-amount" className="text-[14px] font-semibold">
               {t("moveAmount")}
             </label>
-            <Input
-              id="move-amount"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="৳0"
-              value={amount}
-              onChange={(ev) => setAmount(ev.target.value)}
-              className="h-11 text-[16px] tabular-nums"
-            />
+            <div className="flex h-11 items-center overflow-hidden rounded-lg ring-1 ring-input focus-within:ring-2 focus-within:ring-ring">
+              <span
+                aria-hidden
+                className="flex h-full items-center bg-muted px-3 text-[15px] font-semibold text-muted-foreground"
+              >
+                ৳
+              </span>
+              <Input
+                id="move-amount"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="0"
+                value={amount}
+                onChange={(ev) => setAmount(ev.target.value)}
+                className="h-full flex-1 rounded-none border-0 text-[16px] shadow-none ring-0 focus-visible:ring-0 tabular-nums"
+              />
+            </div>
           </div>
           <div className="grid gap-1.5">
             <label htmlFor="move-reason" className="text-[14px] font-semibold">
@@ -433,16 +459,18 @@ export function EndSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !busy && onCancel()}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="max-h-[min(90dvh,640px)] overflow-y-auto sm:max-w-[400px]">
         <DialogHeader>
           <span
             aria-hidden
-            className="mb-1 flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground"
+            className="mb-1 flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
           >
             <Icon name="stop" className="size-5" />
           </span>
-          <DialogTitle className="text-[22px] font-bold">{title}</DialogTitle>
-          <DialogDescription className="text-[14.5px]">
+          <DialogTitle className="pr-8 text-[20px] font-bold sm:text-[22px]">
+            {title}
+          </DialogTitle>
+          <DialogDescription className="text-[14px] sm:text-[14.5px]">
             {body}
           </DialogDescription>
         </DialogHeader>
@@ -452,10 +480,10 @@ export function EndSessionDialog({
             [t("length"), duration(minutes)],
           ].map(([label, value]) => (
             <div key={label} className="rounded-lg bg-muted p-3">
-              <dt className="text-[11.5px] font-semibold text-muted-foreground uppercase">
+              <dt className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                 {label}
               </dt>
-              <dd className="mt-0.5 text-[18px] font-bold tabular-nums">
+              <dd className="mt-0.5 text-[17px] font-bold tabular-nums sm:text-[18px]">
                 {value}
               </dd>
             </div>
@@ -472,17 +500,26 @@ export function EndSessionDialog({
           <label htmlFor="counted-cash" className="text-[14px] font-semibold">
             {t("countLabel")}
           </label>
-          <Input
-            id="counted-cash"
-            inputMode="decimal"
-            autoComplete="off"
-            placeholder="৳0"
-            value={cash}
-            onChange={(ev) => setCash(ev.target.value)}
-            aria-invalid={invalid || undefined}
-            aria-describedby="counted-cash-hint"
-            className="h-11 text-[16px] tabular-nums"
-          />
+          {/* ৳ sits outside the field: Poppins draws the sign poorly as a placeholder. */}
+          <div className="flex h-11 items-center overflow-hidden rounded-lg ring-1 ring-input focus-within:ring-2 focus-within:ring-ring">
+            <span
+              aria-hidden
+              className="flex h-full items-center bg-muted px-3 text-[15px] font-semibold text-muted-foreground"
+            >
+              ৳
+            </span>
+            <Input
+              id="counted-cash"
+              inputMode="decimal"
+              autoComplete="off"
+              placeholder="0"
+              value={cash}
+              onChange={(ev) => setCash(ev.target.value)}
+              aria-invalid={invalid || undefined}
+              aria-describedby="counted-cash-hint"
+              className="h-full flex-1 rounded-none border-0 text-[16px] shadow-none ring-0 focus-visible:ring-0 tabular-nums"
+            />
+          </div>
           <p
             id="counted-cash-hint"
             className={cn(
@@ -494,24 +531,25 @@ export function EndSessionDialog({
             {invalid ? t("countInvalid") : (error ?? t("countHint"))}
           </p>
         </form>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={onCancel}
-            disabled={busy}
-          >
-            {t("keepOpen")}
-          </Button>
+        <DialogFooter className="!flex-col-reverse sm:!flex-col-reverse">
           <Button
             type="submit"
             form="end-session-form"
             size="lg"
             disabled={busy || invalid}
-            className="bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
+            className="h-11 w-full bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
           >
             <Icon name="stop" />
             {confirm}
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={onCancel}
+            disabled={busy}
+            className="h-11 w-full"
+          >
+            {t("keepOpen")}
           </Button>
         </DialogFooter>
       </DialogContent>
