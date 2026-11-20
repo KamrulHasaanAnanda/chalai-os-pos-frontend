@@ -1,0 +1,41 @@
+# Pulls main on the VPS, builds the POS, and restarts it.
+# Needs the repo secret VPS_SSH_KEY (a private key whose public half is in /root/.ssh/authorized_keys).
+# The server pulls with its own read-only deploy key. Caddy serves pos.chalai.xyz.
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: 76.13.220.204
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # ECDSA host key. The deploy client asks for that before ed25519.
+          fingerprint: SHA256:EpWuSmH4lIF53KBiZd37bsRRxm1UKXs5S9fRiyJrLMg
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            if [ ! -d /root/chalai-os-pos-frontend/.git ]; then
+              git clone -b main git@github-pos:KamrulHasaanAnanda/chalai-os-pos-frontend.git /root/chalai-os-pos-frontend
+            fi
+            cd /root/chalai-os-pos-frontend
+            git fetch origin main
+            git checkout -B main origin/main
+            git pull --ff-only origin main
+            pnpm install --frozen-lockfile
+            pnpm build
+            systemctl restart chalai-pos
+            systemctl is-active chalai-pos
