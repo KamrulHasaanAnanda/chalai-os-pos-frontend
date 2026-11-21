@@ -276,6 +276,8 @@
     "noMatch": "No table matches.",
     "capped": "Showing {shown} of {total}. Search for a table number to find the rest.",
     "sceneHint": "Drag to turn the room. Tap a table to open it.",
+    "scene3d": "3D view",
+    "sceneTop": "Top view",
     "tablesTitle": "Tables",
     "busyTitle": "Busy tables",
     "allTables": "All tables",
