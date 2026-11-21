@@ -19,13 +19,14 @@ import type {
 import type { ErrorReader } from "@/lib/error-reader";
 import { formatTaka, formatTime, hasStarted, minutesSince } from "@/lib/format";
 import { orderHref } from "@/lib/paths";
+import { TableSceneView } from "@/components/views/table-scene-view";
 import { billRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 /** The most tiles drawn at once; past it, search or the busy/free filter narrows the list. */
 const MAX_TILES = 240;
 type Show = "all" | "busy" | "free";
-type Layout = "cards" | "room";
+type Layout = "cards" | "3d";
 
 /** One look per table state: the card, its status pill and the legend swatch. */
 const TONES: Record<
@@ -440,7 +441,7 @@ export function TablesSection({
   const query = error.param("q") ?? "";
   const show: Show =
     (["busy", "free"] as const).find((v) => v === error.param("show")) ?? "all";
-  const view: Layout = error.param("view") === "room" ? "room" : "cards";
+  const view: Layout = error.param("view") === "3d" || error.param("view") === "room" ? "3d" : "cards";
   const areaId = floor.areas.length > 1 ? (area?.id ?? null) : null;
   const tables = area?.tables ?? [];
   const busyCount = tables.filter((table) => table.status !== "free").length;
@@ -453,7 +454,7 @@ export function TablesSection({
     const sh = next.show ?? (next.area ? "all" : show);
     if (sh !== "all") params.set("show", sh);
     const layout = next.view ?? view;
-    if (layout === "room") params.set("view", "room");
+    if (layout === "3d") params.set("view", "3d");
     const qs = params.toString();
     return qs ? `/tables?${qs}` : "/tables";
   };
@@ -512,7 +513,7 @@ export function TablesSection({
         >
           {areaId && <input type="hidden" name="area" value={areaId} />}
           {show !== "all" && <input type="hidden" name="show" value={show} />}
-          {view === "room" && <input type="hidden" name="view" value="room" />}
+          {view === "3d" && <input type="hidden" name="view" value="3d" />}
           <Icon
             name="search"
             className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -559,7 +560,7 @@ export function TablesSection({
             {(
               [
                 ["cards", t("layout.cards")],
-                ["room", t("layout.room")],
+                ["3d", t("layout.scene")],
               ] as const
             ).map(([value, text]) => (
               <Link
@@ -584,8 +585,8 @@ export function TablesSection({
             title={t("noTablesTitle")}
             body={t("noTables")}
           />
-        ) : view === "room" ? (
-          <RoomBoard tables={tables} query={query} show={show} />
+        ) : view === "3d" ? (
+          <SceneBoard tables={tables} query={query} show={show} />
         ) : (
           <TableBoard tables={tables} query={query} show={show} />
         )}
@@ -842,43 +843,8 @@ function TableBoard({
   );
 }
 
-/** How many chairs to draw. A 12-seat table still reads as one table, not a ring of dots. */
-function chairCount(seats: number) {
-  return Math.min(8, Math.max(2, seats));
-}
-
-/** A round table gets a ring of chairs. A long one gets a row on each side. */
-function chairSpot(index: number, count: number, wide: boolean): React.CSSProperties {
-  if (!wide) {
-    const angle = -Math.PI / 2 + (index * 2 * Math.PI) / count;
-    return {
-      left: `${50 + Math.cos(angle) * 36}%`,
-      top: `${50 + Math.sin(angle) * 34}%`,
-    };
-  }
-  const topRow = Math.ceil(count / 2);
-  const onTop = index < topRow;
-  const i = onTop ? index : index - topRow;
-  const n = onTop ? topRow : count - topRow;
-  return {
-    left: `${((i + 1) / (n + 1)) * 64 + 18}%`,
-    top: onTop ? "16%" : "84%",
-  };
-}
-
-const TABLE_TOP: Record<TableStatus, string> = {
-  free: "border-[#e7dcc8] bg-white text-zinc-900",
-  occupied: "border-zinc-900 bg-zinc-900 text-white",
-  needs_approval: "border-orange-600 bg-orange-500 text-white",
-  food_ready: "border-emerald-700 bg-emerald-600 text-white",
-  bill_requested: "border-blue-700 bg-blue-600 text-white",
-};
-
-/**
- * The same tables as the cards, sat on a floor. A saved floor plan keeps its gaps.
- * Without one, tables line up by number. Chairs are decoration; the tabletop is the button.
- */
-function RoomBoard({
+/** The 3D room for the tables that match the search and the busy/free filter. */
+function SceneBoard({
   tables,
   query,
   show,
@@ -890,166 +856,32 @@ function RoomBoard({
   const t = useTranslations("floor");
   const matches = matchingTables(tables, query, show);
   const shown = matches.slice(0, MAX_TILES);
-  const placed = shown.filter(
-    (table) =>
-      table.gridX !== null &&
-      table.gridY !== null &&
-      table.gridX >= 0 &&
-      table.gridY >= 0 &&
-      table.gridX < 12 &&
-      table.gridY < 12,
-  );
-  const unplaced = shown.filter((table) => !placed.includes(table));
-  const planned = placed.length > 0;
   if (shown.length === 0)
     return (
       <p className="rounded-xl border border-dashed py-12 text-center text-[14px] text-muted-foreground">
         {t("noMatch")}
       </p>
     );
-
-  const cols = planned
-    ? Math.max(...placed.map((table) => (table.gridX ?? 0) + 1))
-    : packColumns(shown.length);
-  const rows = planned
-    ? Math.max(...placed.map((table) => (table.gridY ?? 0) + 1))
-    : Math.ceil(shown.length / cols);
-  const at = (x: number, y: number) =>
-    placed.find((table) => table.gridX === x && table.gridY === y);
-
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border border-[#e6d7bc] bg-[#f6f1e6] p-4 shadow-[inset_0_0_0_10px_rgba(255,252,245,0.65)] sm:p-6">
-        <ul
-          className="grid gap-x-2 gap-y-1"
-          style={{
-            gridTemplateColumns: `repeat(${cols}, minmax(132px, 1fr))`,
-          }}
-        >
-          {planned
-            ? Array.from({ length: rows * cols }, (_, i) => {
-                const x = i % cols;
-                const y = Math.floor(i / cols);
-                const table = at(x, y);
-                if (!table)
-                  return (
-                    <li key={`gap-${x}-${y}`} aria-hidden className="min-h-[148px]" />
-                  );
-                return (
-                  <li key={table.id}>
-                    <RoomTable table={table} />
-                  </li>
-                );
-              })
-            : shown.map((table) => (
-                <li key={table.id}>
-                  <RoomTable table={table} />
-                </li>
-              ))}
-        </ul>
-      </div>
-      {planned && unplaced.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-[14px] font-semibold text-muted-foreground">
-            {t("unplaced")}
-          </h3>
-          <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-            {unplaced.map((table) => (
-              <li key={table.id}>
-                <RoomTable table={table} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <TableSceneView
+        tables={shown.map((table) => ({
+          id: table.id,
+          label: table.label,
+          seats: table.seats,
+          status: table.status,
+          gridX: table.gridX,
+          gridY: table.gridY,
+          orderId: table.order?.id ?? null,
+          totalTaka: table.order?.totalTaka ?? null,
+        }))}
+      />
       {matches.length > shown.length && (
         <p className="mt-3 text-center text-[13px] text-muted-foreground">
           {t("capped", { shown: shown.length, total: matches.length })}
         </p>
       )}
     </>
-  );
-}
-
-function packColumns(count: number) {
-  if (count <= 1) return 1;
-  if (count <= 4) return 2;
-  if (count <= 9) return 3;
-  if (count <= 16) return 4;
-  return 5;
-}
-
-function RoomTable({ table }: { table: FloorTable }) {
-  const t = useTranslations("floor");
-  const wide = table.seats > 4;
-  const chairs = chairCount(table.seats);
-  const top = cn(
-    "relative z-10 flex flex-col items-center justify-center gap-0.5 border px-2 text-center shadow-[0_7px_0_rgba(120,90,40,0.14)] transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none",
-    wide ? "h-[72px] w-[116px] rounded-[28px]" : "size-[88px] rounded-full",
-    TABLE_TOP[table.status],
-  );
-  return (
-    <div className="relative flex min-h-[148px] items-center justify-center">
-      <ul aria-hidden className="pointer-events-none absolute inset-0">
-        {Array.from({ length: chairs }, (_, i) => (
-          <li
-            key={i}
-            className="absolute size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-[5px] border border-[#c4ad86] bg-[#ead7b4] shadow-xs"
-            style={chairSpot(i, chairs, wide)}
-          />
-        ))}
-      </ul>
-      <TableControl table={table} back="/tables" className={top}>
-        <span className="max-w-full truncate text-[18px] leading-none font-bold tracking-tight">
-          {table.label}
-        </span>
-        <span
-          className={cn(
-            "max-w-full truncate text-[11px] font-semibold tabular-nums",
-            table.status === "free" ? "text-zinc-500" : "text-white/85",
-          )}
-        >
-          {table.order
-            ? formatTaka(table.order.totalTaka)
-            : t("seats", { n: table.seats })}
-        </span>
-      </TableControl>
-    </div>
-  );
-}
-
-function TableControl({
-  table,
-  back,
-  className,
-  children,
-}: {
-  table: FloorTable;
-  back: "/floor" | "/tables";
-  className: string;
-  children: React.ReactNode;
-}) {
-  const t = useTranslations("floor");
-  const tStatus = useTranslations("tableStatus");
-  const label = t("tableAria", {
-    table: table.label,
-    status: tStatus(table.status),
-  });
-  if (table.order) {
-    return (
-      <Link href={orderHref(table.order.id)} aria-label={label} className={className}>
-        {children}
-      </Link>
-    );
-  }
-  return (
-    <form action={openOrder} className="contents">
-      <input type="hidden" name="tableId" value={table.id} />
-      <input type="hidden" name="back" value={back} />
-      <button type="submit" aria-label={label} className={className}>
-        {children}
-      </button>
-    </form>
   );
 }
 
