@@ -4,7 +4,6 @@
 // The API refuses the same actions (ShiftOpenGuard), so this is the friendly half of the rule.
 import { useTranslations } from "next-intl";
 import { createContext, useContext, type ReactNode } from "react";
-import { Icon } from "@/components/icons";
 import { SessionBar } from "@/components/session-bar";
 import { useWorkSession } from "@/lib/work-session";
 import { cn } from "@/lib/utils";
@@ -59,28 +58,17 @@ export function SessionGate({
             role="dialog"
             aria-modal="true"
             aria-labelledby="session-lock-title"
-            className="max-h-[min(90dvh,720px)] w-full max-w-[420px] overflow-y-auto rounded-2xl border bg-card p-4 shadow-[0_32px_64px_-16px_rgb(0_0_0/0.45)] sm:max-w-[480px] sm:p-5"
+            className="max-h-[min(90dvh,720px)] w-full max-w-[400px] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_24px_48px_-20px_rgb(0_0_0/0.4)]"
           >
-            <div className="mb-4 flex items-start gap-3">
-              <span
-                aria-hidden
-                className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"
-              >
-                <Icon name="shield" className="size-5" />
-              </span>
-              <div className="min-w-0">
-                <h2
-                  id="session-lock-title"
-                  className="text-[18px] font-bold tracking-tight"
-                >
-                  {stale ? t("staleTitle") : t("lockTitle")}
-                </h2>
-                <p className="mt-0.5 text-[14px] text-muted-foreground">
-                  {stale ? t("staleBody") : t("lockBody")}
-                </p>
-              </div>
+            <h2 id="session-lock-title" className="text-[22px] leading-tight font-semibold tracking-tight">
+              {stale ? t("staleTitle") : t("lockTitle")}
+            </h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-zinc-500">
+              {stale ? t("staleBody") : t("lockBody")}
+            </p>
+            <div className="mt-5">
+              <SessionBar userId={userId} userName={userName} inGate />
             </div>
-            <SessionBar userId={userId} userName={userName} inGate />
           </section>
         </div>
         <div

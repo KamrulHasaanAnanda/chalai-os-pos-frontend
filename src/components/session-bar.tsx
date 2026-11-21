@@ -103,14 +103,17 @@ export function SessionBar({
       <div
         className={cn(
           // Gate modal is ~600px: keep actions under the status, not beside it.
-          "flex flex-col gap-3 rounded-xl ring-1",
+          "flex flex-col gap-3",
+          // The lock dialog already says the session hasn't started, so the amber card would repeat it.
+          !(inGate && !session) && "rounded-xl ring-1",
           !inGate && "md:flex-row md:items-center",
-          session
-            ? "bg-white px-3 py-2.5 shadow-xs ring-zinc-200"
-            : "bg-amber-50 p-3 ring-amber-200 sm:p-3.5",
+          !(inGate && !session) &&
+            (session
+              ? "bg-white px-3 py-2.5 shadow-xs ring-zinc-200"
+              : "bg-amber-50 p-3 ring-amber-200 sm:p-3.5"),
         )}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+        {!(inGate && !session) && <div className="flex min-w-0 flex-1 items-center gap-3">
           <span
             aria-hidden
             className={cn(
@@ -159,7 +162,7 @@ export function SessionBar({
                     : t("closedDetail")}
             </p>
           </div>
-        </div>
+        </div>}
         {session ? (
           <div
             className={cn(
@@ -206,7 +209,10 @@ export function SessionBar({
               inGate ? "w-full flex-col" : "flex-wrap items-center",
             )}
           >
-            <label className="sr-only" htmlFor="opening-cash">
+            <label
+              className={cn("text-[13.5px] font-medium text-zinc-700", !inGate && "sr-only")}
+              htmlFor="opening-cash"
+            >
               {t("openingLabel")}
             </label>
             <input
@@ -215,23 +221,36 @@ export function SessionBar({
               autoComplete="off"
               value={opening}
               onChange={(ev) => setOpening(ev.target.value)}
-              placeholder={t("openingPlaceholder")}
+              placeholder={inGate ? "0" : t("openingPlaceholder")}
               title={openingInvalid ? t("openingInvalid") : t("openingLabel")}
               aria-invalid={openingInvalid || undefined}
+              aria-describedby={startError ? "opening-cash-error" : undefined}
               className={cn(
-                "h-10 min-w-0 rounded-lg bg-white px-3 text-[14px] tabular-nums ring-1 ring-zinc-300 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-amber-400 aria-invalid:ring-red-400",
-                inGate ? "w-full" : "w-40 sm:w-56",
+                "h-11 min-w-0 rounded-lg bg-white px-3 text-[15px] tabular-nums ring-1 ring-zinc-200 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-400 aria-invalid:ring-red-400",
+                inGate ? "w-full" : "h-10 w-40 text-[14px] ring-zinc-300 focus:ring-amber-400 sm:w-56",
               )}
             />
+            {inGate && startError && (
+              <p id="opening-cash-error" className="text-[13px] text-red-700">
+                {t("startFailed")}
+              </p>
+            )}
             <Button
               type="submit"
               disabled={starting || openingInvalid}
               className={cn(
-                "h-10 rounded-lg bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90",
-                inGate && "w-full",
+                "cursor-pointer rounded-lg bg-primary px-4 font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-wait",
+                inGate ? "h-12 w-full" : "h-10",
               )}
             >
-              <Icon name="play" />
+              {starting ? (
+                <span
+                  className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+                  aria-hidden="true"
+                />
+              ) : (
+                !inGate && <Icon name="play" />
+              )}
               {t("start")}
             </Button>
           </form>
