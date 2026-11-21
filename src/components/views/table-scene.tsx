@@ -109,7 +109,7 @@ function canvasTexture(draw: (ctx: CanvasRenderingContext2D, w: number, h: numbe
   return tex;
 }
 
-function woodFloorTexture() {
+function woodFloorTexture(width: number, depth: number) {
   const tex = canvasTexture((ctx) => {
     ctx.fillStyle = "#3b2618";
     ctx.fillRect(0, 0, 512, 512);
@@ -136,7 +136,7 @@ function woodFloorTexture() {
   }, 512, 512);
   tex.wrapS = RepeatWrapping;
   tex.wrapT = RepeatWrapping;
-  tex.repeat.set(5, 4);
+  tex.repeat.set(width / 4, depth / 3.6);
   return tex;
 }
 
@@ -209,28 +209,25 @@ export function TableScene({ tables }: { tables: SceneTable[] }) {
   const room = useMemo(() => measure(spots), [spots]);
   const [preset, setPreset] = useState<"3d" | "top">("3d");
   const [cameraMove, setCameraMove] = useState(0);
-  const [maps, setMaps] = useState<{
-    floor: CanvasTexture;
-    top: CanvasTexture;
-    vip: CanvasTexture;
-    qr: CanvasTexture;
-  } | null>(null);
-
-  useEffect(() => {
-    const created = {
-      floor: woodFloorTexture(),
+  const maps = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    return {
+      floor: woodFloorTexture(room.width, room.depth),
       top: tabletopTexture(false),
       vip: tabletopTexture(true),
       qr: qrTexture(),
     };
-    setMaps(created);
+  }, [room.width, room.depth]);
+
+  useEffect(() => {
+    if (!maps) return;
     return () => {
-      created.floor.dispose();
-      created.top.dispose();
-      created.vip.dispose();
-      created.qr.dispose();
+      maps.floor.dispose();
+      maps.top.dispose();
+      maps.vip.dispose();
+      maps.qr.dispose();
     };
-  }, []);
+  }, [maps]);
 
   function open(table: SceneTable) {
     if (table.orderId) {
@@ -413,10 +410,6 @@ function Restaurant({
       }, 256, 128),
     [],
   );
-  useEffect(() => {
-    floorMap.repeat.set(room.width / 4, room.depth / 3.6);
-    floorMap.needsUpdate = true;
-  }, [floorMap, room.width, room.depth]);
   useEffect(() => {
     return () => {
       sign.dispose();
