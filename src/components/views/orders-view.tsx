@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { useTranslations } from "next-intl";
-import { Icon, type IconName } from "@/components/icons";
+import { useLocale, useTranslations } from "next-intl";
+import { Icon } from "@/components/icons";
+import { DayField } from "@/components/views/day-field";
 import type { OrderStatus, OrderSummary } from "@/lib/api/types";
 import { formatTaka, formatTime, minutesSince } from "@/lib/format";
 import { orderHref } from "@/lib/paths";
@@ -24,8 +25,8 @@ function shiftDate(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-const prettyDate = (date: string) =>
-  new Intl.DateTimeFormat("en-GB", {
+const prettyDate = (date: string, locale: string) =>
+  new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -48,6 +49,7 @@ export function OrdersView({
 }) {
   const t = useTranslations("orders");
   const tStatus = useTranslations("orderStatus");
+  const locale = useLocale();
 
   const href = (next: { status?: OrderStatus; date?: string }) => {
     const search = new URLSearchParams();
@@ -67,36 +69,15 @@ export function OrdersView({
       ? t("minutes", { n: minutes })
       : t("hours", { h: Math.floor(minutes / 60), m: minutes % 60 });
 
-  const stats: {
-    label: string;
-    value: string;
-    icon: IconName;
-    tone: string;
-  }[] = [
-    {
-      label: t("total"),
-      value: formatTaka(sales),
-      icon: "cash",
-      tone: "bg-zinc-900 text-white",
-    },
-    {
-      label: t("collected"),
-      value: formatTaka(collected),
-      icon: "checkCircle",
-      tone: "bg-emerald-600 text-white",
-    },
+  const stats: { label: string; value: string; valueClass?: string }[] = [
+    { label: t("total"), value: formatTaka(sales) },
+    { label: t("collected"), value: formatTaka(collected) },
     {
       label: t("due"),
       value: formatTaka(due),
-      icon: "clock",
-      tone: due > 0 ? "bg-orange-500 text-white" : "bg-zinc-100 text-zinc-400",
+      valueClass: due > 0 ? "text-orange-700" : undefined,
     },
-    {
-      label: t("count"),
-      value: String(orders.length),
-      icon: "receipt",
-      tone: "bg-blue-600 text-white",
-    },
+    { label: t("count"), value: String(orders.length) },
   ];
 
   return (
@@ -108,7 +89,7 @@ export function OrdersView({
             {isToday ? t("today") : t("pastDay")}
           </p>
           <h1 className="text-[26px] leading-tight font-bold tracking-tight sm:text-[30px]">
-            {prettyDate(date)}
+            {prettyDate(date, locale)}
           </h1>
         </div>
         <form
@@ -124,22 +105,7 @@ export function OrdersView({
           >
             <Icon name="back" className="size-5" />
           </Link>
-          <label className="flex h-10 items-center rounded-lg px-2 hover:bg-muted">
-            <span className="sr-only">{t("date")}</span>
-            <input
-              type="date"
-              name="date"
-              defaultValue={date}
-              max={today}
-              className="bg-transparent text-[14px] font-semibold tabular-nums outline-none"
-            />
-          </label>
-          <button
-            type="submit"
-            className="h-10 rounded-lg bg-primary px-3.5 text-[13.5px] font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            {t("show")}
-          </button>
+          <DayField date={date} today={today} />
           {isToday ? (
             <span
               aria-hidden
@@ -168,29 +134,28 @@ export function OrdersView({
       </header>
 
       {/* Money for the day. */}
-      <dl className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
-        {stats.map((stat) => (
+      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-4">
+        {stats.map((stat, index) => (
           <div
             key={stat.label}
-            className="flex min-w-0 items-center gap-3 rounded-xl border bg-card p-3 sm:p-4"
+            className={cn(
+              "min-w-0 px-4 py-3.5",
+              index % 2 === 1 && "border-l",
+              index >= 2 && "border-t sm:border-t-0",
+              index > 0 && "sm:border-l",
+            )}
           >
-            <span
-              aria-hidden
+            <dt className="truncate text-[12.5px] font-semibold text-muted-foreground">
+              {stat.label}
+            </dt>
+            <dd
               className={cn(
-                "flex size-11 shrink-0 items-center justify-center rounded-xl",
-                stat.tone,
+                "mt-0.5 truncate text-[22px] leading-tight font-bold tabular-nums",
+                stat.valueClass,
               )}
             >
-              <Icon name={stat.icon} className="size-5" />
-            </span>
-            <div className="min-w-0">
-              <dt className="truncate text-[12.5px] font-semibold text-muted-foreground">
-                {stat.label}
-              </dt>
-              <dd className="truncate text-[22px] leading-tight font-bold tabular-nums">
-                {stat.value}
-              </dd>
-            </div>
+              {stat.value}
+            </dd>
           </div>
         ))}
       </dl>
@@ -266,36 +231,25 @@ export function OrdersView({
                     long && "border-red-300",
                   )}
                 >
-                  <div className="flex items-start gap-3">
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl px-1.5 text-[20px] font-bold text-white",
-                        order.tableLabel ? "bg-orange-500" : "bg-zinc-900",
-                      )}
-                    >
-                      {order.tableLabel ?? (
-                        <Icon name="bag" className="size-5" />
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[16px] font-bold">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-[18px] leading-tight font-bold">
                         {order.tableLabel
                           ? t("table", { table: order.tableLabel })
                           : order.tokenNo
                           ? t("pickup", { token: order.tokenNo })
                           : t("takeaway")}
                       </p>
-                      <p className="text-[12.5px] text-muted-foreground tabular-nums">
+                      <p className="mt-1 text-[12.5px] text-muted-foreground tabular-nums">
                         #{order.number} · {formatTime(order.openedAt, timeZone)}
                       </p>
                     </div>
                     <span
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-bold tabular-nums",
+                        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold tabular-nums",
                         long
-                          ? "bg-red-100 text-red-700"
-                          : "bg-zinc-100 text-zinc-600",
+                          ? "bg-red-50 text-red-700"
+                          : "bg-orange-50 text-orange-700",
                       )}
                     >
                       <Icon name="clock" className="size-3.5" />
@@ -305,10 +259,15 @@ export function OrdersView({
 
                   <div className="mt-4 flex items-end justify-between gap-2">
                     <div>
-                      <p className="text-[11.5px] font-bold tracking-wide text-muted-foreground uppercase">
+                      <p className="text-[11.5px] font-semibold tracking-wide text-muted-foreground uppercase">
                         {t("dueLabel")}
                       </p>
-                      <p className="text-[24px] leading-tight font-bold tabular-nums">
+                      <p
+                        className={cn(
+                          "text-[24px] leading-tight font-bold tabular-nums",
+                          order.dueTaka === 0 && "text-muted-foreground",
+                        )}
+                      >
                         {formatTaka(order.dueTaka)}
                       </p>
                     </div>
