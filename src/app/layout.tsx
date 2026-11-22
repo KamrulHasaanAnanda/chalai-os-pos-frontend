@@ -6,11 +6,13 @@ import { ServiceWorker } from "@/components/service-worker";
 import "./globals.css";
 
 // Self-hosted at build time by next/font: no request to Google from the browser.
+// One file less on the first paint. Weight 500 falls back to 400 or 600.
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600", "700"],
   display: "swap",
   variable: "--font-poppins",
+  preload: true,
 });
 
 export async function generateMetadata(): Promise<Metadata> {
