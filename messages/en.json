@@ -156,6 +156,8 @@
     "body": "Waiters, cashiers, managers, kitchen and owners log in here.",
     "username": "Username",
     "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "submit": "Log in",
     "help": "Forgot your password? Ask the owner to reset it."
   },

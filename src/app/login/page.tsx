@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { login } from "@/actions/auth";
 import { AuthCard } from "@/components/auth-card";
 import { Field, Notice } from "@/components/app/field";
+import { PasswordField } from "@/app/login/password-field";
 import { SubmitButton } from "@/components/app/submit-button";
 import { readError } from "@/lib/errors";
 import { homeFor, peekMe } from "@/lib/session";
@@ -35,7 +36,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           required
           autoFocus
         />
-        <Field name="password" type="password" label={t("password")} autoComplete="current-password" required />
+        <PasswordField label={t("password")} showLabel={t("showPassword")} hideLabel={t("hidePassword")} />
         <SubmitButton variant="default" size="lg" className="w-full">
           {t("submit")}
         </SubmitButton>
