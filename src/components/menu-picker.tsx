@@ -505,14 +505,13 @@ export function CartPanel() {
           type="submit"
           disabled={pending}
           aria-busy={pending || undefined}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-bold text-primary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.10)] transition-colors hover:bg-primary/90 disabled:opacity-60"
+          className="relative flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-bold text-primary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.10)] transition-colors hover:bg-primary/90 disabled:cursor-wait disabled:opacity-100"
         >
-          {pending ? (
-            <Icon name="spinner" className="size-5 animate-spin" />
-          ) : (
+          <span className={cn("inline-flex items-center gap-2", pending && "invisible")}>
             <Icon name="chef" className="size-5" />
-          )}
-          {pending ? t("sending") : t("send", { total: formatTaka(total) })}
+            {t("send", { total: formatTaka(total) })}
+          </span>
+          {pending && <Icon name="spinner" className="absolute size-5 animate-spin" aria-hidden />}
         </button>
       </div>
     </form>
@@ -542,14 +541,14 @@ export function CartBar({ reviewHref }: { reviewHref: string }) {
           type="submit"
           form={formId}
           disabled={pending}
-          className="flex h-12 min-w-[160px] items-center justify-center gap-2 rounded-xl bg-primary px-4 text-[15px] font-bold text-primary-foreground disabled:opacity-60"
+          aria-busy={pending || undefined}
+          className="relative flex h-12 min-w-[160px] cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 text-[15px] font-bold text-primary-foreground disabled:cursor-wait disabled:opacity-100"
         >
-          {pending ? (
-            <Icon name="spinner" className="size-5 animate-spin" />
-          ) : (
+          <span className={cn("inline-flex items-center gap-2", pending && "invisible")}>
             <Icon name="chef" className="size-5" />
-          )}
-          {pending ? t("sending") : t("send", { total: formatTaka(total) })}
+            {t("send", { total: formatTaka(total) })}
+          </span>
+          {pending && <Icon name="spinner" className="absolute size-5 animate-spin" aria-hidden />}
         </button>
       </div>
     </div>

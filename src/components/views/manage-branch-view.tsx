@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { updateBranchAction } from "@/actions/manage";
+import { Icon } from "@/components/icons";
 import type { ManageBranch } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -124,10 +125,12 @@ export function ManageBranchView({ branch }: { branch: ManageBranch }) {
         <button
           type="button"
           disabled={pending}
+          aria-busy={pending || undefined}
           onClick={save}
-          className="inline-flex h-10 w-full items-center justify-center rounded-md bg-zinc-900 text-[14px] font-medium text-white disabled:opacity-50 sm:w-auto sm:px-8"
+          className="relative inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-md bg-zinc-900 text-[14px] font-medium text-white disabled:cursor-wait disabled:opacity-100 sm:w-auto sm:px-8"
         >
-          {pending ? t("saving") : t("save")}
+          <span className={cn(pending && "invisible")}>{t("save")}</span>
+          {pending && <Icon name="spinner" className="absolute size-4 animate-spin" aria-hidden />}
         </button>
       </div>
     </div>
