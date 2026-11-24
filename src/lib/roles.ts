@@ -12,3 +12,7 @@ export const needsOverride = (role: Role) => !managerRoles.includes(role);
 export function homeFor(role: Role): string {
   return role === "kitchen" ? "/kitchen" : "/floor";
 }
+
+/** Reservations: the owner always; any staff member only with the owner's `reservations` grant. */
+export const canManageReservations = (user: { role: Role; permissions?: { reservations?: true } }) =>
+  user.role === "owner" || user.permissions?.reservations === true;

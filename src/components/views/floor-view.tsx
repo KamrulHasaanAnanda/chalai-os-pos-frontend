@@ -706,6 +706,13 @@ function Reservations({ reservations }: { reservations: FloorReservation[] }) {
             {reservations.length}
           </span>
         )}
+        <Link
+          href="/reservations"
+          className="-my-1 inline-flex h-10 items-center gap-0.5 rounded-lg px-2.5 text-[13.5px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          {t("all")}
+          <Icon name="go" className="size-4" />
+        </Link>
       </header>
       {reservations.length === 0 ? (
         <p className="px-4 py-3.5 text-[13.5px] text-muted-foreground">

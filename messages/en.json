@@ -41,7 +41,8 @@
     "coupons": "Coupons",
     "branch": "Branch",
     "credit": "Credit",
-    "stock": "Stock"
+    "stock": "Stock",
+    "reservations": "Reservations"
   },
   "assistant": {
     "title": "Chalai assistant",
@@ -256,10 +257,11 @@
     "reservations": {
       "title": "Reservations today",
       "empty": "No more bookings today.",
-      "emptyHint": "Bookings made in the owner app show up here.",
+      "emptyHint": "Add one from Reservations.",
       "people": "{n, plural, one {# guest} other {# guests}}",
       "noTable": "No table yet",
-      "now": "Now"
+      "now": "Now",
+      "all": "All bookings"
     },
     "attention": "Needs attention",
     "search": "Find a table",
@@ -988,5 +990,59 @@
     "noShift": "Start your shift first.",
     "monthPaid": "This month's salary is already paid.",
     "badAmount": "Enter a whole amount."
+  },
+  "reservations": {
+    "title": "Reservations",
+    "lead": "Book a table when a guest calls or walks in. Bookings show on the floor that day.",
+    "leadReadOnly": "Today's and upcoming bookings. Ask the owner if you need to add or change one.",
+    "add": "Add booking",
+    "date": "Day",
+    "today": "Today",
+    "prevDay": "Previous day",
+    "nextDay": "Next day",
+    "summary": "{bookings, plural, one {# booking} other {# bookings}} · {guests, plural, one {# guest} other {# guests}}",
+    "summaryNone": "No bookings",
+    "booked": "Booked",
+    "noneBooked": "No tables booked on this day.",
+    "others": "Seated, cancelled and no-shows",
+    "waitlist": "Waitlist",
+    "noneWaiting": "Nobody is waiting.",
+    "waitlistLead": "Bookings with no table yet. Tap one to give it a table.",
+    "noTable": "No table yet",
+    "emptyTitle": "No bookings on this day",
+    "emptyBody": "Add a booking when a guest calls. It shows on the table that day.",
+    "newTitle": "New booking",
+    "editTitle": "Edit booking",
+    "formLead": "Name, mobile number, how many and when. A table is optional.",
+    "name": "Name",
+    "phone": "Mobile number",
+    "party": "People",
+    "fewer": "One fewer",
+    "more": "One more",
+    "time": "Date and time",
+    "table": "Table",
+    "noTableOption": "No table yet (waitlist)",
+    "tableOption": "{label} · {seats} seats",
+    "save": "Save booking",
+    "saving": "Saving…",
+    "seat": "Seated",
+    "noShow": "No-show",
+    "cancel": "Cancel booking",
+    "status": {
+      "booked": "Booked",
+      "seated": "Seated",
+      "cancelled": "Cancelled",
+      "no_show": "No-show"
+    },
+    "errors": {
+      "table_taken": "That table is already booked around that time. Pick another time or table.",
+      "too_many": "The party is bigger than that table's seats.",
+      "bad_phone": "Enter a Bangladesh mobile number, 11 digits starting with 01.",
+      "bad_party": "People must be a whole number from 1 to 50.",
+      "in_the_past": "That time has passed. Pick a later time.",
+      "no_permission": "The owner hasn't allowed you to manage reservations.",
+      "forbidden": "The owner hasn't allowed you to manage reservations.",
+      "other": "Couldn't save. Check the details and try again."
+    }
   }
 }

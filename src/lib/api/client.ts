@@ -1,5 +1,5 @@
 import "server-only";
-import type { ClockState, StockGood,
+import type { ClockState, StockGood, Reservation, ReservationDay, ReservationInput, ReservationStatus,
   CashMovement,
   Customer,
   CustomerCredit,
@@ -259,6 +259,14 @@ export function apiFor(token: string) {
     advanceStaff: () => get<{ id: string; name: string; role: string }[]>("/pos/advances/staff"),
     giveAdvance: (staffId: string, amountTaka: number, note: string) => post<unknown>("/pos/advances", { staffId, amountTaka, note }),
     stock: () => get<StockGood[]>("/pos/stock"),
+    reservations: (date: string) =>
+      get<ReservationDay>(`/pos/reservations${q({ date })}`),
+    createReservation: (body: ReservationInput & { startsAt: string }) =>
+      post<Reservation>("/pos/reservations", body),
+    updateReservation: (id: string, body: Partial<ReservationInput> & { status?: ReservationStatus }) =>
+      request<Reservation>(`/pos/reservations/${encodeURIComponent(id)}`, { method: "PATCH", body, token }),
+    cancelReservation: (id: string) =>
+      request<Reservation>(`/pos/reservations/${encodeURIComponent(id)}`, { method: "DELETE", token }),
     stockBranches: () => get<{ id: string; name: string }[]>("/pos/stock/branches"),
     sendStock: (goodId: string, toBranchId: string, quantity: number) =>
       post<unknown>("/pos/stock/transfers", { goodId, toBranchId, quantity }),

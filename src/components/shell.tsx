@@ -37,6 +37,7 @@ export function useNavItems(user: User, creditEnabled = false): NavItem[] {
     items.push(
       { href: "/floor", label: t("floor"), icon: "grid" },
       { href: "/tables", label: t("tables"), icon: "seat" },
+      { href: "/reservations", label: t("reservations"), icon: "calendar" },
       { href: "/incoming", label: t("incoming"), icon: "bell" },
       { href: "/orders", label: t("orders"), icon: "list" },
     );

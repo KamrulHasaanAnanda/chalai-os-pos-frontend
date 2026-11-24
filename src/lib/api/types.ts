@@ -14,6 +14,32 @@ export type StaffPermissions = {
   credit?: true;
   /** A manager may send stock to another branch. */
   stock?: true;
+  /** May add and change reservations. Only the owner has it without a grant. */
+  reservations?: true;
+};
+
+export type ReservationStatus = "booked" | "seated" | "cancelled" | "no_show";
+
+/** One booking (reservations spec). No table means it is on the waitlist. */
+export type Reservation = {
+  id: string;
+  tableId: string | null;
+  tableLabel: string | null;
+  name: string;
+  phone: string;
+  partySize: number;
+  startsAt: string;
+  status: ReservationStatus;
+};
+
+export type ReservationDay = { holdMinutes: number; reservations: Reservation[] };
+
+export type ReservationInput = {
+  name: string;
+  phone: string;
+  partySize: number;
+  startsAt?: string;
+  tableId: string | null;
 };
 
 /** One good at this branch (stock spec). */
