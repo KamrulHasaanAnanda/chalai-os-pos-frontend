@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "src/components/payment-form.tsx"
+        ],
+        "createdAt": "2026-11-25T18:53:39.931Z",
+        "reason": "Claude triage: L384 gray text is the Pay button's disabled state (disabled:bg-zinc-300 + disabled:text-zinc-600), gray on gray, not on a colour; line predates this session"
+      }
+    ]
+  }
+}

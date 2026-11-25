@@ -6,7 +6,10 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CashDrawerButton } from "@/components/cash-drawer";
 import { Icon } from "@/components/icons";
+import { openDrawerForCash, setDrawerEnabled } from "@/lib/drawer";
+import { billRoles } from "@/lib/roles";
 import type { MenuItem, Order, PaymentMethod } from "@/lib/api/types";
 import { offlineBill, type BillSettings } from "@/lib/offline/bill";
 import { discard, enqueue, flush, retry, startOffline, useOutbox } from "@/lib/offline/outbox";
@@ -111,6 +114,9 @@ export function OfflineTill() {
   }
 
   const current = orders.find((o) => o.id === openId) ?? null;
+  const drawerOn = snapshot?.me.restaurant?.cashDrawer === true;
+  useEffect(() => setDrawerEnabled(drawerOn), [drawerOn]);
+  const canOpenDrawer = drawerOn && !!snapshot && billRoles.includes(snapshot.me.user.role);
 
   return (
     <div className="min-h-dvh bg-zinc-50 print:bg-white">
@@ -127,6 +133,7 @@ export function OfflineTill() {
             {!outbox.online ? t("offline") : outbox.pending > 0 ? t("syncing", { n: outbox.pending }) : t("online")}
           </span>
           <span className="flex-1" />
+          {canOpenDrawer && <CashDrawerButton className="border-transparent bg-white/10 text-white hover:bg-white/20" />}
           {outbox.online && (
             <Link href="/floor" className="rounded-md bg-white px-3 py-1.5 text-[13.5px] font-semibold text-zinc-900">
               {t("openFloor")}
@@ -349,6 +356,7 @@ function OrderScreen({
       orderId: order.id,
       label: orderLabel(t, order),
     });
+    if (method === "cash") openDrawerForCash();
     const closed = amountPaisa === bill.duePaisa;
     const next = { ...order, payments: [...order.payments, { method, amountPaisa, tenderedPaisa, reference: reference.trim() || null }], closed };
     await onSave(next);
@@ -505,7 +513,7 @@ function Problems({ problems, snapshot, orders, onChange }: { problems: OutboxEn
     ...orders.flatMap((o) => (!o.closed && o.tableId ? [o.tableId] : [])),
   ]);
   const free = snapshot.floor.areas.flatMap((a) => a.tables.filter((x) => !taken.has(x.id)));
-  const known = ["table_busy", "item_unavailable", "idempotency_conflict", "order_closed"];
+  const known = ["table_busy", "item_unavailable", "idempotency_conflict", "order_closed", "drawer_off"];
 
   return (
     <section className="rounded-xl bg-red-50 p-4 ring-1 ring-red-200">
@@ -576,6 +584,7 @@ function CashMove() {
         if (!valid) return;
         const id = uuid();
         await enqueue({ key: `cash-${id}`, path: "/pos/shifts/current/cash", body: { direction, amountTaka: value, reason: reason.trim().slice(0, 120) }, orderId: null, label: t("cash") });
+        openDrawerForCash();
         setAmount("");
         setReason("");
         setSaved(true);

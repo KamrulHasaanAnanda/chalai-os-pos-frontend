@@ -860,7 +860,8 @@
       "item_unavailable": "A dish ran out while you were offline. Discard this order and take it again without that dish.",
       "idempotency_conflict": "This was already sent with different details.",
       "order_closed": "The order was already closed on another device.",
-      "other": "Chalai refused this ({code})."
+      "other": "Chalai refused this ({code}).",
+      "drawer_off": "The owner turned the cash drawer off, so this press wasn't logged."
     },
     "moveTo": "Move to",
     "retry": "Send again",
@@ -1051,5 +1052,24 @@
       "forbidden": "The owner hasn't allowed you to manage reservations.",
       "other": "Couldn't save. Check the details and try again."
     }
+  },
+  "drawer": {
+    "button": "Drawer",
+    "title": "Cash drawer",
+    "printer": "Opens through {name}.",
+    "notConnected": "Connect the receipt printer the drawer is plugged into. You do this once on this tablet.",
+    "unsupported": "This browser can't reach a USB printer. Use Chrome on an Android tablet, Windows or a Mac. iPad and Safari can't open the drawer.",
+    "connectUsb": "Connect USB printer",
+    "connectSerial": "Connect as serial port (Windows)",
+    "connectHelp": "Chrome shows a list of devices: pick the receipt printer. On Windows, if the USB option fails, try the serial port.",
+    "connected": "Printer connected. The drawer should have opened.",
+    "usbFailed": "Couldn't use that printer over USB. On Windows, try Connect as serial port.",
+    "failed": "The drawer didn't open. Check the printer is on and its USB cable is in.",
+    "reason": "Why are you opening it? (optional)",
+    "reasonPlaceholder": "e.g. Change for ৳1,000",
+    "logged": "Your name, the time and the reason are saved for the owner.",
+    "open": "Open drawer",
+    "forget": "Use a different printer",
+    "logLabel": "Open drawer"
   }
 }

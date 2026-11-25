@@ -11,6 +11,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { NavLinks, type NavItem } from "@/components/nav-links";
 import { SessionGate } from "@/components/session-gate";
 import { KotPrinter } from "@/components/print/kot-printer";
+import { CashDrawerButton, DrawerSetting } from "@/components/cash-drawer";
 import { Avatar } from "@/components/app/staff-avatar";
 import { Toast } from "@/components/app/toast";
 import type { StaffPermissions, User } from "@/lib/api/types";
@@ -296,6 +297,8 @@ export function PosShell({
               openTill: t("openTill"),
             }}
           />
+          {!demo && <DrawerSetting enabled={staff.restaurant.cashDrawer === true} />}
+          {!demo && staff.restaurant.cashDrawer === true && billRoles.includes(user.role) && <CashDrawerButton />}
           {!demo && (
             <Suspense fallback={null}>
               {/* The till (cashier, manager, owner) prints for a silent kitchen; waiters' phones never pop a dialog. */}

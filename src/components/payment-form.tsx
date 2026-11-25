@@ -8,6 +8,7 @@ import { useFormStatus } from "react-dom";
 import { recordPayment } from "@/actions/orders";
 import { Icon } from "@/components/icons";
 import type { PaymentMethod } from "@/lib/api/types";
+import { openDrawerForCash } from "@/lib/drawer";
 import { formatTaka } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +84,8 @@ export function PaymentForm({
     <form
       id={PAY_FORM_ID}
       action={recordPayment}
+      // Cash: the drawer opens as the cashier presses Pay, the moment they need it (when the owner turned it on).
+      onSubmit={() => method === "cash" && openDrawerForCash()}
       className="flex min-h-0 flex-1 flex-col"
     >
       <input type="hidden" name="orderId" value={orderId} />

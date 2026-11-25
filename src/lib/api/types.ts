@@ -89,6 +89,8 @@ export type Restaurant = {
   kotOutput?: KotOutput;
   receiptWidthMm?: ReceiptWidth;
   printerFallback?: boolean;
+  /** The owner turned the cash drawer on (cash-drawer spec). Missing on older API builds and in the demo: off. */
+  cashDrawer?: boolean;
   /** Bills may close on customer credit (বাকি). Missing on older API builds and in the demo: off. */
   creditEnabled?: boolean;
   subscription: {

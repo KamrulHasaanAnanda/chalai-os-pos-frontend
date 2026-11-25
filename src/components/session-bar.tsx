@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { moveCash, recordExpense, shiftSoFar } from "@/actions/shifts";
+import { openDrawerForCash } from "@/lib/drawer";
 import type { PaymentMethod, ShiftReport } from "@/lib/api/types";
 import {
   clockTime,
@@ -339,6 +340,7 @@ function CashMoveDialog({
       );
       return;
     }
+    openDrawerForCash();
     setAmount("");
     setReason("");
     setCategory("");

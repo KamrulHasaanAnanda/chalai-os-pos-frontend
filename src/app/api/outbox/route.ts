@@ -9,6 +9,7 @@ const ALLOWED = [
   new RegExp(`^/pos/orders/${UUID}/rounds$`),
   new RegExp(`^/pos/orders/${UUID}/payments$`),
   /^\/pos\/shifts\/current\/cash$/,
+  /^\/pos\/drawer\/opens$/,
 ];
 
 /** Replays one outbox entry with its Idempotency-Key. API errors come back with their status and code. */
