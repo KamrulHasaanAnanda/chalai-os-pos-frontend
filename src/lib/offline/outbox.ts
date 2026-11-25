@@ -94,6 +94,30 @@ export async function retry(entry: OutboxEntry, patch: Partial<OutboxEntry> = {}
   void flush();
 }
 
+let probing: Promise<boolean> | null = null;
+/**
+ * Asks Chalai whether it can be reached. The browser's own online flag only knows about Wi-Fi: with the router up and
+ * the internet down it still says online, so this is what notices the most common outage.
+ */
+export function probe(): Promise<boolean> {
+  probing ??= (async () => {
+    try {
+      const response = await fetch("/api/ping", { cache: "no-store", signal: AbortSignal.timeout(8_000) });
+      // Signed out still means reachable; only a gateway error or no answer means offline.
+      const reachable = response.status < 500;
+      set({ online: reachable });
+      if (reachable) void flush();
+      return reachable;
+    } catch {
+      set({ online: false });
+      return false;
+    } finally {
+      probing = null;
+    }
+  })();
+  return probing;
+}
+
 /** The live connection is back, so the server is reachable: clear "offline" now and replay anything queued. */
 export function markOnline() {
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
@@ -132,14 +156,15 @@ export function startOffline() {
   started = true;
   set({ online: navigator.onLine });
   void recount().then(async () => {
+    if (navigator.onLine) await probe();
     await flush();
     if (state.pending === 0 && navigator.onLine) await refreshSnapshot();
   });
-  window.addEventListener("online", () => {
-    set({ online: true });
-    void flush();
-  });
+  // Wi-Fi back doesn't mean the internet is: ask before saying online.
+  window.addEventListener("online", () => void probe());
   window.addEventListener("offline", () => set({ online: false }));
   setInterval(() => void flush(), 20_000);
+  // While offline, check every 15 s so the bar turns green soon after the internet returns.
+  setInterval(() => void (!state.online && probe()), 15_000);
   setInterval(() => void (state.pending === 0 && navigator.onLine && refreshSnapshot()), 120_000);
 }

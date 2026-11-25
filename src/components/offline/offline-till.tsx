@@ -1,5 +1,5 @@
 "use client";
-// The offline till (pos-offline spec). Runs only from the snapshot in IndexedDB: open a free table, send a round,
+// The offline till (pos-offline spec). Runs only from the snapshot in IndexedDB: open a free table or a parcel, send a round,
 // take cash or a typed bKash / Nagad / card payment, cash in/out, and print the kitchen slip and the receipt.
 // Every write goes to the outbox with its own ids and key, and uploads in order when the connection is back.
 
@@ -10,7 +10,7 @@ import { Icon } from "@/components/icons";
 import type { MenuItem, Order, PaymentMethod } from "@/lib/api/types";
 import { offlineBill, type BillSettings } from "@/lib/offline/bill";
 import { discard, enqueue, flush, retry, startOffline, useOutbox } from "@/lib/offline/outbox";
-import { listEntries, listOrders, loadSnapshot, putOrder, type LocalOrder, type OutboxEntry, type Snapshot } from "@/lib/offline/store";
+import { listEntries, listOrders, loadSnapshot, nextOfflineRef, putOrder, type LocalOrder, type OutboxEntry, type Snapshot } from "@/lib/offline/store";
 import { cn } from "@/lib/utils";
 
 const uuid = () => crypto.randomUUID();
@@ -22,6 +22,26 @@ const load = (): Promise<[Snapshot | null, LocalOrder[], OutboxEntry[]]> =>
   Promise.all([loadSnapshot().then((x) => x ?? null).catch(() => null), listOrders().catch(() => []), listEntries().catch(() => [])]);
 
 type Slip = { kind: "kot" | "receipt"; order: LocalOrder; lines: LocalOrder["lines"]; at: string };
+
+type T = ReturnType<typeof useTranslations<"offline">>;
+/** "Table 4", or "Parcel K7Q-0042" for a takeaway opened here. */
+const orderLabel = (t: T, o: Pick<LocalOrder, "tableId" | "tableLabel" | "offlineRef">) =>
+  o.tableId ? t("table", { table: o.tableLabel }) : o.offlineRef ? t("parcelRef", { ref: o.offlineRef }) : t("parcel");
+
+const newOrder = (tableId: string | null, tableLabel: string): LocalOrder => ({
+  id: uuid(),
+  tableId,
+  tableLabel,
+  offlineRef: null,
+  openedHere: true,
+  number: null,
+  openedAt: new Date().toISOString(),
+  lines: [],
+  serverLines: [],
+  serverPaidPaisa: 0,
+  payments: [],
+  closed: false,
+});
 
 /** An order the server already had, as the offline till carries it. */
 function fromServer(order: Order, tableId: string, tableLabel: string): LocalOrder {
@@ -129,6 +149,7 @@ export function OfflineTill() {
             <p className="rounded-xl border bg-white p-6 text-center text-[15px]">{t("noSnapshot")}</p>
           ) : current ? (
             <OrderScreen
+              key={current.id}
               order={current}
               menu={snapshot.menu}
               settings={settings}
@@ -145,27 +166,70 @@ export function OfflineTill() {
                   const local = orders.find((o) => o.tableId === tableId && !o.closed);
                   if (local) return setOpenId(local.id);
                   const server = snapshot.orders.find((o) => o.tableId === tableId && o.status === "open");
-                  const order: LocalOrder = server
-                    ? fromServer(server, tableId, tableLabel)
-                    : { id: uuid(), tableId, tableLabel, openedHere: true, number: null, openedAt: new Date().toISOString(), lines: [], serverLines: [], serverPaidPaisa: 0, payments: [], closed: false };
+                  const order: LocalOrder = server ? fromServer(server, tableId, tableLabel) : newOrder(tableId, tableLabel);
                   await save(order);
                   setOpenId(order.id);
                 }}
+                onParcel={async () => {
+                  const order = newOrder(null, "");
+                  await save(order);
+                  setOpenId(order.id);
+                }}
+                onResume={setOpenId}
               />
               <CashMove />
             </>
           )}
         </main>
       </div>
-      {slip && <PrintSlip slip={slip} restaurant={snapshot?.me.restaurant?.name ?? ""} settings={settings} />}
+      {slip && (
+        <PrintSlip slip={slip} restaurant={snapshot?.me.restaurant?.name ?? ""} settings={settings} widthMm={snapshot?.me.restaurant?.receiptWidthMm ?? 80} />
+      )}
     </div>
   );
 }
 
-function Tables({ snapshot, orders, onOpen }: { snapshot: Snapshot; orders: LocalOrder[]; onOpen: (tableId: string, label: string) => void }) {
+function Tables({
+  snapshot,
+  orders,
+  onOpen,
+  onParcel,
+  onResume,
+}: {
+  snapshot: Snapshot;
+  orders: LocalOrder[];
+  onOpen: (tableId: string, label: string) => void;
+  onParcel: () => void;
+  onResume: (orderId: string) => void;
+}) {
   const t = useTranslations("offline");
+  const parcels = orders.filter((o) => o.tableId === null && !o.closed);
   return (
     <section aria-label={t("tables")} className="grid gap-4">
+      <div>
+        <h2 className="mb-2 text-[13px] font-bold tracking-wide text-zinc-500 uppercase">{t("parcels")}</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          <button
+            type="button"
+            onClick={onParcel}
+            className="flex h-20 flex-col items-start justify-between rounded-xl border-2 border-dashed border-zinc-300 bg-white p-3 text-left hover:border-zinc-500"
+          >
+            <Icon name="plus" className="size-5" />
+            <span className="text-[14px] font-semibold">{t("newParcel")}</span>
+          </button>
+          {parcels.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => onResume(o.id)}
+              className="flex h-20 flex-col items-start justify-between rounded-xl bg-sky-600 p-3 text-left text-white ring-1 ring-sky-600"
+            >
+              <span className="text-[16px] font-bold">{orderLabel(t, o)}</span>
+              <span className="text-[12.5px] text-white/90">{t("local")}</span>
+            </button>
+          ))}
+        </div>
+      </div>
       {snapshot.floor.areas.map((area) => (
         <div key={area.id}>
           <h2 className="mb-2 text-[13px] font-bold tracking-wide text-zinc-500 uppercase">{area.name}</h2>
@@ -232,8 +296,17 @@ function OrderScreen({
       return { menuItemId: id, name: item.name, unitPricePaisa: Math.round(item.priceTaka * 100), quantity };
     });
     const first = order.openedHere && order.lines.length === 0;
+    let opened = order;
     if (first) {
-      await enqueue({ key: `open-${order.id}`, path: "/pos/orders", body: { id: order.id, tableId: order.tableId }, orderId: order.id, label: t("table", { table: order.tableLabel }) });
+      // The server has no number for this order yet, so the slips carry the device's own (K7Q-0042).
+      opened = { ...order, offlineRef: order.offlineRef ?? (await nextOfflineRef()) };
+      await enqueue({
+        key: `open-${order.id}`,
+        path: "/pos/orders",
+        body: { id: order.id, tableId: order.tableId, offlineRef: opened.offlineRef },
+        orderId: order.id,
+        label: orderLabel(t, opened),
+      });
     }
     const roundId = uuid();
     await enqueue({
@@ -246,9 +319,9 @@ function OrderScreen({
         items: lines.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity, unitPriceTaka: l.unitPricePaisa / 100 })),
       },
       orderId: order.id,
-      label: t("table", { table: order.tableLabel }),
+      label: orderLabel(t, opened),
     });
-    const next = { ...order, lines: [...order.lines, ...lines] };
+    const next = { ...opened, lines: [...order.lines, ...lines] };
     await onSave(next);
     setCart({});
     onPrint({ kind: "kot", order: next, lines, at: new Date().toISOString() });
@@ -274,7 +347,7 @@ function OrderScreen({
         ...(method !== "cash" && reference.trim() ? { reference: reference.trim().slice(0, 80) } : {}),
       },
       orderId: order.id,
-      label: t("table", { table: order.tableLabel }),
+      label: orderLabel(t, order),
     });
     const closed = amountPaisa === bill.duePaisa;
     const next = { ...order, payments: [...order.payments, { method, amountPaisa, tenderedPaisa, reference: reference.trim() || null }], closed };
@@ -299,7 +372,8 @@ function OrderScreen({
             <Icon name="back" className="size-4" />
             {t("back")}
           </button>
-          <h2 className="text-[18px] font-bold">{t("table", { table: order.tableLabel })}</h2>
+          <h2 className="text-[18px] font-bold">{orderLabel(t, order)}</h2>
+          {order.tableId && order.offlineRef && <span className="text-[13px] text-zinc-500 tabular-nums">{t("billNo", { ref: order.offlineRef })}</span>}
         </div>
         {menu.map((category) => (
           <div key={category.id}>
@@ -426,7 +500,10 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
 
 function Problems({ problems, snapshot, orders, onChange }: { problems: OutboxEntry[]; snapshot: Snapshot; orders: LocalOrder[]; onChange: () => void }) {
   const t = useTranslations("offline");
-  const taken = new Set([...snapshot.floor.areas.flatMap((a) => a.tables.filter((x) => x.order).map((x) => x.id)), ...orders.filter((o) => !o.closed).map((o) => o.tableId)]);
+  const taken = new Set([
+    ...snapshot.floor.areas.flatMap((a) => a.tables.filter((x) => x.order).map((x) => x.id)),
+    ...orders.flatMap((o) => (!o.closed && o.tableId ? [o.tableId] : [])),
+  ]);
   const free = snapshot.floor.areas.flatMap((a) => a.tables.filter((x) => !taken.has(x.id)));
   const known = ["table_busy", "item_unavailable", "idempotency_conflict", "order_closed"];
 
@@ -524,18 +601,20 @@ function CashMove() {
 }
 
 /** The printed slip: the kitchen ticket for a round, or the receipt. Only visible when printing. */
-function PrintSlip({ slip, restaurant, settings }: { slip: Slip; restaurant: string; settings: BillSettings | null }) {
+function PrintSlip({ slip, restaurant, settings, widthMm }: { slip: Slip; restaurant: string; settings: BillSettings | null; widthMm: number }) {
   const t = useTranslations("offline");
   const tm = useTranslations("paymentMethod");
   const bill = settings ? offlineBill(slip.lines, settings, 0) : null;
   const paid = slip.order.serverPaidPaisa + slip.order.payments.reduce((s, p) => s + p.amountPaisa, 0);
   return (
-    <div className="hidden p-2 font-mono text-[12px] text-black print:block" style={{ width: "72mm" }}>
+    // 58 mm paper prints about 48 mm wide, 80 mm paper about 72 mm.
+    <div className="hidden p-2 font-mono text-[12px] text-black print:block" style={{ width: widthMm === 58 ? "48mm" : "72mm" }}>
       <p className="text-center text-[14px] font-bold">{slip.kind === "kot" ? t("kot") : restaurant}</p>
       <p className="text-center">
-        {t("table", { table: slip.order.tableLabel })}
+        {orderLabel(t, slip.order)}
         {slip.order.number ? ` · #${slip.order.number}` : ""} · {clock(slip.at)}
       </p>
+      {slip.order.offlineRef && <p className="text-center font-bold">{t("billNo", { ref: slip.order.offlineRef })}</p>}
       <p className="text-center">{t("offlineNote")}</p>
       <hr className="my-1 border-dashed border-black" />
       {slip.lines.map((l, i) => (

@@ -28,8 +28,11 @@ export type OutboxEntry = {
 
 export type LocalOrder = {
   id: string;
-  tableId: string;
+  /** null: a parcel (takeaway) order at the counter. */
+  tableId: string | null;
   tableLabel: string;
+  /** The bill number this device printed for an order it opened offline (`K7Q-0042`); null otherwise. */
+  offlineRef?: string | null;
   /** Opened on this device while offline (false: an order the server already had). */
   openedHere: boolean;
   number: number | null;
@@ -70,6 +73,37 @@ async function tx<T>(store: string, mode: IDBTransactionMode, run: (s: IDBObject
 
 export const saveSnapshot = (s: Snapshot) => tx("kv", "readwrite", (st) => st.put(s, "snapshot"));
 export const loadSnapshot = () => tx<Snapshot | undefined>("kv", "readonly", (st) => st.get("snapshot") as IDBRequest<Snapshot | undefined>);
+
+/**
+ * The next offline bill number: a 3-character tag this device makes once, then its own counter (`K7Q-0042`), so two
+ * tablets offline at the same time never print the same number. Both live in this browser's storage.
+ */
+export async function nextOfflineRef(): Promise<string> {
+  const db = await open();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction("kv", "readwrite");
+    const st = t.objectStore("kv");
+    let ref = "";
+    const tagReq = st.get("deviceTag");
+    tagReq.onsuccess = () => {
+      let tag = tagReq.result as string | undefined;
+      if (!tag) {
+        // No 0/O or 1/I, so the number reads back the same when typed in.
+        const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        tag = Array.from(crypto.getRandomValues(new Uint8Array(3)), (b) => letters[b % letters.length]).join("");
+        st.put(tag, "deviceTag");
+      }
+      const countReq = st.get("billCounter");
+      countReq.onsuccess = () => {
+        const n = ((countReq.result as number | undefined) ?? 0) + 1;
+        st.put(n, "billCounter");
+        ref = `${tag}-${String(n).padStart(4, "0")}`;
+      };
+    };
+    t.oncomplete = () => resolve(ref);
+    t.onerror = () => reject(t.error);
+  });
+}
 
 export const addEntry = (e: OutboxEntry) => tx("outbox", "readwrite", (st) => st.add(e));
 export const putEntry = (e: OutboxEntry) => tx("outbox", "readwrite", (st) => st.put(e));

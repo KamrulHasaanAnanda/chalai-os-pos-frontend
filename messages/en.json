@@ -182,7 +182,8 @@
     "body": "The page couldn't load. Check the internet connection and try again.",
     "notFoundTitle": "Not found",
     "notFoundBody": "That order or page doesn't exist any more.",
-    "home": "Back to the floor"
+    "home": "Back to the floor",
+    "offlineBody": "No internet right now. Keep taking orders in the offline till; they upload when the connection is back."
   },
   "tableStatus": {
     "free": "Free",
@@ -723,7 +724,8 @@
     "takeaway": "Takeaway",
     "pickup": "Pickup #{token}",
     "minutes": "{n} min",
-    "hours": "{h}h {m}m"
+    "hours": "{h}h {m}m",
+    "offlineRef": "offline {ref}"
   },
   "kitchen": {
     "title": "Kitchen",
@@ -870,7 +872,12 @@
     "cashSaved": "Saved. It will be uploaded.",
     "kot": "Kitchen slip",
     "receipt": "Receipt",
-    "offlineNote": "Made offline"
+    "offlineNote": "Made offline",
+    "parcel": "Parcel",
+    "parcelRef": "Parcel {ref}",
+    "parcels": "Parcels",
+    "newParcel": "New parcel",
+    "billNo": "Bill {ref}"
   },
   "coupon": {
     "title": "Coupon",

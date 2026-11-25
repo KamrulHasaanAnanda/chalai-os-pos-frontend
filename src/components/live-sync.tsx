@@ -8,7 +8,7 @@ import { io } from "socket.io-client";
 import { LiveStatus, type LiveLabels } from "@/components/live-status";
 import Link from "next/link";
 import { KITCHEN_CHANGED_EVENT } from "@/components/print/kot-printer";
-import { markOnline, startOffline, useOutbox } from "@/lib/offline/outbox";
+import { markOnline, probe, startOffline, useOutbox } from "@/lib/offline/outbox";
 
 const demo = process.env.CHALAI_DEMO === "1";
 
@@ -167,13 +167,22 @@ export function LiveSync({
     };
   }, []);
 
+  // The live link dropped: find out whether the internet is gone too (Wi-Fi can stay up while it is), so the bar
+  // says Offline and offers the till. A short wait skips the blips of a server restart.
+  useEffect(() => {
+    if (demo || status !== "offline") return;
+    const id = setTimeout(() => void probe(), 5_000);
+    return () => clearTimeout(id);
+  }, [status]);
+
   // Fallback polling while the socket is down (spec §11).
   useEffect(() => {
     const rule = ruleFor(path);
-    if (status === "live" || !rule) return;
+    // With no internet a refresh can only fail and replace the page with the error screen.
+    if (status === "live" || !rule || !outbox.online) return;
     const id = setInterval(() => router.refresh(), rule.pollMs);
     return () => clearInterval(id);
-  }, [status, path, router]);
+  }, [status, path, router, outbox.online]);
 
   const browserOffline = !demo && !outbox.online;
   const shown = browserOffline

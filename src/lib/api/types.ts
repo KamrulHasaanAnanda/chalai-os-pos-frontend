@@ -312,6 +312,8 @@ export type Order = {
   delivery?: OrderDelivery | null;
   id: string;
   number: number;
+  /** The bill number the POS printed when it opened this order offline (`K7Q-0042`). */
+  offlineRef?: string | null;
   tableId: string | null;
   tableLabel: string | null;
   /** Online pickup token; null for a table or counter order. */
@@ -344,6 +346,8 @@ export type Order = {
 export type OrderSummary = {
   id: string;
   number: number;
+  /** The bill number the POS printed when it opened this order offline (`K7Q-0042`). */
+  offlineRef?: string | null;
   tableLabel: string | null;
   /** Online pickup token; null for a table or counter order. */
   tokenNo?: number | null;

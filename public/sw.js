@@ -3,7 +3,9 @@
 // - Pages are network-first; with no network a page seen before is shown, otherwise the offline till.
 // - API calls, route handlers and page data (RSC) are never cached: the server stays the source of truth.
 
-const VERSION = "chalai-pos-v1";
+const VERSION = "chalai-pos-v2";
+/** With Wi-Fi up and the internet down a page load can hang for a minute; give up sooner and open the till. */
+const NAVIGATE_TIMEOUT_MS = 10_000;
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 
@@ -61,10 +63,21 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(async () => {
-        const shell = await caches.open(SHELL);
-        return (await shell.match("/offline")) ?? Response.error();
-      }),
+      (async () => {
+        // The request is passed on untouched (its navigate mode and redirects stay as the browser made them).
+        let timer;
+        const timeout = new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("timeout")), NAVIGATE_TIMEOUT_MS);
+        });
+        try {
+          return await Promise.race([fetch(request), timeout]);
+        } catch {
+          const shell = await caches.open(SHELL);
+          return (await shell.match("/offline")) ?? Response.error();
+        } finally {
+          clearTimeout(timer);
+        }
+      })(),
     );
   }
 });

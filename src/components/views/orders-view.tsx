@@ -241,7 +241,8 @@ export function OrdersView({
                           : t("takeaway")}
                       </p>
                       <p className="mt-1 text-[12.5px] text-muted-foreground tabular-nums">
-                        #{order.number} · {formatTime(order.openedAt, timeZone)}
+                        #{order.number}
+                        {order.offlineRef ? ` · ${t("offlineRef", { ref: order.offlineRef })}` : ""} · {formatTime(order.openedAt, timeZone)}
                       </p>
                     </div>
                     <span
@@ -367,6 +368,7 @@ export function OrdersView({
                           : t("takeaway")}
                         <span className="ml-2 text-[13px] font-medium text-muted-foreground tabular-nums">
                           #{order.number}
+                          {order.offlineRef ? ` · ${t("offlineRef", { ref: order.offlineRef })}` : ""}
                         </span>
                       </span>
                       <span className="block text-[12.5px] text-muted-foreground tabular-nums">
