@@ -208,6 +208,11 @@ export type FloorTable = {
     pendingRounds: number;
     readyRounds: number;
     billRequested: boolean;
+    waiterName?: string | null;
+    guestCount?: number | null;
+    itemsTotal?: number;
+    itemsServed?: number;
+    readyCount?: number;
   };
   /** Today's booking holding this table now, or the next one later today (reservations spec). Missing in the demo. */
   nextReservation?: { name: string; partySize: number; at: string } | null;

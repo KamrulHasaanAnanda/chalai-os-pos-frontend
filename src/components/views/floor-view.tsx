@@ -20,6 +20,9 @@ import type { ErrorReader } from "@/lib/error-reader";
 import { formatTaka, formatTime, hasStarted, minutesSince } from "@/lib/format";
 import { orderHref } from "@/lib/paths";
 import { TableSceneView } from "@/components/views/table-scene-view";
+import { TablesBoard } from "@/components/tables/tables-board";
+import { TablesCardsProvider } from "@/components/tables/tables-cards-context";
+import { TablesToolbarControls } from "@/components/tables/tables-toolbar-controls";
 import { billRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
@@ -444,7 +447,16 @@ export function TablesSection({
   const view: Layout = error.param("view") === "3d" || error.param("view") === "room" ? "3d" : "cards";
   const areaId = floor.areas.length > 1 ? (area?.id ?? null) : null;
   const tables = area?.tables ?? [];
-  const busyCount = tables.filter((table) => table.status !== "free").length;
+  const multiAreaCards = view === "cards" && floor.areas.length > 1;
+  const boardAreas = multiAreaCards
+    ? floor.areas
+    : area
+      ? [{ id: area.id, name: area.name, tables: area.tables }]
+      : [];
+  const countTables = multiAreaCards
+    ? floor.areas.flatMap((a) => a.tables)
+    : tables;
+  const busyCount = countTables.filter((table) => table.status !== "free").length;
   const href = (next: { area?: string; show?: Show; view?: Layout }) => {
     const params = new URLSearchParams();
     const a = next.area ?? areaId;
@@ -458,6 +470,8 @@ export function TablesSection({
     const qs = params.toString();
     return qs ? `/tables?${qs}` : "/tables";
   };
+  const areaTabHref = (id: string) =>
+    multiAreaCards ? `${href({ show, view })}#area-${id}` : href({ area: id });
   const segment = (active: boolean) =>
     cn(
       "flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold whitespace-nowrap tabular-nums transition-colors",
@@ -466,12 +480,8 @@ export function TablesSection({
         : "text-zinc-600 hover:text-zinc-900",
     );
 
-  return (
-    <section
-      id="tables-board"
-      aria-label={t("tablesTitle")}
-      className="overflow-hidden rounded-2xl border bg-card shadow-xs fullscreen:overflow-y-auto fullscreen:rounded-none fullscreen:border-0 fullscreen:bg-background"
-    >
+  const inner = (
+    <>
       {/* One toolbar: area, search, busy/free, full screen. Stays on top while the cards scroll. */}
       <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b bg-card px-3 py-3 sm:px-4">
         {floor.areas.length > 1 && (
@@ -487,8 +497,8 @@ export function TablesSection({
               return (
                 <Link
                   key={a.id}
-                  href={href({ area: a.id })}
-                  scroll={false}
+                  href={areaTabHref(a.id)}
+                  scroll={multiAreaCards ? true : false}
                   aria-current={active ? "page" : undefined}
                   className={segment(active)}
                 >
@@ -511,7 +521,9 @@ export function TablesSection({
           className="relative w-full sm:w-52"
           role="search"
         >
-          {areaId && <input type="hidden" name="area" value={areaId} />}
+          {!multiAreaCards && areaId && (
+            <input type="hidden" name="area" value={areaId} />
+          )}
           {show !== "all" && <input type="hidden" name="show" value={show} />}
           {view === "3d" && <input type="hidden" name="view" value="3d" />}
           <Icon
@@ -536,9 +548,9 @@ export function TablesSection({
         >
           {(
             [
-              ["all", t("show.all", { n: tables.length })],
+              ["all", t("show.all", { n: countTables.length })],
               ["busy", t("show.busy", { n: busyCount })],
-              ["free", t("show.free", { n: tables.length - busyCount })],
+              ["free", t("show.free", { n: countTables.length - busyCount })],
             ] as const
           ).map(([value, text]) => (
             <Link
@@ -552,7 +564,8 @@ export function TablesSection({
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+          {view === "cards" ? <TablesToolbarControls /> : null}
           <nav
             aria-label={t("layout.label")}
             className="flex gap-1 rounded-lg bg-zinc-100 p-1"
@@ -587,10 +600,29 @@ export function TablesSection({
           />
         ) : view === "3d" ? (
           <SceneBoard tables={tables} query={query} show={show} />
-        ) : (
-          <TableBoard tables={tables} query={query} show={show} />
-        )}
+        ) : boardAreas.length > 0 ? (
+          <TablesBoard
+            areas={boardAreas}
+            query={query}
+            show={show}
+            scrollToAreaId={multiAreaCards ? areaId : null}
+          />
+        ) : null}
       </div>
+    </>
+  );
+
+  return (
+    <section
+      id="tables-board"
+      aria-label={t("tablesTitle")}
+      className="overflow-hidden rounded-2xl border bg-card shadow-xs fullscreen:overflow-y-auto fullscreen:rounded-none fullscreen:border-0 fullscreen:bg-background"
+    >
+      {view === "cards" ? (
+        <TablesCardsProvider>{inner}</TablesCardsProvider>
+      ) : (
+        inner
+      )}
     </section>
   );
 }

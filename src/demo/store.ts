@@ -160,15 +160,33 @@ export function floor(s: DemoState): Floor {
             gridY: t.gridY,
             status: tableStatus(order),
             order: order
-              ? {
-                  id: order.id,
-                  number: order.number,
-                  openedAt: order.openedAt,
-                  totalTaka: order.totalTaka,
-                  pendingRounds: order.rounds.filter((r) => r.status === "pending_approval").length,
-                  readyRounds: order.rounds.filter((r) => r.status === "ready").length,
-                  billRequested: !!order.billRequestedAt,
-                }
+              ? (() => {
+                  const live = order.rounds.filter((r) => r.status !== "rejected");
+                  const itemsTotal = live.reduce(
+                    (n, r) => n + r.items.reduce((m, i) => m + i.quantity, 0),
+                    0,
+                  );
+                  const itemsServed = live
+                    .filter((r) => r.status === "served")
+                    .reduce((n, r) => n + r.items.reduce((m, i) => m + i.quantity, 0), 0);
+                  const readyCount = live
+                    .filter((r) => r.status === "ready")
+                    .reduce((n, r) => n + r.items.reduce((m, i) => m + i.quantity, 0), 0);
+                  return {
+                    id: order.id,
+                    number: order.number,
+                    openedAt: order.openedAt,
+                    totalTaka: order.totalTaka,
+                    pendingRounds: order.rounds.filter((r) => r.status === "pending_approval").length,
+                    readyRounds: order.rounds.filter((r) => r.status === "ready").length,
+                    billRequested: !!order.billRequestedAt,
+                    waiterName: "Demo waiter",
+                    guestCount: Math.min(t.seats, Math.max(1, itemsTotal)),
+                    itemsTotal,
+                    itemsServed,
+                    readyCount,
+                  };
+                })()
               : null,
           };
         }),
