@@ -31,6 +31,16 @@ export async function updateBranchAction(input: ManageBranchPatch) {
   return result;
 }
 
+export async function saveQrHighlightsAction(input: {
+  popularItemIds: string[];
+  offerTitle: string | null;
+  offerBody: string | null;
+}) {
+  const result = await act((api) => api.saveManageQrHighlights(input));
+  if (result.ok) revalidatePath("/manage/qr-highlights");
+  return result;
+}
+
 // ——— Customer credit (বাকি) ———
 
 export async function findCreditCustomerAction(phone: string) {

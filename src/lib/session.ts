@@ -102,7 +102,7 @@ export async function requireStaff({
 
 /** Menu / coupons / branch manage screens: role *or* an owner grant. */
 export async function requireManage(
-  area: "coupons" | "menu" | "branchInfo",
+  area: "coupons" | "menu" | "branchInfo" | "qrHighlights",
   roles?: Role[],
 ): Promise<Staff> {
   const staff = await requireStaff();
@@ -112,7 +112,9 @@ export async function requireManage(
       ? Boolean(perms.coupons)
       : area === "menu"
         ? Boolean(perms.menu)
-        : Boolean(perms.branchInfo);
+        : area === "qrHighlights"
+          ? Boolean(perms.qrHighlights)
+          : Boolean(perms.branchInfo);
   if (granted) return staff;
   if (roles?.includes(staff.user.role)) return staff;
   redirect(homeFor(staff.user.role));

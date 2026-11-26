@@ -24,7 +24,7 @@ const demo = process.env.CHALAI_DEMO === "1";
 
 function effectivePermissions(user: User): StaffPermissions {
   if (user.role === "owner") {
-    return { coupons: "restaurant", menu: "restaurant", branchInfo: true };
+    return { coupons: "restaurant", menu: "restaurant", branchInfo: true, qrHighlights: true };
   }
   return user.permissions ?? {};
 }
@@ -52,6 +52,8 @@ export function useNavItems(user: User, creditEnabled = false): NavItem[] {
     items.push({ href: "/manage/coupons", label: t("coupons"), icon: "coupon" });
   if (perms.branchInfo)
     items.push({ href: "/manage/branch", label: t("branch"), icon: "store" });
+  if (managerRoles.includes(role) || perms.qrHighlights)
+    items.push({ href: "/manage/qr-highlights", label: t("qrHighlights"), icon: "sparkles" });
   if (role === "owner" || role === "manager" || role === "kitchen")
     items.push({ href: "/kitchen", label: t("kitchen"), icon: "chef" });
   return items;

@@ -42,7 +42,8 @@
     "branch": "Branch",
     "credit": "Credit",
     "stock": "Stock",
-    "reservations": "Reservations"
+    "reservations": "Reservations",
+    "qrHighlights": "QR highlights"
   },
   "assistant": {
     "title": "Chalai assistant",
@@ -639,6 +640,20 @@
     "turnOn": "Turn on",
     "turnOff": "Turn off",
     "remove": "Remove coupon"
+  },
+  "manageQrHighlights": {
+    "title": "QR menu highlights",
+    "lead": "Chef's pick and today's offer on the guest QR menu for this branch.",
+    "chefNote": "First dish is chef's pick. Up to four dishes.",
+    "emptyPicks": "No dishes picked yet.",
+    "pickDish": "Choose a dish…",
+    "addDish": "Add",
+    "offerTitle": "Today's offer",
+    "offerLead": "Leave blank to hide the offer box.",
+    "offerTitlePh": "Title",
+    "offerBodyPh": "Details",
+    "save": "Save",
+    "saved": "Saved"
   },
   "manageBranch": {
     "title": "Branch info",

@@ -42,7 +42,8 @@
     "branch": "শাখা",
     "credit": "বাকি খাতা",
     "stock": "স্টক",
-    "reservations": "রিজার্ভেশন"
+    "reservations": "রিজার্ভেশন",
+    "qrHighlights": "QR হাইলাইট"
   },
   "assistant": {
     "title": "চালাই সহকারী",
@@ -639,6 +640,20 @@
     "turnOn": "চালু করুন",
     "turnOff": "বন্ধ করুন",
     "remove": "কুপন মুছুন"
+  },
+  "manageQrHighlights": {
+    "title": "QR মেনু হাইলাইট",
+    "lead": "এই শাখার অতিথি QR মেনুতে আজকের সেরা ও আজকের অফার।",
+    "chefNote": "প্রথম খাবার = আজকের সেরা। সর্বোচ্চ চারটি।",
+    "emptyPicks": "এখনো কোনো খাবার বাছা হয়নি।",
+    "pickDish": "খাবার বেছে নিন…",
+    "addDish": "যোগ",
+    "offerTitle": "আজকের অফার",
+    "offerLead": "খালি রাখলে অফার বাক্স দেখাবে না।",
+    "offerTitlePh": "শিরোনাম",
+    "offerBodyPh": "বিবরণ",
+    "save": "সংরক্ষণ",
+    "saved": "সংরক্ষিত"
   },
   "manageBranch": {
     "title": "শাখার তথ্য",

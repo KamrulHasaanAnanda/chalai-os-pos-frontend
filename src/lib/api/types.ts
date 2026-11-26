@@ -16,6 +16,16 @@ export type StaffPermissions = {
   stock?: true;
   /** May add and change reservations. Only the owner has it without a grant. */
   reservations?: true;
+  /** May assign chef's pick and today's offer on the QR menu. */
+  qrHighlights?: true;
+};
+
+export type ManageQrHighlights = {
+  popularItemIds: string[];
+  offerTitle: string | null;
+  offerBody: string | null;
+  updatedAt: string;
+  items: { id: string; name: string; priceTaka: number }[];
 };
 
 export type ReservationStatus = "booked" | "seated" | "cancelled" | "no_show";

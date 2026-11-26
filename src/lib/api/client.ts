@@ -12,6 +12,7 @@ import type { ClockState, StockGood, Reservation, ReservationDay, ReservationInp
   ManageBranchPatch,
   ManageCoupon,
   ManageCouponInput,
+  ManageQrHighlights,
   Me,
   MenuCategory,
   MenuItem,
@@ -245,6 +246,17 @@ export function apiFor(token: string) {
     updateManageBranch: (body: Partial<ManageBranchPatch>) =>
       request<ManageBranch>("/pos/manage/branch", {
         method: "PATCH",
+        body,
+        token,
+      }),
+    manageQrHighlights: () => get<ManageQrHighlights>("/pos/manage/qr-highlights"),
+    saveManageQrHighlights: (body: {
+      popularItemIds: string[];
+      offerTitle: string | null;
+      offerBody: string | null;
+    }) =>
+      request<ManageQrHighlights>("/pos/manage/qr-highlights", {
+        method: "PUT",
         body,
         token,
       }),

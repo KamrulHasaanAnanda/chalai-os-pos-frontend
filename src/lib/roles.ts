@@ -14,5 +14,8 @@ export function homeFor(role: Role): string {
 }
 
 /** Reservations: the owner always; any staff member only with the owner's `reservations` grant. */
+export const canManageQrHighlights = (user: { role: Role; permissions?: { qrHighlights?: true } }) =>
+  managerRoles.includes(user.role) || !!user.permissions?.qrHighlights;
+
 export const canManageReservations = (user: { role: Role; permissions?: { reservations?: true } }) =>
   user.role === "owner" || user.permissions?.reservations === true;
