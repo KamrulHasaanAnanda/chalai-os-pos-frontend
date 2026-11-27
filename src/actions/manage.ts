@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { act } from "@/lib/session";
-import type { ManageBranchPatch, ManageCouponInput } from "@/lib/api/types";
+import type { ManageBranchPatch, ManageCouponInput, PromotionInput } from "@/lib/api/types";
 
 export async function createCouponAction(input: ManageCouponInput) {
   const result = await act((api) => api.createManageCoupon(input));
@@ -38,6 +38,26 @@ export async function saveQrHighlightsAction(input: {
 }) {
   const result = await act((api) => api.saveManageQrHighlights(input));
   if (result.ok) revalidatePath("/manage/qr-highlights");
+  return result;
+}
+
+// ——— Promotions (deals, packages, offers, dishes on trial) ———
+
+export async function savePromotionAction(id: string | null, input: PromotionInput) {
+  const result = await act((api) => (id ? api.updatePromotion(id, input) : api.createPromotion(input)));
+  if (result.ok) revalidatePath("/manage/promotions");
+  return result;
+}
+
+export async function setPromotionActiveAction(id: string, active: boolean) {
+  const result = await act((api) => api.setPromotionActive(id, active));
+  if (result.ok) revalidatePath("/manage/promotions");
+  return result;
+}
+
+export async function removePromotionAction(id: string) {
+  const result = await act((api) => api.removePromotion(id));
+  if (result.ok) revalidatePath("/manage/promotions");
   return result;
 }
 

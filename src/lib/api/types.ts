@@ -385,11 +385,53 @@ export type MenuItem = {
   name: string;
   description: string;
   priceTaka: number;
+  /** While a deal runs: the dish's own price. `priceTaka` is the deal price, and what the order is charged. */
+  wasPriceTaka?: number;
   photoUrl: string | null;
   isAvailable: boolean;
   /** Portions left today. null = no count kept; at 0 the dish is sold out. */
   stockLeft?: number | null;
   sortOrder: number;
+};
+
+export type Bilingual = { bn: string; en: string };
+export type PromotionKind = "dish" | "package" | "offer" | "trial";
+
+/** One promotion: the same list the owner app manages, shown on the website and/or the table menu. */
+export type Promotion = {
+  id: string;
+  kind: PromotionKind;
+  title: Bilingual;
+  body: Bilingual;
+  includes: Bilingual[];
+  serves: number | null;
+  /** A dish deal: the price orders are charged while it runs. A package: its price. */
+  priceTaka: number | null;
+  wasPriceTaka: number | null;
+  itemId: string | null;
+  couponCode: string | null;
+  action: "order" | "call" | "whatsapp";
+  photoUrl: string | null;
+  startsOn: string | null;
+  endsOn: string | null;
+  days: number[];
+  fromTime: string | null;
+  toTime: string | null;
+  active: boolean;
+  popup: boolean;
+  showOnSite: boolean;
+  showOnMenu: boolean;
+};
+
+export type PromotionInput = Omit<Promotion, "id" | "photoUrl">;
+
+/** Guests' ratings of one dish on trial at this branch, newest comments first. */
+export type DishFeedback = {
+  itemId: string | null;
+  name: string;
+  count: number;
+  average: number;
+  entries: { id: string; rating: number; comment: string | null; at: string; table: string | null; branch: string | null }[];
 };
 
 export type MenuCategory = {

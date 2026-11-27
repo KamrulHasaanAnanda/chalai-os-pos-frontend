@@ -13,6 +13,9 @@ import type { ClockState, StockGood, Reservation, ReservationDay, ReservationInp
   ManageCoupon,
   ManageCouponInput,
   ManageQrHighlights,
+  DishFeedback,
+  Promotion,
+  PromotionInput,
   Me,
   MenuCategory,
   MenuItem,
@@ -249,6 +252,16 @@ export function apiFor(token: string) {
         body,
         token,
       }),
+    promotions: () => get<Promotion[]>("/pos/manage/promotions"),
+    promotionFeedback: () => get<DishFeedback[]>("/pos/manage/promotions/feedback"),
+    createPromotion: (body: PromotionInput) =>
+      request<Promotion[]>("/pos/manage/promotions", { method: "POST", body, token }),
+    updatePromotion: (id: string, body: PromotionInput) =>
+      request<Promotion[]>(`/pos/manage/promotions/${encodeURIComponent(id)}`, { method: "PUT", body, token }),
+    setPromotionActive: (id: string, active: boolean) =>
+      request<Promotion[]>(`/pos/manage/promotions/${encodeURIComponent(id)}`, { method: "PATCH", body: { active }, token }),
+    removePromotion: (id: string) =>
+      request<Promotion[]>(`/pos/manage/promotions/${encodeURIComponent(id)}`, { method: "DELETE", token }),
     manageQrHighlights: () => get<ManageQrHighlights>("/pos/manage/qr-highlights"),
     saveManageQrHighlights: (body: {
       popularItemIds: string[];

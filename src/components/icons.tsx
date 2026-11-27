@@ -60,6 +60,9 @@ import {
   CalendarDays,
   Package,
   Eye,
+  Megaphone,
+  Pencil,
+  Star,
 } from "lucide-react";
 
 /** The app's icon set (lucide, named imports only). Icons sit next to text, so they're hidden from screen readers. */
@@ -123,6 +126,9 @@ const icons = {
   calendarDays: CalendarDays,
   package: Package,
   eye: Eye,
+  megaphone: Megaphone,
+  pencil: Pencil,
+  star: Star,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;

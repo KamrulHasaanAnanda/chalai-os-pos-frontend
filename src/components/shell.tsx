@@ -53,6 +53,9 @@ export function useNavItems(user: User, creditEnabled = false): NavItem[] {
     items.push({ href: "/manage/coupons", label: t("coupons"), icon: "coupon" });
   if (perms.branchInfo)
     items.push({ href: "/manage/branch", label: t("branch"), icon: "store" });
+  // Deals change prices, so promotions follow the menu grant.
+  if (managerRoles.includes(role) || perms.menu)
+    items.push({ href: "/manage/promotions", label: t("promotions"), icon: "megaphone" });
   if (managerRoles.includes(role) || perms.qrHighlights)
     items.push({ href: "/manage/qr-highlights", label: t("qrHighlights"), icon: "sparkles" });
   if (role === "owner" || role === "manager" || role === "kitchen")

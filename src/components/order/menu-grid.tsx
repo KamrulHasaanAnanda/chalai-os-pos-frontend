@@ -287,6 +287,10 @@ function Tile({ item }: { item: MenuItem }) {
           ) : (
             <span className="font-medium text-zinc-600">{formatTaka(item.priceTaka)}</span>
           )}
+          {!unavailable && item.wasPriceTaka !== undefined && item.wasPriceTaka > item.priceTaka ? (
+            // A deal is running: the dish's own price, crossed out (the deal price is what's charged).
+            <s className="text-zinc-400">{formatTaka(item.wasPriceTaka)}</s>
+          ) : null}
           {!unavailable && left !== null && (
             <span
               className={cn(
