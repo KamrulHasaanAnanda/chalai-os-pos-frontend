@@ -91,6 +91,11 @@ export async function cancelOrder(formData: FormData) {
   done("/floor", "orderCancelled", { n: String(result.data.number) });
 }
 
+/** The demo store can't fold one table's order into another: it says so instead (matches the real module). */
+export async function mergeOrder(formData: FormData) {
+  fail(orderPath(formData), "merge_not_in_demo", "merge-order");
+}
+
 export async function requestBill(formData: FormData) {
   const path = orderPath(formData);
   const result = act(() => demoApi.requestBill(str(formData, "orderId", 64)));
