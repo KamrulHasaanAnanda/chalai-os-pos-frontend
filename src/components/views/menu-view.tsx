@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- dish photos are absolute API URLs, already resized to WebP by the API */
+import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { setAvailability, setStock } from "@/actions/menu";
 import { Icon } from "@/components/icons";
@@ -24,67 +25,44 @@ export function MenuView({
   const low = counted.filter(
     (item) => item.isAvailable && item.stockLeft! <= LOW_STOCK,
   );
-  const share = items.length ? Math.round((onCount / items.length) * 100) : 0;
 
   return (
-    <div className="mx-auto max-w-[1100px] space-y-6">
-      {/* Summary: how much of the menu guests can order right now. */}
-      <header className="relative overflow-hidden rounded-2xl bg-primary p-5 text-primary-foreground sm:p-6">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-24 -right-16 size-64 rounded-full bg-orange-500/20 blur-3xl"
-        />
-        <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-md">
-            <p className="text-[12px] font-semibold tracking-[0.14em] text-orange-300 uppercase">
-              {t("eyebrow")}
-            </p>
-            <h1 className="mt-1.5 text-[26px] leading-tight font-bold tracking-tight sm:text-[30px]">
+    <div className="mx-auto max-w-[1280px] space-y-5">
+      {/* Title row like Floor and the owner app: icon tile, title and lead; the counts on the right. */}
+      <header className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <span
+            aria-hidden
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"
+          >
+            <Icon name="book" className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-[22px] leading-tight font-bold tracking-tight sm:text-[24px]">
               {t("title")}
             </h1>
-            <p className="mt-1.5 text-[14px] text-zinc-400">{t("lead")}</p>
-          </div>
-          <div className="w-full md:w-72">
-            <div className="flex items-baseline justify-between">
-              <p className="text-[34px] leading-none font-bold tabular-nums">
-                {onCount}
-                <span className="text-[18px] font-semibold text-zinc-500">
-                  /{items.length}
-                </span>
-              </p>
-              <p
-                className={cn(
-                  "text-[13px] font-semibold",
-                  soldOut.length ? "text-red-300" : "text-zinc-400",
-                )}
-              >
-                {soldOut.length
-                  ? t("statSoldOutCount", { n: soldOut.length })
-                  : t("allOn")}
-              </p>
-            </div>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-white"
-                style={{ width: `${share}%` }}
-              />
-            </div>
-            <p className="mt-2 text-[12.5px] text-zinc-400">
-              {t("onSummary", { categories: menu.length })}
+            <p className="mt-0.5 text-[14px] text-muted-foreground">
+              {t("lead")}
             </p>
-            {counted.length > 0 && (
-              <p className="mt-1 text-[12.5px] text-zinc-400">
-                {t("counted", { n: counted.length })}
-                {low.length > 0 && (
-                  <span className="font-semibold text-amber-300">
-                    {" "}
-                    · {t("low", { n: low.length })}
-                  </span>
-                )}
-              </p>
-            )}
           </div>
         </div>
+        <ul className="flex flex-wrap gap-2 text-[13px] font-medium tabular-nums">
+          <Stat dot="bg-emerald-500">
+            {t("onOf", { on: onCount, total: items.length })}
+          </Stat>
+          {soldOut.length > 0 ? (
+            <Stat dot="bg-red-600" className="text-red-800">
+              {t("statSoldOutCount", { n: soldOut.length })}
+            </Stat>
+          ) : (
+            items.length > 0 && <Stat>{t("allOn")}</Stat>
+          )}
+          {low.length > 0 && (
+            <Stat dot="bg-amber-500" className="text-amber-900">
+              {t("low", { n: low.length })}
+            </Stat>
+          )}
+        </ul>
       </header>
 
       {error.general && <Notice>{error.general}</Notice>}
@@ -94,16 +72,16 @@ export function MenuView({
       {soldOut.length > 0 && (
         <section
           aria-labelledby="sold-out"
-          className="rounded-2xl border bg-card"
+          className="rounded-xl border border-red-200 bg-red-50/50 p-4"
         >
           <h2
             id="sold-out"
-            className="flex items-center gap-2 border-b px-5 py-3 text-[13px] font-bold tracking-wide text-red-700 uppercase"
+            className="flex items-center gap-2 text-[14px] font-semibold text-red-800"
           >
-            <span aria-hidden className="size-1.5 rounded-full bg-red-600" />
+            <span aria-hidden className="size-2 rounded-full bg-red-600" />
             {t("soldOutNow", { n: soldOut.length })}
           </h2>
-          <ul className="flex flex-wrap gap-2 p-4">
+          <ul className="mt-3 flex flex-wrap gap-2">
             {soldOut.map((item) => (
               <li key={item.id}>
                 <form action={setAvailability}>
@@ -111,12 +89,10 @@ export function MenuView({
                   <input type="hidden" name="isAvailable" value="true" />
                   <button
                     type="submit"
-                    className="group flex h-10 items-center gap-3 rounded-lg border pr-1.5 pl-3.5 text-[14px] font-medium transition-colors hover:border-select"
+                    className="flex h-10 items-center gap-3 rounded-lg border bg-card pr-1.5 pl-3.5 text-[14px] font-medium transition-colors hover:border-select focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none"
                   >
-                    <span className="text-zinc-500 line-through decoration-zinc-300">
-                      {item.name}
-                    </span>
-                    <span className="flex h-7 items-center rounded-md bg-primary px-2.5 text-[12px] font-semibold text-primary-foreground">
+                    <span className="text-muted-foreground">{item.name}</span>
+                    <span className="flex h-7 items-center rounded-md bg-select px-2.5 text-[12.5px] font-semibold text-select-foreground">
                       {t("bringBack")}
                     </span>
                   </button>
@@ -131,9 +107,9 @@ export function MenuView({
       {menu.length > 1 && (
         <nav
           aria-label={t("categories")}
-          className="sticky top-14 z-10 -mx-4 overflow-x-auto border-b bg-background/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
+          className="sticky top-14 z-10 -mx-4 overflow-x-auto bg-background/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8"
         >
-          <ul className="flex gap-6">
+          <ul className="flex gap-2">
             {menu.map((category) => {
               const off = category.items.filter(
                 (item) => !item.isAvailable,
@@ -142,10 +118,10 @@ export function MenuView({
                 <li key={category.id} className="shrink-0">
                   <a
                     href={`#cat-${category.id}`}
-                    className="-mb-px flex h-11 items-center gap-1.5 border-b-2 border-transparent text-[14px] font-medium text-muted-foreground transition-colors hover:border-select hover:text-foreground"
+                    className="flex h-9 items-center gap-1.5 rounded-full border bg-card px-3.5 text-[13.5px] font-medium text-foreground transition-colors hover:border-zinc-400 focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none"
                   >
                     {category.name}
-                    <span className="text-[12px] tabular-nums opacity-70">
+                    <span className="text-[12px] text-muted-foreground tabular-nums">
                       {category.items.length}
                     </span>
                     {off > 0 && (
@@ -169,12 +145,12 @@ export function MenuView({
             key={category.id}
             id={`cat-${category.id}`}
             aria-labelledby={`cat-title-${category.id}`}
-            className="scroll-mt-28 overflow-hidden rounded-2xl border bg-card"
+            className="scroll-mt-32"
           >
-            <div className="flex items-baseline justify-between gap-3 border-b bg-muted/40 px-5 py-3.5">
+            <div className="mb-2 flex items-baseline justify-between gap-3 px-1">
               <h2
                 id={`cat-title-${category.id}`}
-                className="text-[16px] font-semibold tracking-tight"
+                className="text-[15px] font-semibold"
               >
                 {category.name}
               </h2>
@@ -188,7 +164,7 @@ export function MenuView({
                 )}
               </p>
             </div>
-            <ul className="grid lg:grid-cols-2">
+            <ul className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
               {category.items.map((item) => (
                 <DishRow
                   key={item.id}
@@ -207,6 +183,28 @@ export function MenuView({
 
 const LOW_STOCK = 3;
 
+function Stat({
+  dot,
+  className,
+  children,
+}: {
+  dot?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <li
+      className={cn(
+        "flex h-8 items-center gap-2 rounded-full border bg-card px-3",
+        className,
+      )}
+    >
+      {dot && <span aria-hidden className={cn("size-2 rounded-full", dot)} />}
+      {children}
+    </li>
+  );
+}
+
 function DishRow({
   item,
   error,
@@ -223,64 +221,59 @@ function DishRow({
   return (
     <li
       id={`item-${item.id}`}
-      className="scroll-mt-28 border-b px-5 py-3 last:border-b-0 lg:odd:border-r lg:[&:nth-last-child(2):nth-child(odd)]:border-b-0"
+      className={cn(
+        "scroll-mt-32 rounded-xl border bg-card px-3.5 py-3 transition-colors",
+        !on && "border-dashed bg-muted/40",
+      )}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3">
         {item.photoUrl && (
           <img
             src={item.photoUrl}
             alt=""
             loading="lazy"
             className={cn(
-              "mt-0.5 size-11 shrink-0 rounded-lg object-cover",
+              "size-11 shrink-0 rounded-lg object-cover",
               !on && "opacity-40 grayscale",
             )}
           />
         )}
         <div className="min-w-0 flex-1">
-          {/* Menu-card line: name, dotted leader, price. */}
-          <div className="flex items-baseline gap-2">
-            <p
-              className={cn(
-                "min-w-0 truncate text-[15px] font-medium",
-                !on && "text-zinc-400 line-through decoration-zinc-300",
-              )}
-              title={item.name}
-            >
-              {item.name}
-            </p>
-            <span
-              aria-hidden
-              className="min-w-4 flex-1 translate-y-[-3px] border-b border-dotted border-input"
-            />
-            <span
-              className={cn(
-                "shrink-0 text-[15px] font-semibold tabular-nums",
-                !on && "text-zinc-400",
-              )}
-            >
-              {formatTaka(item.priceTaka)}
-            </span>
-          </div>
+          <p
+            className={cn(
+              "truncate text-[14.5px] leading-snug font-medium",
+              !on && "text-muted-foreground",
+            )}
+            title={item.name}
+          >
+            {item.name}
+          </p>
 
-          {/* Status, and the portion count that opens its own small editor. */}
+          {/* Price and status; the portion count opens its own small editor underneath. */}
           <details className="group" open={!!stockError}>
-            <summary className="mt-1 flex w-fit cursor-pointer list-none items-center gap-2 text-[12.5px] font-medium [&::-webkit-details-marker]:hidden">
-              <span className={on ? "text-muted-foreground" : "text-red-700"}>
-                {on ? t("available") : t("soldOut")}
+            <summary className="mt-1 flex cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 text-[13px] [&::-webkit-details-marker]:hidden">
+              <span
+                className={cn(
+                  "font-semibold tabular-nums",
+                  on ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {formatTaka(item.priceTaka)}
               </span>
-              <span aria-hidden className="text-zinc-300">
-                ·
-              </span>
+              {!on && (
+                <span className="rounded-md bg-red-50 px-1.5 py-px text-[12px] font-semibold text-red-700 ring-1 ring-red-200">
+                  {t("soldOut")}
+                </span>
+              )}
               {left === null ? (
-                <span className="flex items-center gap-1 text-zinc-500 underline decoration-zinc-300 underline-offset-2 group-open:text-foreground hover:text-foreground">
+                <span className="flex h-6 items-center gap-1 rounded-md px-1.5 text-[12.5px] font-medium text-muted-foreground transition-colors group-open:bg-muted group-open:text-foreground hover:bg-muted hover:text-foreground">
                   <Icon name="plus" className="size-3" />
                   {t("addCount")}
                 </span>
               ) : (
                 <span
                   className={cn(
-                    "rounded-md px-1.5 py-px font-semibold tabular-nums ring-1",
+                    "rounded-md px-1.5 py-px text-[12px] font-semibold tabular-nums ring-1",
                     left === 0
                       ? "bg-red-50 text-red-700 ring-red-200"
                       : low
@@ -355,10 +348,10 @@ function DishRow({
             aria-label={t("toggle", { name: item.name })}
             title={on ? t("markSoldOut") : t("markAvailable")}
             className={cn(
-              "relative mt-1 h-7 w-12 rounded-full transition-colors focus-visible:ring-3 focus-visible:ring-orange-500/40 focus-visible:outline-none",
+              "relative mt-0.5 h-7 w-12 rounded-full transition-colors focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none",
               on
                 ? "bg-select hover:bg-select/90"
-                : "bg-zinc-200 hover:bg-zinc-300",
+                : "bg-zinc-300 hover:bg-zinc-400",
             )}
           >
             <span

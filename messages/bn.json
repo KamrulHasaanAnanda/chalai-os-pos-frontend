@@ -721,6 +721,7 @@
     "categoryOff": "{total}টির মধ্যে {n}টি বন্ধ",
     "eyebrow": "আজকের মেনু",
     "allOn": "সব চালু",
+    "onOf": "{total}টির মধ্যে {on}টি চালু",
     "statSoldOutCount": "{n}টি শেষ",
     "onSummary": "{categories, plural, other {অতিথিরা অর্ডার করতে পারবেন, #টি ক্যাটাগরিতে}}",
     "addCount": "সংখ্যা দিন",

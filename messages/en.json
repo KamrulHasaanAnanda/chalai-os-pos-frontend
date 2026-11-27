@@ -721,6 +721,7 @@
     "categoryOff": "{n} of {total} off",
     "eyebrow": "Today's menu",
     "allOn": "Everything is on",
+    "onOf": "{on} of {total} dishes on",
     "statSoldOutCount": "{n} sold out",
     "onSummary": "{categories, plural, one {dishes guests can order, in # category} other {dishes guests can order, across # categories}}",
     "addCount": "Set count",
