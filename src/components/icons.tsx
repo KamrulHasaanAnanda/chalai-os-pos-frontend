@@ -47,6 +47,8 @@ import {
   X,
   type LucideIcon,
   type LucideProps,
+  Ellipsis,
+  Trash2,
 } from "lucide-react";
 
 /** The app's icon set (lucide, named imports only). Icons sit next to text, so they're hidden from screen readers. */
@@ -97,6 +99,8 @@ const icons = {
   store: Store,
   clipboard: ClipboardList,
   sparkles: Sparkles,
+  more: Ellipsis,
+  trash: Trash2,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;

@@ -497,7 +497,14 @@
     "mergeBody": "Everything ordered at {table} moves to the table you pick, on one bill. This table becomes free.",
     "mergeInto": "Merge into",
     "mergeWarning": "This can't be undone. A bill already printed for that table will be out of date.",
-    "confirmMerge": "Merge tables"
+    "confirmMerge": "Merge tables",
+    "more": "More actions",
+    "sentRound": "Round {n}",
+    "unsentWarn": "{n, plural, one {# item isn't} other {# items aren't}} sent to the kitchen yet.",
+    "billAnyway": "Bill anyway",
+    "sendFirst": "Send first",
+    "printKotShort": "Print",
+    "removeItem": "Remove {name}"
   },
   "override": {
     "title": "Manager approval",
@@ -657,7 +664,26 @@
     "emptyCart": "Tap dishes to add them",
     "left": "{n} left",
     "newTitle": "{n, plural, one {# new item} other {# new items}} · not sent yet",
-    "clear": "Clear"
+    "clear": "Clear",
+    "noMatch": "No dishes match “{q}”",
+    "clearSearch": "Clear search",
+    "shortcut": "Press / to search, Enter adds the first dish",
+    "newTag": "New",
+    "sendToKitchen": "{n, plural, =0 {Send to kitchen} other {Send to kitchen (#)}}",
+    "removeLine": "Remove {name}",
+    "quantityOf": "Quantity of {name}",
+    "toppingsTitle": "Toppings for {name}",
+    "toppingsLead": "Tick what goes on it. Each topping is charged at its menu price.",
+    "toppingsNotePlaceholder": "e.g. No onion",
+    "addWithTotal": "Add · {total}",
+    "askToppings": "Ask for toppings",
+    "askToppingsHint": "Off: burgers are added straight away. Long-press a dish to skip the toppings once.",
+    "unsent": "Not sent yet",
+    "summary": "{n, plural, one {# item} other {# items}} · {total}",
+    "viewOrder": "View order",
+    "closeOrder": "Close the order",
+    "emptyLine": "Nothing ordered yet. Tap a dish to add it.",
+    "newSection": "{n, plural, one {# new item} other {# new items}} · not sent"
   },
   "receipt": {
     "title": "Receipt #{number}",
