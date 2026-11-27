@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { CouponBox } from "@/components/coupon-box";
 import { BillAdjustmentsBar } from "@/components/bill/bill-adjustments-bar";
 import { BillCustomerRow } from "@/components/bill/bill-customer-row";
 import { BillHeaderMenu } from "@/components/bill/bill-header-menu";
@@ -148,7 +149,13 @@ export function BillView({
         </div>
 
         {open && lines.length > 0 ? (
-          <BillAdjustmentsBar order={order} user={user} error={error} />
+          <BillAdjustmentsBar
+            order={order}
+            user={user}
+            couponBox={<CouponBox order={order} error={error} back="bill" />}
+            couponError={error.forForm("coupon")}
+            discountError={error.forForm("discount")}
+          />
         ) : null}
 
         <footer className="shrink-0 border-t bg-zinc-50 px-4 py-3 sm:px-5">

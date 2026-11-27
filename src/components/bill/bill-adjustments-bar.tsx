@@ -1,29 +1,35 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { applyDiscount, removeCoupon, returnPoints, spendPoints } from "@/actions/orders";
-import { CouponBox } from "@/components/coupon-box";
 import { Icon } from "@/components/icons";
 import { OverrideFields } from "@/components/override-fields";
 import { inputClass, Notice } from "@/components/app/field";
 import type { Order, User } from "@/lib/api/types";
-import type { ErrorReader } from "@/lib/error-reader";
 import { formatTaka } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export function BillAdjustmentsBar({
   order,
   user,
-  error,
+  couponBox,
+  couponError,
+  discountError,
 }: {
   order: Order;
   user: User;
-  error: ErrorReader;
+  /** The coupon form, rendered on the server (it reads the page's error itself). */
+  couponBox: ReactNode;
+  couponError?: string;
+  discountError?: string;
 }) {
   const t = useTranslations("bill");
   const tCoupon = useTranslations("coupon");
-  const [panel, setPanel] = useState<"coupon" | "discount" | "loyalty" | null>(null);
+  const [panel, setPanel] = useState<"coupon" | "discount" | "loyalty" | null>(
+    // A form that came back with an error opens again, so the message is seen.
+    couponError ? "coupon" : discountError ? "discount" : null,
+  );
 
   const coupon = order.coupon;
   const hasDiscount = order.discountTaka > 0;
@@ -97,14 +103,14 @@ export function BillAdjustmentsBar({
 
       {panel === "coupon" && !coupon ? (
         <div className="w-full basis-full pt-1">
-          <CouponBox order={order} error={error} back="bill" />
+          {couponBox}
         </div>
       ) : null}
 
       {panel === "discount" ? (
         <form action={applyDiscount} className="w-full basis-full space-y-2 rounded-xl border bg-white p-3">
           <input type="hidden" name="orderId" value={order.id} />
-          {error.forForm("discount") ? <Notice>{error.forForm("discount")}</Notice> : null}
+          {discountError ? <Notice>{discountError}</Notice> : null}
           <div className="grid grid-cols-[auto_1fr] items-end gap-2">
             <fieldset className="flex rounded-lg bg-zinc-100 p-1">
               {(["amount", "percent"] as const).map((kind) => (
