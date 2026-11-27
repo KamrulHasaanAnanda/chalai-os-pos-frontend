@@ -58,6 +58,8 @@ import {
   ArrowRight,
   ShieldAlert,
   CalendarDays,
+  Package,
+  Eye,
 } from "lucide-react";
 
 /** The app's icon set (lucide, named imports only). Icons sit next to text, so they're hidden from screen readers. */
@@ -119,6 +121,8 @@ const icons = {
   arrow: ArrowRight,
   shieldAlert: ShieldAlert,
   calendarDays: CalendarDays,
+  package: Package,
+  eye: Eye,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;

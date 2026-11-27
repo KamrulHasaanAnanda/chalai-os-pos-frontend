@@ -41,12 +41,12 @@ export function useNavItems(user: User, creditEnabled = false): NavItem[] {
       { href: "/tables", label: t("tables"), icon: "seat" },
       { href: "/reservations", label: t("reservations"), icon: "calendar" },
       { href: "/incoming", label: t("incoming"), icon: "bell" },
-      { href: "/orders", label: t("orders"), icon: "list" },
+      { href: "/orders", label: t("orders"), icon: "receipt" },
     );
   }
   if (creditEnabled && billRoles.includes(role))
     items.push({ href: "/credit", label: t("credit"), icon: "receipt" });
-  items.push({ href: "/stock", label: t("stock"), icon: "list" });
+  items.push({ href: "/stock", label: t("stock"), icon: "package" });
   if (managerRoles.includes(role) || perms.menu)
     items.push({ href: "/menu", label: t("menu"), icon: "book" });
   if (perms.coupons)
@@ -285,7 +285,8 @@ export function PosShell({
           <div className="min-w-0 flex-1 md:hidden">
             <RestaurantMark staff={staff} />
           </div>
-          <div className="hidden flex-1 md:block" />
+          {/* Pages can put their title here (TopBarStart), so the top bar and the page head are one row. */}
+          <div id="topbar-start" className="hidden min-w-0 flex-1 items-center gap-3 md:flex" />
           {extra}
           {/* The demo has no API behind /api/notifications. */}
           {!demo && user.role !== "kitchen" && <NotificationBell />}

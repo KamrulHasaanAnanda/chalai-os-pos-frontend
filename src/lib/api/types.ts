@@ -373,6 +373,10 @@ export type OrderSummary = {
   dueTaka: number;
   openedAt: string;
   closedAt: string | null;
+  /** Dishes on the order (topping lines and cancelled items not counted). Missing from an older API. */
+  itemCount?: number;
+  /** Who took the order: the sender of its first round. */
+  serverName?: string | null;
 };
 
 export type MenuItem = {

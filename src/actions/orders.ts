@@ -94,7 +94,9 @@ export async function cancelItem(formData: FormData) {
 
 export async function cancelOrder(formData: FormData) {
   await requireStaff({ roles: floorRoles });
-  const path = orderPath(formData);
+  // Voiding a stale order from the Orders page returns there.
+  const fromOrders = str(formData, "back", 16) === "orders";
+  const path = fromOrders ? "/orders" : orderPath(formData);
   const reason = str(formData, "reason", 300);
   if (!reason) fail(path, "reason_required", "cancel-order");
   const result = await act((api) =>
@@ -104,8 +106,8 @@ export async function cancelOrder(formData: FormData) {
       readOverride(formData),
     ),
   );
-  if (!result.ok) fail(path, result.error, "cancel-order");
-  done("/floor", "orderCancelled", { n: String(result.data.number) });
+  if (!result.ok) fail(path, result.error, fromOrders ? `void-${str(formData, "orderId", 64)}` : "cancel-order");
+  done(fromOrders ? "/orders" : "/floor", "orderCancelled", { n: String(result.data.number) });
 }
 
 /** Folds this table's order into another open table's (merge tables spec). Goes to the merged order. */
