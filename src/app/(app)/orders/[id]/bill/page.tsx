@@ -15,13 +15,16 @@ export default async function BillPage({ params, searchParams }: PageProps<"/ord
   const { id } = await params;
   const { user, restaurant } = await requireStaff({ roles: billRoles });
   const order = await getOrder(id);
+  const error = await readError(searchParams);
+  const changeTaka = Number(error.param("change")) || 0;
   return (
     <BillView
       order={order}
       user={user}
       timeZone={restaurant.timezone}
       creditEnabled={restaurant.creditEnabled ?? false}
-      error={await readError(searchParams)}
+      error={error}
+      changeTaka={Number.isFinite(changeTaka) ? changeTaka : 0}
     />
   );
 }

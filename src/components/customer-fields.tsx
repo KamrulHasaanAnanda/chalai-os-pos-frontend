@@ -27,6 +27,7 @@ export function CustomerFields({
   initialName,
   initialPhone,
   attached,
+  stacked = false,
 }: {
   orderId: string;
   /** The payment form these inputs submit with. */
@@ -34,6 +35,8 @@ export function CustomerFields({
   initialName: string;
   initialPhone: string;
   attached: { visitCount: number } | null;
+  /** Full-width stacked inputs (bill screen). */
+  stacked?: boolean;
 }) {
   const t = useTranslations("bill");
   const router = useRouter();
@@ -95,8 +98,8 @@ export function CustomerFields({
 
   const visits = known ? known.visitCount : attached?.visitCount;
   return (
-    <div className="mt-2.5">
-      <div className="grid gap-2 sm:grid-cols-2">
+    <div className={stacked ? "" : "mt-2.5"}>
+      <div className={stacked ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
         <label className={fieldClass}>
           <Icon name="phone" className="size-4 shrink-0 text-zinc-400" />
           <span className="sr-only">{t("customerPhone")}</span>
