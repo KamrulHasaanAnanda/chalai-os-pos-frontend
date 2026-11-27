@@ -159,11 +159,12 @@ export async function recordPayment(formData: FormData) {
   if (!result.ok) return fail(path, result.error, "payment");
   const order = result.data;
   if (order.status === "paid") {
-    return done("/floor", order.tableLabel ? "paidTable" : "paid", {
-      n: String(order.number),
-      ...(order.tableLabel ? { table: order.tableLabel } : {}),
-      receipt: order.id,
-    });
+    const tendered = int(formData, "tendered");
+    const change =
+      method === "cash" && !Number.isNaN(tendered) && !Number.isNaN(amountTaka)
+        ? Math.max(0, tendered - amountTaka)
+        : 0;
+    return done(path, "paidSuccess", { change: String(change), receipt: order.id });
   }
   done(path, "payment");
 }
