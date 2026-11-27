@@ -317,3 +317,33 @@ dialog.sheet[open]::backdrop { animation: fade-in 180ms ease-out; }
 @media (prefers-reduced-motion: reduce) {
   [class*="bell-ring"] { animation: none !important; }
 }
+
+/* Order screens: the sidebar folds into a 64px icon rail (rail-frame.tsx); hover or keyboard focus widens it over
+   the page, labels fade in. Unlayered, so it wins over the md:w-64 / md:pl-64 utilities. */
+@media (min-width: 48rem) {
+  [data-rail="on"] .shell-aside {
+    width: 4rem;
+    transition: width 160ms ease, box-shadow 160ms ease;
+  }
+  [data-rail="on"] .shell-aside:hover,
+  [data-rail="on"] .shell-aside:focus-within {
+    width: 16rem;
+    box-shadow: 12px 0 32px -16px rgb(0 0 0 / 0.5);
+  }
+  [data-rail="on"] .shell-aside .rail-hide {
+    transition: opacity 120ms ease;
+  }
+  [data-rail="on"] .shell-aside:not(:hover):not(:focus-within) .rail-hide {
+    opacity: 0;
+    pointer-events: none;
+  }
+  [data-rail="on"] .shell-content {
+    padding-left: 4rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-rail="on"] .shell-aside,
+  [data-rail="on"] .shell-aside .rail-hide {
+    transition: none;
+  }
+}

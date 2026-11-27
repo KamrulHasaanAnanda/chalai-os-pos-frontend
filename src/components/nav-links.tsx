@@ -20,6 +20,7 @@ export function NavLinks({ items, variant }: { items: NavItem[]; variant: "rail"
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
+                title={item.label}
                 className={cn(
                   "flex h-9 items-center gap-3 rounded-lg px-3 text-[14px] transition-colors [&>svg]:size-4 [&>svg]:shrink-0",
                   active
@@ -28,7 +29,7 @@ export function NavLinks({ items, variant }: { items: NavItem[]; variant: "rail"
                 )}
               >
                 <Icon name={item.icon} />
-                <span className="truncate">{item.label}</span>
+                <span className="rail-hide truncate">{item.label}</span>
               </Link>
             </li>
           );

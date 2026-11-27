@@ -9,6 +9,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { LanguageSwitch } from "@/components/language-switch";
 import { LogoutButton } from "@/components/logout-button";
 import { NavLinks, type NavItem } from "@/components/nav-links";
+import { RailFrame, RailToggle } from "@/components/rail-frame";
 import { SessionGate } from "@/components/session-gate";
 import { KotPrinter } from "@/components/print/kot-printer";
 import { CashDrawerButton, DrawerSetting } from "@/components/cash-drawer";
@@ -197,19 +198,20 @@ export function PosShell({
   const { user } = staff;
 
   return (
-    <div className="min-h-dvh bg-background">
+    <RailFrame>
       <aside
         aria-label={t("mainNav")}
-        className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-[#18181b] text-zinc-300 md:flex print:hidden"
+        className="shell-aside fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-x-hidden bg-[#18181b] text-zinc-300 md:flex print:hidden"
       >
-        <div className="flex h-14 shrink-0 items-center border-b border-white/10 px-4">
+        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-white/10 px-4">
           <img
             src="/brand/logo-en-on-dark.svg"
             alt="Chalai OS"
             width={440}
             height={100}
-            className="h-5 w-auto"
+            className="rail-hide h-5 w-auto"
           />
+          <RailToggle keepOpen={t("railKeepOpen")} fold={t("railFold")} />
         </div>
         <nav className="flex-1 overflow-y-auto px-2 py-2">
           <GroupLabel>{tNav("restaurant")}</GroupLabel>
@@ -220,7 +222,7 @@ export function PosShell({
             >
               {staff.restaurant.name.trim().charAt(0).toUpperCase()}
             </span>
-            <span className="min-w-0 leading-tight">
+            <span className="rail-hide min-w-0 leading-tight">
               <span
                 className="block truncate text-[13.5px] font-medium text-white"
                 title={staff.restaurant.name}
@@ -255,7 +257,7 @@ export function PosShell({
             >
               {user.name.trim().charAt(0)}
             </span>
-            <span className="min-w-0 leading-tight">
+            <span className="rail-hide min-w-0 leading-tight">
               <span
                 className="block truncate text-[13.5px] font-medium text-white"
                 title={user.name}
@@ -273,12 +275,12 @@ export function PosShell({
             className="flex h-9 w-full items-center gap-3 rounded-lg px-3 text-[13.5px] text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-white [&>svg]:size-4 [&>svg]:text-zinc-500"
           >
             <Icon name="logout" />
-            <span>{t("logout")}</span>
+            <span className="rail-hide">{t("logout")}</span>
           </LogoutButton>
         </div>
       </aside>
 
-      <div className="md:pl-64">
+      <div className="shell-content md:pl-64">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card px-4 sm:px-6 print:hidden">
           <div className="min-w-0 flex-1 md:hidden">
             <RestaurantMark staff={staff} />
@@ -344,13 +346,13 @@ export function PosShell({
         <Toast />
       </Suspense>
       <ChalaiBotMount name={staff.restaurant.name} />
-    </div>
+    </RailFrame>
   );
 }
 
 function GroupLabel({ children }: { children: ReactNode }) {
   return (
-    <p className="flex h-7 items-center px-2 pt-2 text-[11px] font-semibold tracking-wider text-zinc-500 uppercase first:pt-0 [&:not(:first-child)]:mt-2">
+    <p className="rail-hide flex h-7 items-center px-2 pt-2 text-[11px] font-semibold tracking-wider text-zinc-500 uppercase first:pt-0 [&:not(:first-child)]:mt-2">
       {children}
     </p>
   );
