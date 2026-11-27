@@ -62,15 +62,15 @@ export function TablesBoard({
   const nowMs = useElapsedTick();
 
   const sections = useMemo(() => {
+    const out: { area: AreaSlice; matches: ReturnType<typeof sortTables>; shown: ReturnType<typeof sortTables> }[] = [];
     let remaining = MAX_TILES;
-    return areas
-      .map((area) => {
-        const matches = sortTables(filterTables(area.tables, query, show), sort);
-        const shown = matches.slice(0, remaining);
-        remaining -= shown.length;
-        return { area, matches, shown };
-      })
-      .filter((s) => s.shown.length > 0 || s.matches.length > 0);
+    for (const area of areas) {
+      const matches = sortTables(filterTables(area.tables, query, show), sort);
+      const shown = matches.slice(0, remaining);
+      remaining -= shown.length;
+      if (shown.length > 0 || matches.length > 0) out.push({ area, matches, shown });
+    }
+    return out;
   }, [areas, query, show, sort, density]);
 
   const totalMatches = sections.reduce((n, s) => n + s.matches.length, 0);

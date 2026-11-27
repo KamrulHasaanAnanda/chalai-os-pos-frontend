@@ -40,7 +40,9 @@ export function TablesCardsProvider({ children }: { children: ReactNode }) {
   const [density, setDensityState] = useState<TableDensity>("comfortable");
   const [sort, setSortState] = useState<TableSort>("busy");
 
+  // The saved choice lives in this browser's storage, which the server can't see: read it after hydration.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from localStorage after hydration
     setDensityState(readDensity());
     setSortState(readSort());
   }, []);

@@ -80,9 +80,12 @@ export function PaymentForm({
   const validAmount = payNow >= 1 && payNow <= dueTaka;
   const canPay = validAmount && (method !== "cash" || validCash);
 
-  useEffect(() => {
+  // A new amount due (an item added or paid elsewhere) resets what to collect now. Adjusted during render, not in an effect.
+  const [dueSeen, setDueSeen] = useState(dueTaka);
+  if (dueSeen !== dueTaka) {
+    setDueSeen(dueTaka);
     setAmount(String(dueTaka));
-  }, [dueTaka]);
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
