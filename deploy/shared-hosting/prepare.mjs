@@ -11,9 +11,20 @@ if (!process.env.CI) {
 }
 
 // No proxy, route handlers or per-order pages in a static build. The demo's order screens take ?id= (src/lib/paths.ts).
-const remove = ["src/proxy.ts", "src/app/api", "src/app/(app)/orders/[id]", "src/app/(print)/orders/[id]",
+const remove = [
+  "src/proxy.ts",
+  "src/app/api",
+  "src/app/(app)/orders/[id]",
+  "src/app/(print)/orders/[id]",
   // KOT printing needs the API; the demo has no kitchen printer.
-  "src/app/(print)/kot", "src/app/offline"];
+  "src/app/(print)/kot",
+  "src/app/offline",
+  // Server pages with no demo substitute (they pull `use server` manage / API loaders).
+  "src/app/(app)/manage",
+  "src/app/(app)/reservations",
+  "src/app/(app)/stock",
+  "src/app/(app)/credit",
+];
 for (const path of remove) {
   if (!existsSync(path)) {
     console.error(`prepare.mjs: ${path} not found. Update deploy/shared-hosting/prepare.mjs.`);
@@ -23,5 +34,26 @@ for (const path of remove) {
 }
 
 cpSync("src/demo/routes", "src/app", { recursive: true, force: true });
+
+// Static export rejects any `use server` module. Swap in browser demo action files (same exports, no directive).
+const actionSwap = {
+  "src/actions/auth.ts": "src/demo/actions/auth.ts",
+  "src/actions/kitchen.ts": "src/demo/actions/kitchen.ts",
+  "src/actions/menu.ts": "src/demo/actions/menu.ts",
+  "src/actions/orders.ts": "src/demo/actions/orders.ts",
+  "src/actions/assistant.ts": "src/demo/actions/assistant.ts",
+  "src/actions/shifts.ts": "src/demo/actions/shifts.ts",
+  "src/actions/attendance.ts": "src/demo/actions/attendance.ts",
+  "src/actions/manage.ts": "src/demo/actions/manage.ts",
+  "src/actions/reservations.ts": "src/demo/actions/reservations.ts",
+  "src/actions/stock.ts": "src/demo/actions/stock.ts",
+};
+for (const [dest, src] of Object.entries(actionSwap)) {
+  if (!existsSync(src)) {
+    console.error(`prepare.mjs: missing ${src}`);
+    process.exit(1);
+  }
+  cpSync(src, dest, { force: true });
+}
 
 console.log("prepare.mjs: source ready for static export");

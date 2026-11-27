@@ -178,6 +178,7 @@ export type AddRoundState = {
   ok?: boolean;
   error?: string;
   menuItemId?: string;
+  printRoundId?: string;
   at?: number;
 } | null;
 
