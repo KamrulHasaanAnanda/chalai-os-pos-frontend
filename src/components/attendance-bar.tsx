@@ -6,6 +6,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useTransition } from "react";
 import { advanceStaffAction, clockAction, giveAdvanceAction, myAttendance } from "@/actions/attendance";
+import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -49,24 +50,27 @@ export function AttendanceBar({ isStaff, canGiveAdvance, timeZone }: { isStaff: 
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl bg-card px-4 py-2.5 ring-1 ring-border">
+    <div className="flex flex-wrap items-center gap-2.5 rounded-xl bg-gradient-to-r from-orange-50/80 via-white to-white px-4 py-3 shadow-xs ring-1 ring-orange-100 sm:px-5">
       {isStaff && (
         <>
-          <span className="mr-auto text-[14px] font-medium" role="status">
+          <span className="mr-auto text-[14.5px] font-semibold" role="status">
             {state ? summary(state) : "…"}
           </span>
-          <Button size="sm" variant={state?.clockedIn ? "outline" : "default"} disabled={pending || !state} onClick={clockSelf} className="h-10">
+          <Button size="sm" variant={state?.clockedIn ? "outline" : "default"} disabled={pending || !state} onClick={clockSelf} className="h-11 rounded-xl px-5 text-[14px] font-semibold [&_svg]:size-[18px]">
+            <Icon name="clockIn" />
             {state?.clockedIn ? t("clockOut") : t("clockIn")}
           </Button>
         </>
       )}
       {!isStaff && flash && <span className="mr-auto text-[14px] font-medium text-emerald-700">{flash}</span>}
       {!isStaff && !flash && <span className="mr-auto text-[14px] text-muted-foreground">{t("ownerHint")}</span>}
-      <Button size="sm" variant="outline" className="h-10" onClick={() => setOther(true)}>
+      <Button size="sm" variant="outline" className="h-11 rounded-xl px-4 text-[14px] font-semibold [&_svg]:size-[18px]" onClick={() => setOther(true)}>
+        <Icon name="user" />
         {t("someoneElse")}
       </Button>
       {canGiveAdvance && (
-        <Button size="sm" variant="outline" className="h-10" onClick={() => setAdvance(true)}>
+        <Button size="sm" variant="outline" className="h-11 rounded-xl px-4 text-[14px] font-semibold [&_svg]:size-[18px]" onClick={() => setAdvance(true)}>
+          <Icon name="wallet" />
           {t("advance")}
         </Button>
       )}

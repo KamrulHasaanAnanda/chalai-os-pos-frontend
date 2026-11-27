@@ -97,7 +97,7 @@ export function SessionBar({
   }
 
   const actionBtn =
-    "h-10 rounded-lg px-3 text-[13.5px] font-semibold sm:h-9";
+    "h-11 rounded-xl px-4 text-[14px] font-semibold [&_svg]:size-[18px]";
 
   return (
     <>
@@ -110,7 +110,7 @@ export function SessionBar({
           !inGate && "md:flex-row md:items-center",
           !(inGate && !session) &&
             (session
-              ? "bg-white px-3 py-2.5 shadow-xs ring-zinc-200"
+              ? "bg-white px-4 py-3.5 shadow-xs ring-zinc-200"
               : "bg-amber-50 p-3 ring-amber-200 sm:p-3.5"),
         )}
       >
@@ -120,23 +120,23 @@ export function SessionBar({
             className={cn(
               "relative flex shrink-0 items-center justify-center rounded-lg",
               session
-                ? "size-9 bg-emerald-50 text-emerald-600"
+                ? "size-12 bg-emerald-50 text-emerald-600"
                 : "size-10 bg-amber-500 text-white",
             )}
           >
             <Icon
               name={session ? "timer" : "play"}
-              className={session ? "size-[18px]" : "size-5"}
+              className={session ? "size-6" : "size-5"}
             />
             {session && (
-              <span className="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-white bg-emerald-500" />
+              <span className="absolute -top-0.5 -right-0.5 size-3.5 rounded-full border-2 border-white bg-emerald-500" />
             )}
           </span>
           <div className="min-w-0">
             <p
               className={cn(
                 "font-semibold",
-                session ? "text-[14px]" : "text-[14.5px]",
+                session ? "text-[15px]" : "text-[14.5px]",
               )}
             >
               {session
@@ -145,7 +145,7 @@ export function SessionBar({
             </p>
             <p
               className={cn(
-                "truncate text-[12.5px]",
+                "truncate text-[13px]",
                 // In the lock modal the text above says it; only an error shows here.
                 inGate && !startError && !soFarError && "hidden",
                 startError ? "text-red-700" : "text-zinc-600",
@@ -179,6 +179,7 @@ export function SessionBar({
               size="sm"
               className={cn(actionBtn, inGate && "w-full")}
             >
+              <Icon name="swap" />
               {t("moveCash")}
             </Button>
             <Button
@@ -187,6 +188,7 @@ export function SessionBar({
               size="sm"
               className={cn(actionBtn, inGate && "w-full")}
             >
+              <Icon name="chart" />
               {t("soFar")}
             </Button>
             <Button
@@ -195,7 +197,7 @@ export function SessionBar({
               onClick={() => setEnding(true)}
               className={cn(actionBtn, inGate && "w-full")}
             >
-              <Icon name="stop" />
+              <Icon name="power" />
               {t("end")}
             </Button>
           </div>

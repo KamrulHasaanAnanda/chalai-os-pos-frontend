@@ -68,6 +68,17 @@ const TONES: Record<
   },
 };
 
+/** "Needs attention" pills: each keeps its colour even at zero, so they're found by colour at a glance. */
+const ATTENTION = {
+  needs_approval: { icon: "shieldAlert", tile: "text-red-600", count: "text-orange-600", ring: "ring-orange-400" },
+  food_ready: { icon: "checkCircle", tile: "text-emerald-600", count: "text-emerald-600", ring: "ring-emerald-500" },
+  bill_requested: { icon: "receipt", tile: "bg-blue-50 text-blue-600", count: "text-blue-600", ring: "ring-blue-500" },
+} satisfies Partial<Record<TableStatus, { icon: IconName; tile: string; count: string; ring: string }>>;
+
+/** "All tables →" and "All bookings →" in section heads. */
+const sectionLink =
+  "-my-1 inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[14px] font-semibold text-primary hover:bg-orange-50 focus-visible:ring-3 focus-visible:ring-primary/25 focus-visible:outline-none";
+
 /** The floor plan: one tile per table, coloured by status. A free table opens an order, a busy one goes to it. */
 export function FloorView({
   floor,
@@ -102,6 +113,9 @@ export function FloorView({
   const busyShare = all.length
     ? Math.round((busy.length / all.length) * 100)
     : 0;
+  // One decimal under 10% so a big floor doesn't read 0% with a table seated.
+  const seatShare = seatsAll ? (seatsUsed / seatsAll) * 100 : 0;
+  const seatShareText = seatShare > 0 && seatShare < 10 ? seatShare.toFixed(1) : String(Math.round(seatShare));
 
   const counters: { status: TableStatus; label: string; hint: string }[] = [
     {
@@ -124,22 +138,22 @@ export function FloorView({
   return (
     <div className="mx-auto max-w-[1280px] space-y-5">
       {/* Title row like the owner app: icon tile, title and summary; actions on the right. */}
-      <header className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-3.5">
+      <header className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
           <span
             aria-hidden
-            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-700"
+            className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-500 to-primary text-white shadow-[0_6px_16px_-6px_rgb(201_67_26/0.55)]"
           >
-            <Icon name="grid" className="size-5" />
+            <Icon name="grid" className="size-7" />
           </span>
           <div className="min-w-0">
-            <h1 className="text-[22px] leading-tight font-bold tracking-tight sm:text-[24px]">
+            <h1 className="text-[24px] leading-tight font-bold tracking-tight sm:text-[28px]">
               {t("title")}
             </h1>
             <p className="mt-0.5 text-[14px] text-muted-foreground">
               {error.param("welcome") === "1"
                 ? t("welcome", { name: user.name, role: tRoles(user.role) })
-                : t("summary", { busy: busy.length, total: all.length })}
+                : t("lead")}
             </p>
           </div>
         </div>
@@ -157,7 +171,7 @@ export function FloorView({
             </Button>
           )}
           <form action={openOrder}>
-            <SubmitButton className="h-10 rounded-lg bg-primary px-4 text-[14px] font-semibold text-primary-foreground shadow-sm hover:bg-primary/90">
+            <SubmitButton className="h-11 rounded-xl bg-primary px-5 text-[14.5px] font-semibold text-primary-foreground shadow-[0_6px_16px_-8px_rgb(201_67_26/0.7)] hover:bg-primary/90">
               <Icon name="bag" className="size-4" />
               {t("takeaway")}
             </SubmitButton>
@@ -174,32 +188,35 @@ export function FloorView({
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi
           icon="seat"
-          tone="bg-violet-100 text-violet-700"
+          tone="bg-violet-50 text-violet-600"
           label={t("stats.busy")}
           value={`${busy.length}/${all.length}`}
+          note={t("stats.busyHint", { n: busyShare })}
         >
-          <span className="mt-3 block h-1.5 overflow-hidden rounded-full bg-zinc-100">
+          <span className="mt-3.5 block h-1.5 overflow-hidden rounded-full bg-zinc-100">
             <span
               className="block h-full rounded-full bg-violet-500"
-              style={{ width: `${busyShare}%` }}
+              style={{ width: `${Math.max(busyShare, busy.length ? 4 : 0)}%` }}
             />
           </span>
         </Kpi>
         <Kpi
           icon="cash"
-          tone="bg-emerald-100 text-emerald-700"
+          tone="bg-emerald-50 text-emerald-600"
           label={t("stats.open")}
           value={formatTaka(openTaka)}
+          note={t("stats.openHint", { n: busy.filter((x) => x.order).length })}
         />
         <Kpi
           icon="users"
-          tone="bg-sky-100 text-sky-700"
+          tone="bg-blue-50 text-blue-600"
           label={t("stats.seats")}
           value={`${seatsUsed}/${seatsAll}`}
+          note={t("stats.busyHint", { n: seatShareText })}
         />
         <Kpi
           icon="clock"
-          tone="bg-cyan-100 text-cyan-700"
+          tone="bg-sky-50 text-sky-600"
           label={t("stats.booked")}
           value={String(bookedSeats)}
           note={t("stats.bookedHint", { n: reservations.length })}
@@ -207,48 +224,27 @@ export function FloorView({
       </dl>
 
       {/* What needs someone now: quiet when nothing is waiting, coloured when something is. */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-[13px] font-semibold text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="mr-2 text-[14px] font-semibold text-zinc-900">
           {t("attention")}
         </span>
         {counters.map(({ status, label }) => {
           const n = count(status);
-          const tone = TONES[status];
+          const look = ATTENTION[status as keyof typeof ATTENTION];
           const pill = cn(
-            "inline-flex h-9 items-center gap-2 rounded-md border pr-3 pl-1.5 text-[13.5px] font-medium transition-colors",
-            n > 0
-              ? "border-transparent bg-card shadow-sm ring-2 ring-inset"
-              : "bg-card text-muted-foreground",
-            n > 0 && status === "needs_approval" && "ring-orange-400",
-            n > 0 && status === "food_ready" && "ring-emerald-500",
-            n > 0 && status === "bill_requested" && "ring-blue-500",
+            "inline-flex h-10 items-center gap-2.5 rounded-lg border bg-card px-3 text-[13.5px] font-medium text-zinc-700 shadow-xs transition-colors",
+            n > 0 && cn("font-semibold text-zinc-900 ring-2 ring-inset", look.ring),
           );
-          const badge =
-            status === "needs_approval"
-              ? "bg-primary text-white"
-              : status === "food_ready"
-                ? "bg-emerald-600 text-white"
-                : "bg-sky-700 text-white";
           const body = (
             <>
               <span
                 aria-hidden
-                className={cn(
-                  "flex size-6 items-center justify-center rounded-full",
-                  n > 0 ? badge : "bg-zinc-100 text-zinc-400",
-                )}
+                className={cn("flex size-6 items-center justify-center rounded-md", look.tile)}
               >
-                <Icon name={tone.icon} className="size-3.5" />
+                <Icon name={look.icon} className="size-4" />
               </span>
               {label}
-              <span
-                className={cn(
-                  "font-bold tabular-nums",
-                  n > 0 ? "text-foreground" : "text-zinc-400",
-                )}
-              >
-                {n}
-              </span>
+              <span className={cn("ml-1 font-bold tabular-nums", look.count)}>{n}</span>
             </>
           );
           return n > 0 && status !== "food_ready" ? (
@@ -270,15 +266,15 @@ export function FloorView({
       {/* Floor shows only the busy tables; every table is on the Tables tab. */}
       <section
         aria-labelledby="busy-title"
-        className="overflow-hidden rounded-2xl border bg-card"
+        className="rounded-2xl border bg-card shadow-xs"
       >
-        <header className="flex items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-5">
+        <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-1 sm:px-5">
           <div className="flex items-center gap-3">
             <span
               aria-hidden
-              className="flex size-9 items-center justify-center rounded-lg bg-orange-100 text-orange-700"
+              className="flex size-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600"
             >
-              <Icon name="grid" className="size-[18px]" />
+              <Icon name="grid" className="size-5" />
             </span>
             <div>
               <h2 id="busy-title" className="text-[16px] font-bold">
@@ -289,12 +285,9 @@ export function FloorView({
               </p>
             </div>
           </div>
-          <Link
-            href="/tables"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-input bg-white px-3 text-[13.5px] font-semibold shadow-xs hover:bg-zinc-50"
-          >
+          <Link href="/tables" className={sectionLink}>
             {t("allTables")}
-            <Icon name="go" className="size-4" />
+            <Icon name="arrow" className="size-4" />
           </Link>
         </header>
         <div className="p-3 sm:p-4">
@@ -303,10 +296,10 @@ export function FloorView({
               {t("noneBusy")}
             </p>
           ) : (
-            <ul className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(156px,1fr))] sm:gap-3">
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] sm:gap-4 xl:grid-cols-4">
               {busy.slice(0, MAX_TILES).map((table) => (
                 <li key={table.id}>
-                  <BoardCard table={table} back="/floor" />
+                  <BoardCard table={table} back="/floor" wide />
                 </li>
               ))}
             </ul>
@@ -684,30 +677,32 @@ function Kpi({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 rounded-xl border bg-card p-4 shadow-xs">
-      <div className="flex items-start justify-between gap-3">
-        <dt className="truncate text-[13px] font-medium text-muted-foreground">
-          {label}
-        </dt>
+    <div className="min-w-0 rounded-2xl border bg-card p-4 shadow-xs sm:p-5">
+      <div className="flex items-start gap-2.5 sm:gap-3.5">
         <span
           aria-hidden
           className={cn(
-            "flex size-8 shrink-0 items-center justify-center rounded-lg",
+            "flex size-9 shrink-0 items-center justify-center rounded-xl sm:size-11",
             tone,
           )}
         >
-          <Icon name={icon} className="size-4" />
+          <Icon name={icon} className="size-[18px] sm:size-[22px]" />
         </span>
+        <div className="min-w-0">
+          <dt className="text-[13px] leading-snug font-medium text-zinc-600 sm:text-[13.5px]">
+            {label}
+          </dt>
+          <dd className="truncate text-[22px] leading-tight font-bold tracking-tight tabular-nums sm:text-[28px]">
+            {value}
+          </dd>
+        </div>
       </div>
-      <dd className="-mt-1 truncate text-[26px] leading-tight font-bold tracking-tight tabular-nums">
-        {value}
-      </dd>
+      {children}
       {note && (
-        <p className="mt-0.5 truncate text-[12.5px] text-muted-foreground">
+        <p className="mt-2.5 truncate text-[13px] text-muted-foreground">
           {note}
         </p>
       )}
-      {children}
     </div>
   );
 }
@@ -718,18 +713,18 @@ function Reservations({ reservations }: { reservations: FloorReservation[] }) {
   return (
     <section
       aria-labelledby="reservations-title"
-      className="overflow-hidden rounded-2xl border bg-card"
+      className="overflow-hidden rounded-2xl border bg-card shadow-xs"
     >
-      <header className="flex items-center gap-3 border-b px-4 py-3">
+      <header className="flex items-center gap-3 px-4 pt-4 pb-2 sm:px-5">
         <span
           aria-hidden
-          className="flex size-9 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700"
+          className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
         >
-          <Icon name="clock" className="size-[18px]" />
+          <Icon name="calendarDays" className="size-5" />
         </span>
         <h2
           id="reservations-title"
-          className="flex-1 text-[15px] font-semibold"
+          className="flex-1 text-[16px] font-bold"
         >
           {t("title")}
         </h2>
@@ -738,21 +733,24 @@ function Reservations({ reservations }: { reservations: FloorReservation[] }) {
             {reservations.length}
           </span>
         )}
-        <Link
-          href="/reservations"
-          className="-my-1 inline-flex h-10 items-center gap-0.5 rounded-lg px-2.5 text-[13.5px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
+        <Link href="/reservations" className={sectionLink}>
           {t("all")}
-          <Icon name="go" className="size-4" />
+          <Icon name="arrow" className="size-4" />
         </Link>
       </header>
       {reservations.length === 0 ? (
-        <p className="px-4 py-3.5 text-[13.5px] text-muted-foreground">
-          <span className="font-medium text-foreground">{t("empty")}</span>{" "}
-          {t("emptyHint")}
+        <p className="px-4 pt-1 pb-4 text-[14px] text-muted-foreground sm:px-5">
+          {t("empty")}{" "}
+          {t.rich("emptyHint", {
+            link: (chunks) => (
+              <Link href="/reservations" className="font-semibold text-primary underline-offset-2 hover:underline">
+                {chunks}
+              </Link>
+            ),
+          })}
         </p>
       ) : (
-        <ul className="grid divide-y sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 [&>li]:sm:border-b [&>li]:sm:border-r">
+        <ul className="grid divide-y border-t sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-3 [&>li]:sm:border-b [&>li]:sm:border-r">
           {reservations.map((r) => {
             const started = hasStarted(r.at);
             return (
@@ -931,9 +929,12 @@ function SceneBoard({
 function BoardCard({
   table,
   back,
+  wide = false,
 }: {
   table: FloorTable;
   back: "/floor" | "/tables";
+  /** The Floor page's busy cards: bigger, amount | time split by a rule. */
+  wide?: boolean;
 }) {
   const t = useTranslations("floor");
   const tStatus = useTranslations("tableStatus");
@@ -949,7 +950,9 @@ function BoardCard({
       ? t("minutes", { n: minutes })
       : t("hours", { h: Math.floor(minutes / 60), m: minutes % 60 });
   const card = cn(
-    "group flex h-[108px] w-full flex-col justify-between rounded-xl border p-3 text-left transition-[border-color,box-shadow,background-color] duration-150 focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none",
+    "group flex w-full flex-col justify-between rounded-xl border text-left",
+    wide ? "h-[118px] p-4" : "h-[108px] p-3",
+    " transition-[border-color,box-shadow,background-color] duration-150 focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none",
     tone.tile,
   );
   const body = (
@@ -994,6 +997,7 @@ function BoardCard({
       <span
         className={cn(
           "flex items-center justify-between gap-2 text-[13px] font-medium tabular-nums",
+          wide && table.order && "justify-start gap-4",
           dark ? "text-zinc-300" : "text-zinc-500",
         )}
       >
@@ -1001,13 +1005,15 @@ function BoardCard({
           <>
             <span
               className={cn(
-                "truncate text-[15px] font-bold",
+                "truncate font-bold",
+                wide ? "text-[18px]" : "text-[15px]",
                 dark ? "text-white" : "text-zinc-900",
               )}
             >
               {formatTaka(table.order.totalTaka)}
             </span>
-            <span className="flex shrink-0 items-center gap-1">
+            {wide && <span aria-hidden className={cn("h-6 w-px", dark ? "bg-white/20" : "bg-zinc-200")} />}
+            <span className={cn("flex shrink-0 items-center gap-1", wide && "mr-auto text-[14px]")}>
               <Icon name="clock" className="size-3.5" />
               {time}
             </span>

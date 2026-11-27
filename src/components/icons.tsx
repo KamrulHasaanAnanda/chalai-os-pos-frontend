@@ -49,6 +49,15 @@ import {
   type LucideProps,
   Ellipsis,
   Trash2,
+  ArrowLeftRight,
+  ChartLine,
+  Power,
+  LogIn,
+  UserRound,
+  Wallet,
+  ArrowRight,
+  ShieldAlert,
+  CalendarDays,
 } from "lucide-react";
 
 /** The app's icon set (lucide, named imports only). Icons sit next to text, so they're hidden from screen readers. */
@@ -101,6 +110,15 @@ const icons = {
   sparkles: Sparkles,
   more: Ellipsis,
   trash: Trash2,
+  swap: ArrowLeftRight,
+  chart: ChartLine,
+  power: Power,
+  clockIn: LogIn,
+  user: UserRound,
+  wallet: Wallet,
+  arrow: ArrowRight,
+  shieldAlert: ShieldAlert,
+  calendarDays: CalendarDays,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof icons;

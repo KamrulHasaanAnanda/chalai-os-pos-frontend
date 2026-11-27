@@ -217,6 +217,7 @@
   },
   "floor": {
     "title": "Floor",
+    "lead": "Overview of your floor operations",
     "welcome": "Logged in as {name} ({role}).",
     "paid": "Order #{number} is paid and closed.",
     "paidTable": "Order #{number} is paid. Table {table} is free now.",
@@ -231,6 +232,8 @@
     },
     "stats": {
       "busy": "Tables busy",
+      "busyHint": "{n}% occupied",
+      "openHint": "{n, plural, one {# bill} other {# bills}}",
       "open": "On open bills",
       "seats": "Seats taken",
       "booked": "Booked seats",
@@ -261,7 +264,7 @@
     "reservations": {
       "title": "Reservations today",
       "empty": "No more bookings today.",
-      "emptyHint": "Add one from Reservations.",
+      "emptyHint": "Add one from <link>Reservations</link>.",
       "people": "{n, plural, one {# guest} other {# guests}}",
       "noTable": "No table yet",
       "now": "Now",
