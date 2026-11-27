@@ -8,10 +8,13 @@ export function OrderTotals({
   order,
   large = false,
   compact = false,
+  billSummary = false,
 }: {
   order: Order;
   large?: boolean;
   compact?: boolean;
+  /** Bill left column: subtotal, discount, VAT, total — no paid/due rows; hide 0% VAT line. */
+  billSummary?: boolean;
 }) {
   const t = useTranslations("totals");
   const row = cn(
@@ -47,12 +50,14 @@ export function OrderTotals({
           </dd>
         </div>
       )}
-      <div className={row}>
-        <dt>{t("vat", { percent: order.vatPercent })}</dt>
-        <dd className="font-semibold tabular-nums">
-          {formatTaka(order.vatTaka)}
-        </dd>
-      </div>
+      {(!billSummary || order.vatTaka > 0) && (
+        <div className={row}>
+          <dt>{t("vat", { percent: order.vatPercent })}</dt>
+          <dd className="font-semibold tabular-nums">
+            {formatTaka(order.vatTaka)}
+          </dd>
+        </div>
+      )}
       <div className={cn(row, "mt-1 border-t-2 border-line pt-2")}>
         <dt className="font-bold text-zinc-900">{t("total")}</dt>
         <dd
@@ -64,7 +69,7 @@ export function OrderTotals({
           {formatTaka(order.totalTaka)}
         </dd>
       </div>
-      {order.paidTaka > 0 && (
+      {!billSummary && order.paidTaka > 0 && (
         <div className={row}>
           <dt>{t("paid")}</dt>
           <dd className="font-semibold tabular-nums">
@@ -72,7 +77,7 @@ export function OrderTotals({
           </dd>
         </div>
       )}
-      {order.status === "open" && (
+      {!billSummary && order.status === "open" && (
         <div className={row}>
           <dt className="font-semibold">{t("due")}</dt>
           <dd
