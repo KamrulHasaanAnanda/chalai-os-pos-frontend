@@ -1,22 +1,25 @@
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import { cancelOrder } from "@/actions/orders";
+import { inputClass, Notice } from "@/components/app/field";
 import { Icon } from "@/components/icons";
+import { OrderDrawer } from "@/components/orders/order-drawer";
+import { OrdersBoard } from "@/components/orders/orders-board";
+import { orderNo } from "@/lib/order-no";
+import { OrderTotals } from "@/components/order-totals";
+import { OverrideFields } from "@/components/override-fields";
+import { TopBarStart } from "@/components/top-bar-start";
 import { DayField } from "@/components/views/day-field";
-import type { OrderStatus, OrderSummary } from "@/lib/api/types";
-import { formatTaka, formatTime, minutesSince } from "@/lib/format";
+import type { Order, OrderStatus, OrderSummary, User } from "@/lib/api/types";
+import { titleCaseLabel } from "@/lib/bill-display";
+import type { ErrorReader } from "@/lib/error-reader";
+import { businessDate, formatTaka, formatTime, minutesSince } from "@/lib/format";
+import { nestToppings } from "@/lib/modifiers";
 import { orderHref } from "@/lib/paths";
+import { billRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 export const orderStatuses: OrderStatus[] = ["open", "paid", "cancelled"];
-
-/** An open table this long is worth a nudge. */
-const LONG_MINUTES = 90;
-
-const DOT: Record<OrderStatus, string> = {
-  open: "bg-orange-500",
-  paid: "bg-emerald-600",
-  cancelled: "bg-zinc-400",
-};
 
 /** YYYY-MM-DD plus or minus whole days, without timezone drift. */
 function shiftDate(date: string, days: number): string {
@@ -33,380 +36,386 @@ const prettyDate = (date: string, locale: string) =>
     timeZone: "UTC",
   }).format(new Date(`${date}T00:00:00Z`));
 
-/** Open orders as cards to act on, then the day's closed orders as a compact list. */
+const weekday = (date: string, locale: string) =>
+  new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { weekday: "long", timeZone: "UTC" }).format(
+    new Date(`${date}T00:00:00Z`),
+  );
+
+const shortDay = (iso: string, timeZone: string, locale: string) =>
+  new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { day: "numeric", month: "short", timeZone }).format(
+    new Date(iso),
+  );
+
+/**
+ * One day's orders: the date in the top bar, four numbers, any stale orders (open far too long) in a red banner of
+ * their own, then one dense list of the day's orders. Tapping an order opens its details in a side drawer.
+ */
 export function OrdersView({
   orders,
-  status,
   date,
   today,
-  timeZone,
+  timeZone: tz,
+  user,
+  staleHours,
+  viewed,
+  error,
 }: {
   orders: OrderSummary[];
-  status?: OrderStatus;
   date: string;
   today: string;
   timeZone: string;
+  user: User;
+  staleHours: number;
+  /** The order open in the drawer (?view=), or "error" when it couldn't be loaded. */
+  viewed: Order | "error" | null;
+  error: ErrorReader;
 }) {
   const t = useTranslations("orders");
-  const tStatus = useTranslations("orderStatus");
   const locale = useLocale();
-
-  const href = (next: { status?: OrderStatus; date?: string }) => {
-    const search = new URLSearchParams();
-    if (next.status) search.set("status", next.status);
-    if (next.date && next.date !== today) search.set("date", next.date);
-    return search.size ? `/orders?${search}` : "/orders";
-  };
   const isToday = date === today;
-  const open = orders.filter((o) => o.status === "open");
-  const closed = orders.filter((o) => o.status !== "open");
-  const counted = orders.filter((o) => o.status !== "cancelled");
-  const sales = counted.reduce((sum, o) => sum + o.totalTaka, 0);
-  const due = open.reduce((sum, o) => sum + o.dueTaka, 0);
-  const collected = sales - due;
-  const span = (minutes: number) =>
-    minutes < 60
-      ? t("minutes", { n: minutes })
-      : t("hours", { h: Math.floor(minutes / 60), m: minutes % 60 });
+  const canBill = billRoles.includes(user.role);
+  const dayHref = (day: string) => (day === today ? "/orders" : `/orders?date=${day}`);
+  const here = dayHref(date);
 
-  const stats: { label: string; value: string; valueClass?: string }[] = [
-    { label: t("total"), value: formatTaka(sales) },
-    { label: t("collected"), value: formatTaka(collected) },
-    {
-      label: t("due"),
-      value: formatTaka(due),
-      valueClass: due > 0 ? "text-orange-700" : undefined,
-    },
-    { label: t("count"), value: String(orders.length) },
+  // Stale: still open after `staleHours` (a table left open across days). Kept out of the list and the numbers.
+  const stale = orders.filter((o) => o.status === "open" && minutesSince(o.openedAt) >= staleHours * 60);
+  const list = orders.filter((o) => !stale.includes(o));
+  // The day's numbers count only orders opened on that day.
+  const counted = list.filter((o) => o.status !== "cancelled" && businessDate(tz, new Date(o.openedAt)) === date);
+  const sales = counted.reduce((sum, o) => sum + o.totalTaka, 0);
+  const due = counted.reduce((sum, o) => sum + o.dueTaka, 0);
+  const avg = counted.length ? Math.round(sales / counted.length) : 0;
+  const voidError = stale.some((o) => error.forForm(`void-${o.id}`));
+
+  const head = (
+    <form method="get" action="/orders" className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 md:flex-nowrap">
+      <h1 className="flex min-w-0 items-center gap-2 text-[22px] leading-tight font-bold tracking-tight md:text-[17px]">
+        {/* Narrow top bar (tablets): the picker already shows the date, so only the weekday. */}
+        <span className="truncate md:max-lg:hidden">{prettyDate(date, locale)}</span>
+        {/* …and on today, the Today pill says it. */}
+        {!isToday && <span className="hidden truncate md:max-lg:inline">{weekday(date, locale)}</span>}
+        {isToday && (
+          <span className="shrink-0 rounded-full bg-zinc-900 px-2 py-0.5 text-[11.5px] font-semibold text-white">
+            {t("todayPill")}
+          </span>
+        )}
+      </h1>
+      <div className="flex shrink-0 items-center rounded-lg border bg-card">
+        <Link
+          href={dayHref(shiftDate(date, -1))}
+          aria-label={t("previousDay")}
+          title={t("previousDay")}
+          className="flex size-9 items-center justify-center rounded-l-lg hover:bg-muted focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none"
+        >
+          <Icon name="back" className="size-4" />
+        </Link>
+        <span className="border-x [&_label]:h-9 [&_label]:rounded-none">
+          <DayField date={date} today={today} />
+        </span>
+        {isToday ? (
+          <span aria-hidden className="flex size-9 items-center justify-center text-zinc-300">
+            <Icon name="go" className="size-4" />
+          </span>
+        ) : (
+          <Link
+            href={dayHref(shiftDate(date, 1))}
+            aria-label={t("nextDay")}
+            title={t("nextDay")}
+            className="flex size-9 items-center justify-center rounded-r-lg hover:bg-muted focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none"
+          >
+            <Icon name="go" className="size-4" />
+          </Link>
+        )}
+      </div>
+      {!isToday && (
+        <Link
+          href="/orders"
+          className="flex h-9 shrink-0 items-center rounded-lg px-2.5 md:max-xl:hidden text-[13px] font-semibold text-zinc-700 hover:bg-muted"
+        >
+          {t("backToToday")}
+        </Link>
+      )}
+    </form>
+  );
+
+  const stats: { label: string; value: string; sub?: string; dot?: boolean }[] = [
+    { label: t("total"), value: formatTaka(sales), sub: t("showing", { n: counted.length }) },
+    { label: t("collected"), value: formatTaka(sales - due) },
+    { label: t("due"), value: formatTaka(due), dot: due > 0 },
+    { label: t("avgTicket"), value: formatTaka(avg) },
   ];
 
   return (
-    <div className="mx-auto max-w-[1200px] space-y-5">
-      {/* Title and day picker. */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[13px] font-semibold text-muted-foreground">
-            {isToday ? t("today") : t("pastDay")}
-          </p>
-          <h1 className="text-[26px] leading-tight font-bold tracking-tight sm:text-[30px]">
-            {prettyDate(date, locale)}
-          </h1>
-        </div>
-        <form
-          method="get"
-          action="/orders"
-          className="flex items-center gap-1 self-start rounded-xl border bg-card p-1 shadow-xs sm:self-auto"
-        >
-          {status && <input type="hidden" name="status" value={status} />}
-          <Link
-            href={href({ status, date: shiftDate(date, -1) })}
-            aria-label={t("previousDay")}
-            className="flex size-10 items-center justify-center rounded-lg hover:bg-muted"
-          >
-            <Icon name="back" className="size-5" />
-          </Link>
-          <DayField date={date} today={today} />
-          {isToday ? (
-            <span
-              aria-hidden
-              className="flex size-10 items-center justify-center text-zinc-300"
-            >
-              <Icon name="go" className="size-5" />
-            </span>
-          ) : (
-            <>
-              <Link
-                href={href({ status, date: shiftDate(date, 1) })}
-                aria-label={t("nextDay")}
-                className="flex size-10 items-center justify-center rounded-lg hover:bg-muted"
-              >
-                <Icon name="go" className="size-5" />
-              </Link>
-              <Link
-                href={href({ status })}
-                className="flex h-10 items-center rounded-lg px-3 text-[13.5px] font-semibold text-orange-700 hover:bg-orange-50"
-              >
-                {t("today")}
-              </Link>
-            </>
-          )}
-        </form>
-      </header>
+    <div className="space-y-4">
+      {/* Tablets and laptops: the date sits in the top bar. Phones: here. */}
+      <TopBarStart>{head}</TopBarStart>
+      <div className="md:hidden">{head}</div>
 
-      {/* Money for the day. */}
-      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border bg-card sm:grid-cols-4">
-        {stats.map((stat, index) => (
+      {error.general && <Notice>{error.general}</Notice>}
+
+      {stale.length > 0 && (
+        <details
+          open={voidError || undefined}
+          className="group overflow-hidden rounded-xl border border-red-200 bg-red-50 text-red-950"
+        >
+          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 [&::-webkit-details-marker]:hidden">
+            <Icon name="alert" className="size-5 shrink-0 text-red-600" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14.5px] font-semibold">{t("staleBanner", { n: stale.length })}</span>
+              <span className="block text-[13px] text-red-800">{t("staleHint", { h: staleHours })}</span>
+            </span>
+            <span className="inline-flex h-9 items-center rounded-lg bg-red-600 px-3.5 text-[13.5px] font-semibold text-white group-open:bg-white group-open:text-red-700 group-open:ring-1 group-open:ring-red-200">
+              <span className="group-open:hidden">{t("review")}</span>
+              <span className="hidden group-open:inline">{t("hideStale")}</span>
+            </span>
+          </summary>
+          <ul className="divide-y divide-red-100 border-t border-red-200 bg-white">
+            {stale.map((o) => {
+              const formError = error.forForm(`void-${o.id}`);
+              return (
+                <li key={o.id} className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline gap-2">
+                        <span className="text-[15px] font-semibold">{where(o, t)}</span>
+                        <span className="font-mono text-[14px] font-semibold text-zinc-700">{orderNo(o.number)}</span>
+                      </span>
+                      <span className="block text-[13px] text-zinc-600">
+                        {t("openedOn", { date: `${shortDay(o.openedAt, tz, locale)} ${formatTime(o.openedAt, tz)}` })}
+                        {" · "}
+                        <span className="font-semibold text-red-700">
+                          {t("staleOpenFor", { h: Math.floor(minutesSince(o.openedAt) / 60) })}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="text-[15px] font-bold tabular-nums">{formatTaka(o.dueTaka)}</span>
+                    <span className="flex gap-2">
+                      {canBill && (
+                        <Link
+                          href={orderHref(o.id, "bill")}
+                          className="inline-flex h-10 items-center rounded-lg border border-input bg-card px-3.5 text-[13.5px] font-semibold hover:bg-zinc-50"
+                        >
+                          {t("closeStale")}
+                        </Link>
+                      )}
+                      <details id={`void-${o.id}`} open={!!formError} className="group/void">
+                        <summary className="inline-flex h-10 cursor-pointer list-none items-center rounded-lg border border-red-200 bg-card px-3.5 text-[13.5px] font-semibold text-red-700 hover:bg-red-50 group-open/void:bg-red-50 [&::-webkit-details-marker]:hidden">
+                          {t("voidStale")}
+                        </summary>
+                      </details>
+                    </span>
+                  </div>
+                  <form
+                    action={cancelOrder}
+                    className={cn(
+                      "mt-3 grid gap-2 rounded-lg bg-red-50/60 p-3 ring-1 ring-red-100 sm:max-w-md",
+                      !formError && "hidden [li:has(details[open])>&]:grid",
+                    )}
+                  >
+                    <input type="hidden" name="orderId" value={o.id} />
+                    <input type="hidden" name="back" value="orders" />
+                    {formError && <Notice>{formError}</Notice>}
+                    <label className="text-[13.5px] font-semibold">
+                      {t("voidReason")}
+                      <input
+                        name="reason"
+                        required
+                        maxLength={200}
+                        placeholder={t("voidPlaceholder")}
+                        className={cn(inputClass, "mt-1.5")}
+                      />
+                    </label>
+                    <OverrideFields role={user.role} idPrefix={`void-${o.id}`} />
+                    <button
+                      type="submit"
+                      className="h-10 rounded-lg bg-red-600 px-4 text-[13.5px] font-semibold text-white hover:bg-red-500"
+                    >
+                      {t("confirmVoid", { number: orderNo(o.number) })}
+                    </button>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
+
+      {/* The day's numbers: only orders opened on this day. */}
+      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border bg-card lg:grid-cols-4">
+        {stats.map((stat, i) => (
           <div
             key={stat.label}
             className={cn(
-              "min-w-0 px-4 py-3.5",
-              index % 2 === 1 && "border-l",
-              index >= 2 && "border-t sm:border-t-0",
-              index > 0 && "sm:border-l",
+              "min-w-0 px-4 py-3",
+              i % 2 === 1 && "border-l",
+              i >= 2 && "border-t lg:border-t-0",
+              i > 0 && "lg:border-l",
             )}
           >
-            <dt className="truncate text-[12.5px] font-semibold text-muted-foreground">
+            <dt className="flex items-center gap-1.5 truncate text-[12.5px] font-medium text-muted-foreground">
+              {stat.dot && <span aria-hidden className="size-2 shrink-0 rounded-full bg-amber-500" />}
               {stat.label}
             </dt>
-            <dd
-              className={cn(
-                "mt-0.5 truncate text-[22px] leading-tight font-bold tabular-nums",
-                stat.valueClass,
-              )}
-            >
+            <dd className="mt-0.5 truncate text-[22px] leading-tight font-bold text-zinc-900 tabular-nums">
               {stat.value}
             </dd>
+            {stat.sub && <dd className="text-[12.5px] text-muted-foreground tabular-nums">{stat.sub}</dd>}
           </div>
         ))}
       </dl>
 
-      {/* Filter. */}
-      <nav aria-label={t("filter")} className="max-w-full overflow-x-auto">
-        <ul className="inline-flex gap-1 rounded-xl bg-muted p-1">
-          {[undefined, ...orderStatuses].map((s) => {
-            const active = s === status;
-            return (
-              <li key={s ?? "all"}>
-                <Link
-                  href={href({ status: s, date })}
-                  aria-current={active ? "page" : undefined}
-                  scroll={false}
-                  className={cn(
-                    "flex h-9 items-center gap-2 rounded-lg px-4 text-[13.5px] font-semibold whitespace-nowrap transition-colors",
-                    active
-                      ? "bg-card text-zinc-900 shadow-sm"
-                      : "text-zinc-500 hover:text-zinc-900",
-                  )}
-                >
-                  {s && (
-                    <span
-                      aria-hidden
-                      className={cn("size-2 rounded-full", DOT[s])}
-                    />
-                  )}
-                  {s ? tStatus(s) : t("all")}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <OrdersBoard orders={list} timeZone={tz} canBill={canBill} isToday={isToday} here={here} />
 
-      {orders.length === 0 && (
-        <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-input px-6 py-14 text-center">
+      {viewed && (
+        <OrderDrawer
+          key={viewed === "error" ? "error" : viewed.id}
+          closeHref={here}
+          title={viewed === "error" ? t("details") : `${whereOrder(viewed, t)} · ${orderNo(viewed.number)}`}
+          closeLabel={t("closeDrawer")}
+        >
+          {viewed === "error" ? (
+            <p className="p-5 text-[14px] text-muted-foreground">{t("notFound")}</p>
+          ) : (
+            <DrawerBody order={viewed} tz={tz} canBill={canBill} />
+          )}
+        </OrderDrawer>
+      )}
+    </div>
+  );
+}
+
+type T = ReturnType<typeof useTranslations<"orders">>;
+
+function where(o: OrderSummary, t: T) {
+  return o.tableLabel
+    ? t("table", { table: o.tableLabel })
+    : o.tokenNo
+      ? t("pickup", { token: o.tokenNo })
+      : t("takeaway");
+}
+
+function whereOrder(o: Order, t: T) {
+  return o.tableLabel
+    ? t("table", { table: o.tableLabel })
+    : o.tokenNo
+      ? t("pickup", { token: o.tokenNo })
+      : t("takeaway");
+}
+
+/** The drawer: what was ordered, the totals, payments, and the way on (open, bill, receipt). */
+function DrawerBody({ order, tz, canBill }: { order: Order; tz: string; canBill: boolean }) {
+  const t = useTranslations("orders");
+  const tMethod = useTranslations("paymentMethod");
+  const tOrder = useTranslations("order");
+  const tStatus = useTranslations("orderStatus");
+  const rounds = order.rounds.filter((r) => r.status !== "rejected");
+  const server = order.rounds.find((r) => r.createdBy)?.createdBy?.name;
+  const open = order.status === "open";
+  const btn =
+    "inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-[14px] font-semibold focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none [&_svg]:size-[18px]";
+
+  return (
+    <>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+          {/* Orange is kept for the main action; status reads grey (open), green (paid), muted (cancelled). */}
           <span
-            aria-hidden
-            className="flex size-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400"
-          >
-            <Icon name="inbox" className="size-7" />
-          </span>
-          <p className="mt-3 text-[16px] font-bold">{t("emptyTitle")}</p>
-          <p className="mt-1 text-[13.5px] text-muted-foreground">
-            {t("empty")}
-          </p>
-        </div>
-      )}
-
-      {open.length > 0 && (
-        <section aria-labelledby="open-orders" className="space-y-3">
-          <h2
-            id="open-orders"
-            className="flex items-center gap-2 text-[17px] font-bold"
-          >
-            <span aria-hidden className="size-2.5 rounded-full bg-orange-500" />
-            {t("openNow")}
-            <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[12.5px] font-bold text-orange-700 tabular-nums">
-              {open.length}
-            </span>
-          </h2>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {open.map((order) => {
-              const minutes = minutesSince(order.openedAt);
-              const long = isToday && minutes >= LONG_MINUTES;
-              return (
-                <li
-                  key={order.id}
-                  className={cn(
-                    "flex flex-col rounded-2xl border bg-card p-4 shadow-xs",
-                    long && "border-red-300",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-[18px] leading-tight font-bold">
-                        {order.tableLabel
-                          ? t("table", { table: order.tableLabel })
-                          : order.tokenNo
-                          ? t("pickup", { token: order.tokenNo })
-                          : t("takeaway")}
-                      </p>
-                      <p className="mt-1 text-[12.5px] text-muted-foreground tabular-nums">
-                        #{order.number}
-                        {order.offlineRef ? ` · ${t("offlineRef", { ref: order.offlineRef })}` : ""} · {formatTime(order.openedAt, timeZone)}
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold tabular-nums",
-                        long
-                          ? "bg-red-50 text-red-700"
-                          : "bg-orange-50 text-orange-700",
-                      )}
-                    >
-                      <Icon name="clock" className="size-3.5" />
-                      {span(minutes)}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 flex items-end justify-between gap-2">
-                    <div>
-                      <p className="text-[11.5px] font-semibold tracking-wide text-muted-foreground uppercase">
-                        {t("dueLabel")}
-                      </p>
-                      <p
-                        className={cn(
-                          "text-[24px] leading-tight font-bold tabular-nums",
-                          order.dueTaka === 0 && "text-muted-foreground",
-                        )}
-                      >
-                        {formatTaka(order.dueTaka)}
-                      </p>
-                    </div>
-                    {order.dueTaka !== order.totalTaka && (
-                      <p className="text-[12.5px] text-muted-foreground tabular-nums">
-                        {t("ofTotal", { total: formatTaka(order.totalTaka) })}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <Link
-                      href={orderHref(order.id)}
-                      className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-input text-[13.5px] font-semibold hover:border-select hover:bg-zinc-50"
-                    >
-                      <Icon name="list" className="size-4" />
-                      {t("view")}
-                    </Link>
-                    <Link
-                      href={orderHref(order.id, "bill")}
-                      className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-primary text-[13.5px] font-semibold text-primary-foreground hover:bg-primary/90"
-                    >
-                      <Icon name="cash" className="size-4" />
-                      {t("bill")}
-                    </Link>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-
-      {closed.length > 0 && (
-        <section aria-labelledby="closed-orders" className="space-y-3">
-          <h2
-            id="closed-orders"
-            className="flex items-center gap-2 text-[17px] font-bold"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold",
+              order.status === "paid"
+                ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
+                : order.status === "open"
+                  ? "bg-zinc-100 text-zinc-800 ring-1 ring-zinc-200"
+                  : "bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200",
+            )}
           >
             <span
               aria-hidden
-              className="size-2.5 rounded-full bg-emerald-600"
+              className={cn(
+                "size-1.5 rounded-full",
+                order.status === "paid" ? "bg-emerald-500" : order.status === "open" ? "bg-zinc-800" : "bg-zinc-300",
+              )}
             />
-            {t("closed")}
-            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[12.5px] font-bold text-zinc-600 tabular-nums">
-              {closed.length}
-            </span>
-          </h2>
-          <ul className="divide-y overflow-hidden rounded-2xl border bg-card">
-            {closed.map((order) => {
-              const cancelled = order.status === "cancelled";
-              const took =
-                order.closedAt !== null
-                  ? Math.max(
-                      0,
-                      Math.round(
-                        (new Date(order.closedAt).getTime() -
-                          new Date(order.openedAt).getTime()) /
-                          60000,
-                      ),
-                    )
-                  : null;
-              return (
-                <li key={order.id}>
-                  <Link
-                    href={orderHref(
-                      order.id,
-                      cancelled ? undefined : "receipt",
-                    )}
-                    className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-zinc-50"
-                  >
-                    <span
-                      aria-hidden
-                      className={cn(
-                        "flex size-9 shrink-0 items-center justify-center rounded-lg",
-                        cancelled
-                          ? "bg-zinc-100 text-zinc-400"
-                          : "bg-emerald-50 text-emerald-600",
-                      )}
-                    >
-                      <Icon
-                        name={cancelled ? "ban" : "checkCircle"}
-                        className="size-5"
-                      />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={cn(
-                          "block truncate text-[15px] font-semibold",
-                          cancelled && "text-zinc-500",
-                        )}
-                      >
-                        {order.tableLabel
-                          ? t("table", { table: order.tableLabel })
-                          : order.tokenNo
-                          ? t("pickup", { token: order.tokenNo })
-                          : t("takeaway")}
-                        <span className="ml-2 text-[13px] font-medium text-muted-foreground tabular-nums">
-                          #{order.number}
-                          {order.offlineRef ? ` · ${t("offlineRef", { ref: order.offlineRef })}` : ""}
-                        </span>
+            {tStatus(order.status)}
+          </span>
+          <span className="tabular-nums">
+            {formatTime(order.openedAt, tz)}
+            {order.closedAt && ` – ${formatTime(order.closedAt, tz)}`}
+          </span>
+          {order.areaName && <span>· {order.areaName}</span>}
+          {server && <span>· {t("by", { name: server })}</span>}
+        </div>
+
+        {rounds.length === 0 ? (
+          <p className="rounded-lg border border-dashed px-3 py-3 text-[13.5px] text-muted-foreground">{t("noItems")}</p>
+        ) : (
+          <ul className="divide-y rounded-xl border">
+            {rounds
+              .flatMap((r) => nestToppings(r.items))
+              .map(({ item, toppings }) => {
+                const off = !!item.cancelledAt;
+                return (
+                  <li key={item.id} className={cn("px-3 py-2.5", off && "text-muted-foreground line-through")}>
+                    <div className="flex items-start gap-2">
+                      <span className="w-7 shrink-0 text-[13.5px] font-bold tabular-nums">{item.quantity}×</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] font-semibold">{titleCaseLabel(item.name)}</span>
+                        {item.note && <span className="block text-[12.5px] text-amber-800">{item.note}</span>}
                       </span>
-                      <span className="block text-[12.5px] text-muted-foreground tabular-nums">
-                        {formatTime(order.openedAt, timeZone)}
-                        {order.closedAt &&
-                          ` – ${formatTime(order.closedAt, timeZone)}`}
-                        {took !== null && ` · ${span(took)}`}
-                      </span>
-                    </span>
-                    <span
-                      className={cn(
-                        "hidden rounded-full px-2.5 py-0.5 text-[12px] font-semibold sm:inline-block",
-                        cancelled
-                          ? "bg-zinc-100 text-zinc-500"
-                          : "bg-emerald-50 text-emerald-700",
-                      )}
-                    >
-                      {tStatus(order.status)}
-                    </span>
-                    <span
-                      className={cn(
-                        "w-24 shrink-0 text-right text-[15.5px] font-bold tabular-nums",
-                        cancelled && "text-zinc-400 line-through",
-                      )}
-                    >
-                      {formatTaka(order.totalTaka)}
-                    </span>
-                    <Icon
-                      name="go"
-                      className="size-4 shrink-0 text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-zinc-900"
-                    />
-                  </Link>
-                </li>
-              );
-            })}
+                      <span className="text-[14px] font-semibold tabular-nums">{formatTaka(item.lineTotalTaka)}</span>
+                    </div>
+                    {toppings.map((x) => (
+                      <div key={x.id} className="mt-0.5 ml-9 flex justify-between gap-2 text-[13px] text-zinc-600">
+                        <span>+ {titleCaseLabel(x.name)}</span>
+                        <span className="tabular-nums">{formatTaka(x.lineTotalTaka)}</span>
+                      </div>
+                    ))}
+                  </li>
+                );
+              })}
           </ul>
-        </section>
-      )}
-    </div>
+        )}
+
+        <div className="rounded-xl bg-zinc-50 px-3 py-2.5">
+          <OrderTotals order={order} compact billSummary={order.paidTaka === 0} />
+        </div>
+
+        {order.payments.length > 0 && (
+          <section>
+            <h3 className="mb-1.5 text-[13px] font-semibold text-zinc-700">{t("payments")}</h3>
+            <ul className="divide-y rounded-xl border text-[13.5px]">
+              {order.payments.map((p) => (
+                <li key={p.id} className="flex items-center justify-between gap-2 px-3 py-2">
+                  <span>
+                    {tMethod(p.method)}
+                    <span className="ml-2 text-muted-foreground tabular-nums">{formatTime(p.createdAt, tz)}</span>
+                  </span>
+                  <span className="font-semibold text-emerald-700 tabular-nums">{formatTaka(p.amountTaka)}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+
+      <footer className="flex shrink-0 gap-2 border-t bg-card p-4">
+        <Link href={orderHref(order.id)} className={cn(btn, "border border-input bg-card hover:bg-zinc-50")}>
+          <Icon name="eye" />
+          {open ? t("openOrder") : tOrder("title", { number: order.number })}
+        </Link>
+        {open && canBill && (
+          <Link href={orderHref(order.id, "bill")} className={cn(btn, "bg-primary text-primary-foreground hover:bg-primary/90")}>
+            <Icon name="cash" />
+            {t("bill")}
+          </Link>
+        )}
+        {order.status === "paid" && canBill && (
+          <Link href={orderHref(order.id, "receipt")} className={cn(btn, "border border-input bg-card hover:bg-zinc-50")}>
+            <Icon name="printer" />
+            {t("receipt")}
+          </Link>
+        )}
+      </footer>
+    </>
   );
 }

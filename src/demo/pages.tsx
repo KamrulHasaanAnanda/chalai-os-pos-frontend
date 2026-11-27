@@ -36,7 +36,7 @@ import { FloorView, TablesView } from "@/components/views/floor-view";
 import { IncomingView } from "@/components/views/incoming-view";
 import { MenuView } from "@/components/views/menu-view";
 import { OrderView } from "@/components/views/order-view";
-import { orderStatuses, OrdersView } from "@/components/views/orders-view";
+import { OrdersView } from "@/components/views/orders-view";
 import { ReceiptView } from "@/components/views/receipt-view";
 import type { Role } from "@/lib/api/types";
 import { errorReader } from "@/lib/error-reader";
@@ -303,20 +303,25 @@ export function DemoTables() {
 export function DemoOrders() {
   const gate = useStaff(floorRoles);
   const params = useSearchParams();
+  const error = useErrors();
   if (!gate) return <Loading />;
   const tz = gate.staff.restaurant.timezone;
   const today = businessDate(tz);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(params.get("date") ?? "")
     ? params.get("date")!
     : today;
-  const status = orderStatuses.find((s) => s === params.get("status"));
+  const viewId = params.get("view");
+  const viewed = viewId ? (gate.state.orders.find((o) => o.id === viewId) ?? "error") : null;
   return (
     <OrdersView
-      orders={orderSummaries(gate.state, { status, date })}
-      status={status}
+      orders={orderSummaries(gate.state, { date })}
       date={date}
       today={today}
       timeZone={tz}
+      user={gate.staff.user}
+      staleHours={12}
+      viewed={viewed}
+      error={error}
     />
   );
 }
