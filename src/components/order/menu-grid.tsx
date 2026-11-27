@@ -261,7 +261,7 @@ function Tile({ item }: { item: MenuItem }) {
       }}
       aria-label={t("addOne", { name })}
       className={cn(
-        "group relative flex min-h-[88px] w-full flex-col overflow-hidden rounded-xl border bg-card text-left shadow-xs transition-[transform,border-color,box-shadow] duration-100 select-none [-webkit-touch-callout:none]",
+        "group relative flex h-full min-h-[88px] w-full flex-col overflow-hidden rounded-xl border bg-card text-left shadow-xs transition-[transform,border-color,box-shadow] duration-100 select-none [-webkit-touch-callout:none]",
         "hover:border-zinc-400 hover:shadow-sm focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none active:scale-[0.97] motion-reduce:active:scale-100",
         "disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none disabled:hover:border-border disabled:active:scale-100",
         quantity > 0 && "border-select ring-1 ring-select",
@@ -274,10 +274,10 @@ function Tile({ item }: { item: MenuItem }) {
           alt=""
           loading="lazy"
           draggable={false}
-          className={cn("h-24 w-full object-cover", unavailable && "grayscale")}
+          className={cn("h-20 w-full object-cover", unavailable && "grayscale")}
         />
       )}
-      <span className="flex flex-1 flex-col justify-between gap-1 p-3">
+      <span className="flex flex-col gap-1 p-3">
         <span className="line-clamp-2 text-[14.5px] leading-snug font-semibold text-zinc-900" title={name}>
           {name}
         </span>

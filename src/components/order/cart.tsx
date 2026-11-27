@@ -22,6 +22,15 @@ export type Line = { key: string; menuItemId: string; quantity: number; note: st
 
 const MAX_QTY = 50;
 
+/** Which line to flash: by key, or (key null) the plain line of a dish. */
+type Flash = { key: string | null; menuItemId: string; n: number };
+
+export const isFlashed = (flash: Flash | null, line: Line) =>
+  !!flash &&
+  (flash.key
+    ? flash.key === line.key
+    : flash.menuItemId === line.menuItemId && line.toppings.length === 0 && line.note === "");
+
 const newId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -51,7 +60,7 @@ type Cart = {
   remove: (key: string) => void;
   clear: () => void;
   /** The line last added to (the ticket flashes it); `n` changes on every add. */
-  flash: { key: string; n: number } | null;
+  flash: Flash | null;
   /** The dish waiting in the topping sheet. */
   sheetFor: MenuItem | null;
   closeSheet: () => void;
@@ -109,7 +118,7 @@ export function OrderCartProvider({
   const [lines, setLines] = useState<Line[]>([]);
   // One key per cart: a retried or double-tapped send reuses it (the API ignores the repeat); any change makes a new one.
   const [requestId, setRequestId] = useState(newId);
-  const [flash, setFlash] = useState<{ key: string; n: number } | null>(null);
+  const [flash, setFlash] = useState<Flash | null>(null);
   const [sheetFor, setSheetFor] = useState<MenuItem | null>(null);
   const askToppings = useSyncExternalStore(subscribeAsk, readAsk, () => true);
   const [state, formAction, pending] = useActionState<AddRoundState, FormData>(async (prev, formData) => {
@@ -143,24 +152,28 @@ export function OrderCartProvider({
     return Math.min(MAX_QTY, item.stockLeft ?? MAX_QTY);
   };
 
-  const changed = (next: Line[]) => {
-    setLines(next);
+  // Every change builds on the latest lines (two quick taps both count) and makes a new request id.
+  const changed = (update: (current: Line[]) => Line[]) => {
+    setLines(update);
     setRequestId(newId());
   };
 
   const add = (menuItemId: string, toppings: string[] = [], note = "") => {
-    if (quantityOf(menuItemId) >= roomFor(menuItemId)) return;
+    const room = roomFor(menuItemId);
     const plain = toppings.length === 0 && note.trim() === "";
-    // The same dish with nothing on it grows its line; with toppings or a note it is a line of its own.
-    const same = plain ? live.find((l) => l.menuItemId === menuItemId && l.toppings.length === 0 && l.note === "") : undefined;
-    if (same) {
-      changed(lines.map((l) => (l.key === same.key ? { ...l, quantity: l.quantity + 1 } : l)));
-      setFlash((f) => ({ key: same.key, n: (f?.n ?? 0) + 1 }));
-    } else {
-      const key = newId();
-      changed([...lines, { key, menuItemId, quantity: 1, note: note.trim(), toppings }]);
-      setFlash((f) => ({ key, n: (f?.n ?? 0) + 1 }));
-    }
+    const key = newId();
+    changed((current) => {
+      const have = current.filter((l) => l.menuItemId === menuItemId).reduce((sum, l) => sum + l.quantity, 0);
+      if (have >= room) return current;
+      // The same dish with nothing on it grows its line; with toppings or a note it is a line of its own.
+      const same = plain
+        ? current.find((l) => l.menuItemId === menuItemId && l.toppings.length === 0 && l.note === "")
+        : undefined;
+      if (same) return current.map((l) => (l.key === same.key ? { ...l, quantity: l.quantity + 1 } : l));
+      return [...current, { key, menuItemId, quantity: 1, note: note.trim(), toppings }];
+    });
+    // A plain dish flashes its plain line (new or grown); one with toppings or a note, its own new line.
+    setFlash((f) => ({ key: plain ? null : key, menuItemId, n: (f?.n ?? 0) + 1 }));
   };
 
   const tap = (item: MenuItem, skipSheet = false) => {
@@ -205,16 +218,19 @@ export function OrderCartProvider({
     roomFor,
     tap,
     add,
-    setQuantity: (key, quantity) => {
-      const line = live.find((l) => l.key === key);
-      if (!line) return;
-      const others = quantityOf(line.menuItemId) - line.quantity;
-      const q = Math.min(quantity, roomFor(line.menuItemId) - others);
-      changed(q > 0 ? lines.map((l) => (l.key === key ? { ...l, quantity: q } : l)) : lines.filter((l) => l.key !== key));
-    },
-    setNote: (key, note) => changed(lines.map((l) => (l.key === key ? { ...l, note } : l))),
-    remove: (key) => changed(lines.filter((l) => l.key !== key)),
-    clear: () => changed([]),
+    setQuantity: (key, quantity) =>
+      changed((current) => {
+        const line = current.find((l) => l.key === key);
+        if (!line) return current;
+        const others = current
+          .filter((l) => l.menuItemId === line.menuItemId && l.key !== key)
+          .reduce((sum, l) => sum + l.quantity, 0);
+        const q = Math.min(quantity, roomFor(line.menuItemId) - others);
+        return q > 0 ? current.map((l) => (l.key === key ? { ...l, quantity: q } : l)) : current.filter((l) => l.key !== key);
+      }),
+    setNote: (key, note) => changed((current) => current.map((l) => (l.key === key ? { ...l, note } : l))),
+    remove: (key) => changed((current) => current.filter((l) => l.key !== key)),
+    clear: () => changed(() => []),
     flash,
     sheetFor,
     closeSheet: () => setSheetFor(null),
