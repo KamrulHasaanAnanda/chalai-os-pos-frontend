@@ -11,31 +11,22 @@ import {
 } from "@/actions/orders";
 import { Elapsed } from "@/components/elapsed";
 import { Icon } from "@/components/icons";
-import {
-  CartBar,
-  CartPanel,
-  MenuPicker,
-  OrderCartProvider,
-  WhenCartEmpty,
-} from "@/components/menu-picker";
+import { OrderCartProvider, WhenCartEmpty } from "@/components/order/cart";
+import { BillActions, CartPanel, OrderPanel, SendButton, UnsentTotal } from "@/components/order/cart-panel";
+import { MenuPicker } from "@/components/order/menu-grid";
+import { MoreMenu, type MoreAction } from "@/components/order/more-menu";
 import { OrderTotals } from "@/components/order-totals";
 import { CouponBox } from "@/components/coupon-box";
 import { PrintKotButton } from "@/components/print/kot-printer";
 import { OverrideFields } from "@/components/override-fields";
 import { OrderPill, RoundPill } from "@/components/status";
 import { inputClass, Notice } from "@/components/app/field";
-import { Segmented } from "@/components/app/segmented";
-import type {
-  MenuCategory,
-  Order,
-  OrderItem,
-  Role,
-  Round,
-  User,
-} from "@/lib/api/types";
+import type { MenuCategory, Order, OrderItem, Role, Round, User } from "@/lib/api/types";
+import { titleCaseLabel } from "@/lib/bill-display";
 import type { ErrorReader } from "@/lib/error-reader";
 import { formatTaka, formatTime } from "@/lib/format";
-import { orderHref, withParams } from "@/lib/paths";
+import { nestToppings } from "@/lib/modifiers";
+import { orderHref } from "@/lib/paths";
 import { billRoles, managerRoles } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
@@ -43,38 +34,20 @@ const fieldClass = cn(inputClass, "mt-1.5");
 /** The static demo has no API to print from. */
 const demo = process.env.CHALAI_DEMO === "1";
 
-/** Colour strip on top of each round, by where it is in the kitchen. */
-const ROUND_STRIP: Record<Round["status"], string> = {
-  pending_approval: "bg-orange-500",
-  rejected: "bg-red-500",
-  queued: "bg-zinc-400",
-  preparing: "bg-blue-600",
-  ready: "bg-emerald-600",
-  served: "bg-zinc-900",
-};
-
-/** Big touch buttons used across the order ticket: one shape, colour says what it does. */
+/** Touch buttons on the ticket: one shape, colour says what it does. */
 const btn =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-[14.5px] font-semibold whitespace-nowrap transition-colors disabled:opacity-50 [&_svg]:size-[18px] [&_svg]:shrink-0";
-// Same as the owner app: black main buttons, orange only as an accent.
-const btnPrimary = cn(
-  btn,
-  "bg-primary text-primary-foreground shadow-[0_1px_2px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.10)] hover:bg-primary/90",
-);
-const btnDark = cn(btn, "bg-primary text-primary-foreground hover:bg-primary/90");
+  "inline-flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-[14.5px] font-semibold whitespace-nowrap transition-colors focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none disabled:opacity-50 [&_svg]:size-[18px] [&_svg]:shrink-0";
+const btnPrimary = cn(btn, "bg-primary text-primary-foreground hover:bg-primary/90");
 const btnGreen = cn(btn, "bg-emerald-600 text-white hover:bg-emerald-500");
-const btnOutline = cn(
-  btn,
-  "border border-input bg-white text-zinc-900 shadow-xs hover:border-zinc-400 hover:bg-zinc-50",
-);
-const btnDanger = cn(
-  btn,
-  "border border-red-200 bg-card text-red-700 hover:border-red-400 hover:bg-red-50",
-);
+const btnDanger = cn(btn, "border border-red-200 bg-card text-red-700 hover:border-red-400 hover:bg-red-50");
+/** Small actions on a sent round (print the kitchen ticket, mark served). */
+const btnSmall =
+  "inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-semibold transition-colors focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none [&_svg]:size-4";
 
 /**
- * One order, laid out like a till: the menu fills the screen and the order ticket sits on the right (rounds, totals,
- * bill buttons). Each side scrolls on its own. On phones the menu is behind the "Add items" tab (?tab=add).
+ * One order, laid out like a till: categories, the menu grid, and the order panel on the right (sent rounds, the
+ * New lines, totals and the send/bill buttons). The menu and the line list scroll on their own; the panel's head
+ * and footer stay put. Below 1024px the panel is a bottom sheet behind a summary bar.
  */
 export function OrderView({
   order,
@@ -93,87 +66,75 @@ export function OrderView({
   error: ErrorReader;
 }) {
   const t = useTranslations("order");
-  const tKot = useTranslations("kot");
+  const tPicker = useTranslations("picker");
   const open = order.status === "open";
   const pending = order.rounds.filter((r) => r.status === "pending_approval");
   const others = order.rounds.filter((r) => r.status !== "pending_approval");
   const roundNumber = new Map(order.rounds.map((r, i) => [r.id, i + 1]));
   const canBill = billRoles.includes(user.role);
   const picker = open && menu !== null;
-  const adding = picker && error.param("tab") === "add";
   const itemCount = order.rounds
     .filter((r) => r.status !== "rejected")
     .flatMap((r) => r.items)
-    .filter((item) => !item.cancelledAt)
+    .filter((item) => !item.cancelledAt && !item.note?.startsWith("↳ "))
     .reduce((sum, item) => sum + item.quantity, 0);
-  const roundsError =
-    error.forForm("rounds") ?? error.forForm("bill") ?? error.general;
-  const showBillButtons =
-    (canBill && open) ||
-    (open && !order.billRequestedAt) ||
-    (order.status === "paid" && canBill);
+  const roundsError = error.forForm("rounds") ?? error.forForm("bill") ?? error.general;
+  const title = order.tableLabel
+    ? t("table", { table: order.tableLabel })
+    : order.tokenNo
+      ? order.type === "delivery"
+        ? t("delivery", { token: order.tokenNo })
+        : t("pickup", { token: order.tokenNo })
+      : t("takeaway");
 
-  const ticket = (
-    <section
-      aria-label={t("ticket")}
-      className={cn(
-        "flex flex-col overflow-hidden rounded-2xl border bg-card shadow-xs",
-        picker && "lg:h-full",
-        adding && "max-lg:hidden",
-      )}
-    >
-      {/* Ticket head: back, table, order number, timer and what's due. */}
-      <header className="shrink-0 border-b bg-card px-4 pt-3 pb-4">
-        <Link
-          href="/floor"
-          className="-ml-1.5 inline-flex h-8 items-center gap-0.5 rounded-md px-1.5 text-[13px] font-semibold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
-        >
-          <Icon name="back" className="size-4" />
-          {t("backToFloor")}
-        </Link>
-        <div className="mt-1.5 flex items-center gap-3">
-          <span
-            aria-hidden
-            className={cn(
-              "flex h-12 min-w-12 shrink-0 items-center justify-center rounded-xl px-2 text-[22px] font-bold",
-              order.tableLabel
-                ? "bg-orange-50 text-orange-600 ring-1 ring-orange-200"
-                : "bg-zinc-100 text-zinc-700",
-            )}
+  const moreActions: MoreAction[] = [];
+  if (open && mergeTargets.length > 0)
+    moreActions.push({
+      id: "merge",
+      label: t("mergeOrder"),
+      icon: "seat",
+      open: !!error.forForm("merge-order"),
+      form: <MergeForm order={order} targets={mergeTargets} error={error.forForm("merge-order")} />,
+    });
+  if (open && order.payments.length === 0)
+    moreActions.push({
+      id: "cancel",
+      label: t("cancelOrder"),
+      icon: "ban",
+      danger: true,
+      open: !!error.forForm("cancel-order"),
+      form: <CancelOrderForm order={order} role={user.role} error={error.forForm("cancel-order")} />,
+    });
+
+  const panel = (
+    <>
+      {/* Head: back, which table and order, status, timer; rare actions behind ⋯. */}
+      <header className="shrink-0 border-b px-4 pt-2 pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            href="/floor"
+            className="-ml-1.5 inline-flex h-9 items-center gap-0.5 rounded-md px-1.5 text-[13px] font-semibold text-zinc-600 hover:bg-muted hover:text-zinc-950 focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none"
           >
-            {order.tableLabel ?? <Icon name="bag" className="size-6" />}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[20px] leading-tight font-bold tracking-tight">
-              {order.tableLabel
-                ? t("table", { table: order.tableLabel })
-                : order.tokenNo
-                  ? order.type === "delivery"
-                    ? t("delivery", { token: order.tokenNo })
-                    : t("pickup", { token: order.tokenNo })
-                  : t("takeaway")}
-            </h1>
-            <p className="truncate text-[12.5px] text-muted-foreground">
-              {[
-                order.areaName,
-                t("number", { number: order.number }),
-                order.guestName,
-                order.guestPhone,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-              {open ? t("dueNow") : t("totalLabel")}
-            </p>
-            <p className="text-[24px] leading-tight font-bold tabular-nums">
-              {formatTaka(open ? order.dueTaka : order.totalTaka)}
-            </p>
-          </div>
+            <Icon name="back" className="size-4" />
+            {t("backToFloor")}
+          </Link>
+          <MoreMenu actions={moreActions} />
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold">
+        <h1 className="mt-0.5 text-[19px] leading-tight font-bold tracking-tight">
+          {title}
+          <span className="font-semibold text-muted-foreground">
+            {[order.areaName, t("number", { number: order.number })]
+              .filter(Boolean)
+              .map((part) => ` · ${part}`)
+              .join("")}
+          </span>
+        </h1>
+        {(order.guestName || order.guestPhone) && (
+          <p className="truncate text-[13px] text-muted-foreground">
+            {[order.guestName, order.guestPhone].filter(Boolean).join(" · ")}
+          </p>
+        )}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12.5px] font-semibold">
           <OrderPill status={order.status} />
           {open ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-zinc-700 tabular-nums">
@@ -183,9 +144,7 @@ export function OrderView({
             </span>
           ) : (
             order.closedAt && (
-              <span className="text-muted-foreground">
-                {t("closedAt", { time: formatTime(order.closedAt, tz) })}
-              </span>
+              <span className="text-muted-foreground">{t("closedAt", { time: formatTime(order.closedAt, tz) })}</span>
             )
           )}
           <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2.5 py-0.5 text-zinc-700 tabular-nums">
@@ -195,66 +154,37 @@ export function OrderView({
         </div>
       </header>
 
-      {/* The ticket body scrolls; head and bill buttons stay put. */}
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-zinc-50 p-3">
+      {/* Only the lines scroll; head and footer stay put. */}
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-3">
         {order.billRequestedAt && open && (
-          <Notice tone="info">
-            {t("billRequested", {
-              time: formatTime(order.billRequestedAt, tz),
-            })}
-          </Notice>
+          <Notice tone="info">{t("billRequested", { time: formatTime(order.billRequestedAt, tz) })}</Notice>
         )}
         {roundsError && <Notice>{roundsError}</Notice>}
         {order.type === "delivery" && order.delivery && (
           <section className="rounded-xl bg-card p-3 text-[14px] ring-1 ring-emerald-200">
-            <p className="text-[12px] font-semibold tracking-wide text-emerald-800 uppercase">
-              {t("deliverTo")}
-            </p>
+            <p className="text-[12.5px] font-semibold text-emerald-800">{t("deliverTo")}</p>
             <p className="mt-0.5 font-medium">{order.delivery.address}</p>
             <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
-              {order.pickupAt && (
-                <span>
-                  {t("deliverAt", { time: formatTime(order.pickupAt, tz) })}
-                </span>
-              )}
+              {order.pickupAt && <span>{t("deliverAt", { time: formatTime(order.pickupAt, tz) })}</span>}
               <span className="font-semibold text-foreground">
-                {order.delivery.payMethod === "bkash"
-                  ? t("payBkash")
-                  : t("payCash")}
+                {order.delivery.payMethod === "bkash" ? t("payBkash") : t("payCash")}
               </span>
               {order.delivery.feeTaka > 0 && (
-                <span>
-                  {t("deliveryFee", {
-                    amount: formatTaka(order.delivery.feeTaka),
-                  })}
-                </span>
+                <span>{t("deliveryFee", { amount: formatTaka(order.delivery.feeTaka) })}</span>
               )}
             </p>
           </section>
         )}
-        {picker && <CartPanel />}
 
         {pending.map((round) => (
-          <article
-            key={round.id}
-            className="overflow-hidden rounded-xl border-2 border-orange-400 bg-card"
-          >
+          <article key={round.id} className="overflow-hidden rounded-xl border-2 border-orange-400 bg-card">
             <p className="flex items-center gap-2 bg-orange-500 px-3 py-1.5 text-[13px] font-bold text-white">
-              <Icon name="bell" className="size-4 animate-pulse" />
+              <Icon name="bell" className="size-4 animate-pulse motion-reduce:animate-none" />
               {t("pendingTitle", { n: 1 })}
             </p>
             <div className="p-3">
-              <RoundHeader
-                round={round}
-                index={roundNumber.get(round.id) ?? 0}
-                tz={tz}
-              />
-              <ItemList
-                order={order}
-                round={round}
-                role={user.role}
-                error={error}
-              />
+              <RoundHeader round={round} index={roundNumber.get(round.id) ?? 0} tz={tz} />
+              <ItemList order={order} round={round} role={user.role} error={error} />
               {open && (
                 <div className="mt-2 space-y-2">
                   <form action={approveRound}>
@@ -265,28 +195,15 @@ export function OrderView({
                       {t("approve")}
                     </button>
                   </form>
-                  <details
-                    open={!!error.forForm(`reject-${round.id}`)}
-                    id={`reject-${round.id}`}
-                  >
-                    <summary
-                      className={cn(
-                        btnDanger,
-                        "h-10 w-full cursor-pointer list-none",
-                      )}
-                    >
+                  <details open={!!error.forForm(`reject-${round.id}`)} id={`reject-${round.id}`}>
+                    <summary className={cn(btnDanger, "h-10 w-full cursor-pointer list-none")}>
                       <Icon name="x" />
                       {t("reject")}
                     </summary>
-                    <form
-                      action={rejectRound}
-                      className="mt-2 rounded-lg bg-red-50 p-3"
-                    >
+                    <form action={rejectRound} className="mt-2 rounded-lg bg-red-50 p-3">
                       <input type="hidden" name="orderId" value={order.id} />
                       <input type="hidden" name="roundId" value={round.id} />
-                      {error.forForm(`reject-${round.id}`) && (
-                        <Notice>{error.forForm(`reject-${round.id}`)}</Notice>
-                      )}
+                      {error.forForm(`reject-${round.id}`) && <Notice>{error.forForm(`reject-${round.id}`)}</Notice>}
                       <label className="block text-[14px] font-semibold">
                         {t("rejectReason")}
                         <input
@@ -297,10 +214,7 @@ export function OrderView({
                           className={fieldClass}
                         />
                       </label>
-                      <button
-                        type="submit"
-                        className={cn(btnDanger, "mt-2 w-full")}
-                      >
+                      <button type="submit" className={cn(btnDanger, "mt-2 w-full")}>
                         {t("confirmReject")}
                       </button>
                     </form>
@@ -311,320 +225,191 @@ export function OrderView({
           </article>
         ))}
 
-        {others.length === 0 && pending.length === 0 && (
-          <EmptyTicket picker={picker}>
-            <div className="flex flex-col items-center rounded-xl border border-dashed border-input bg-card px-5 py-10 text-center">
-              <span
-                aria-hidden
-                className="flex size-11 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500"
-              >
-                <Icon name="utensils" className="size-5" />
-              </span>
-              <p className="mt-3 text-[15px] font-semibold">
-                {t("emptyTitle")}
-              </p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
-                {picker ? t("noRoundsPicker") : t("noRounds")}
-              </p>
-            </div>
-          </EmptyTicket>
-        )}
-
         {others.map((round) => {
           const canServe =
             open &&
             (round.status === "ready" ||
-              ((round.status === "queued" || round.status === "preparing") &&
-                managerRoles.includes(user.role)));
+              ((round.status === "queued" || round.status === "preparing") && managerRoles.includes(user.role)));
           return (
-            <article
-              key={round.id}
-              className="overflow-hidden rounded-xl border bg-card"
-            >
-              <div
-                className={cn("h-1", ROUND_STRIP[round.status])}
-                aria-hidden
-              />
-              <div className="p-3">
-                <RoundHeader
-                  round={round}
-                  index={roundNumber.get(round.id) ?? 0}
-                  tz={tz}
-                />
-                {round.rejectedReason && (
-                  <p className="mt-1 text-[14px] text-late">
-                    {t("rejectedBecause", { reason: round.rejectedReason })}
-                  </p>
-                )}
-                <ItemList
-                  order={order}
-                  round={round}
-                  role={user.role}
-                  error={error}
-                />
-                {!demo && round.status !== "rejected" && (
-                  <PrintKotButton
-                    roundId={round.id}
-                    className={cn(btnOutline, "mt-2 h-10 w-full")}
-                  >
-                    <Icon name="printer" />
-                    {tKot("printKot")}
-                  </PrintKotButton>
-                )}
-                {canServe && (
-                  <form action={serveRound} className="mt-2">
-                    <input type="hidden" name="orderId" value={order.id} />
-                    <input type="hidden" name="roundId" value={round.id} />
-                    <button
-                      type="submit"
-                      className={cn(
-                        round.status === "ready" ? btnGreen : btnOutline,
-                        "h-10 w-full",
-                      )}
-                    >
-                      <Icon name="serve" />
-                      {t("served")}
-                    </button>
-                  </form>
-                )}
-              </div>
-            </article>
+            <section key={round.id} aria-label={t("sentRound", { n: roundNumber.get(round.id) ?? 0 })}>
+              <RoundHeader round={round} index={roundNumber.get(round.id) ?? 0} tz={tz} />
+              {round.rejectedReason && (
+                <p className="mt-1 text-[13.5px] text-late">{t("rejectedBecause", { reason: round.rejectedReason })}</p>
+              )}
+              <ItemList order={order} round={round} role={user.role} error={error} />
+              {((!demo && round.status !== "rejected") || canServe) && (
+                <div className="mt-1 flex flex-wrap justify-end gap-1">
+                  {!demo && round.status !== "rejected" && (
+                    <PrintKotButton roundId={round.id} className={cn(btnSmall, "text-zinc-700 hover:bg-muted")}>
+                      <Icon name="printer" />
+                      {t("printKotShort")}
+                    </PrintKotButton>
+                  )}
+                  {canServe && (
+                    <form action={serveRound}>
+                      <input type="hidden" name="orderId" value={order.id} />
+                      <input type="hidden" name="roundId" value={round.id} />
+                      <button
+                        type="submit"
+                        className={cn(
+                          btnSmall,
+                          round.status === "ready"
+                            ? "bg-emerald-600 text-white hover:bg-emerald-500"
+                            : "text-zinc-700 hover:bg-muted",
+                        )}
+                      >
+                        <Icon name="serve" />
+                        {t("served")}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+            </section>
           );
         })}
 
-        {open && mergeTargets.length > 0 && (
-          <details
-            id="merge-order"
-            open={!!error.forForm("merge-order")}
-            className="group rounded-xl"
-          >
-            <summary className="flex h-10 cursor-pointer list-none items-center justify-center gap-1.5 rounded-lg text-[13px] font-semibold text-zinc-700 hover:bg-zinc-100">
-              <Icon name="seat" className="size-4" />
-              {t("mergeOrder")}
-            </summary>
-            <form
-              action={mergeOrder}
-              className="mt-1 rounded-xl border border-border bg-card p-3"
-            >
-              <input type="hidden" name="orderId" value={order.id} />
-              <p className="text-[13.5px] text-muted-foreground">
-                {t("mergeBody", { table: order.tableLabel ?? "" })}
-              </p>
-              {error.forForm("merge-order") && (
-                <div className="mt-2">
-                  <Notice>{error.forForm("merge-order")}</Notice>
-                </div>
-              )}
-              <fieldset className="mt-2 grid gap-1.5">
-                <legend className="text-[14px] font-semibold">
-                  {t("mergeInto")}
-                </legend>
-                {mergeTargets.map((m) => (
-                  <label
-                    key={m.orderId}
-                    className="flex h-11 cursor-pointer items-center gap-3 rounded-lg border border-input bg-white px-3 text-[14px] has-[:checked]:border-select has-[:checked]:bg-zinc-50"
-                  >
-                    <input
-                      type="radio"
-                      name="intoOrderId"
-                      value={m.orderId}
-                      required
-                      className="accent-zinc-900"
-                    />
-                    <span className="flex-1 font-semibold">{m.label}</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      #{m.number} · {formatTaka(m.totalTaka)}
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
-              <p className="mt-2 text-[12.5px] text-muted-foreground">
-                {t("mergeWarning")}
-              </p>
-              <button type="submit" className={cn(btnPrimary, "mt-3 w-full")}>
-                {t("confirmMerge")}
-              </button>
-            </form>
-          </details>
-        )}
+        {picker && <CartPanel />}
 
-        {open && order.payments.length === 0 && (
-          <details
-            id="cancel-order"
-            open={!!error.forForm("cancel-order")}
-            className="group rounded-xl"
-          >
-            <summary className="flex h-10 cursor-pointer list-none items-center justify-center gap-1.5 rounded-lg text-[13px] font-semibold text-red-600 hover:bg-red-50">
-              <Icon name="ban" className="size-4" />
-              {t("cancelOrder")}
-            </summary>
-            <form
-              action={cancelOrder}
-              className="mt-1 rounded-xl border border-red-200 bg-card p-3"
-            >
-              <input type="hidden" name="orderId" value={order.id} />
-              <p className="text-[13.5px] text-muted-foreground">
-                {t("cancelOrderBody")}
-              </p>
-              {error.forForm("cancel-order") && (
-                <div className="mt-2">
-                  <Notice>{error.forForm("cancel-order")}</Notice>
-                </div>
-              )}
-              <label className="mt-2 block text-[14px] font-semibold">
-                {t("cancelReason")}
-                <input
-                  name="reason"
-                  required
-                  maxLength={200}
-                  placeholder={t("cancelOrderPlaceholder")}
-                  className={fieldClass}
-                />
-              </label>
-              <OverrideFields role={user.role} idPrefix="cancel-order" />
-              <button type="submit" className={cn(btnDanger, "mt-3 w-full")}>
-                {t("confirmCancelOrder")}
-              </button>
-            </form>
-          </details>
+        {others.length === 0 && pending.length === 0 && (
+          <WhenCartEmpty>
+            <p className="flex items-center gap-2.5 rounded-lg border border-dashed px-3 py-3 text-[13.5px] text-muted-foreground">
+              <Icon name="utensils" className="size-4 shrink-0" />
+              {picker ? tPicker("emptyLine") : t("noRounds")}
+            </p>
+          </WhenCartEmpty>
         )}
       </div>
 
-      {/* Totals and the bill buttons, always in view at the bottom of the ticket. */}
-      <EmptyTicket picker={picker}>
-        <footer className="shrink-0 border-t bg-card p-3">
-          {canBill && open && itemCount > 0 && (
-            <CouponBox order={order} error={error} className="mb-3" />
-          )}
-          <OrderTotals order={order} compact />
-          {(showBillButtons || picker) && (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {picker && (
-                <Link
-                  href={withParams(orderHref(order.id), { tab: "add" })}
-                  className={cn(btnDark, "col-span-2 lg:hidden")}
-                >
-                  <Icon name="plus" />
-                  {t("addItems")}
-                </Link>
-              )}
-              {open && !order.billRequestedAt && (
-                <form
-                  action={requestBill}
-                  className={cn(!(canBill && open) && "col-span-2")}
-                >
-                  <input type="hidden" name="orderId" value={order.id} />
-                  <button type="submit" className={cn(btnOutline, "w-full")}>
-                    <Icon name="receipt" />
-                    {t("requestBill")}
-                  </button>
-                </form>
-              )}
-              {canBill && open && (
-                <Link
-                  href={orderHref(order.id, "bill")}
-                  className={cn(
-                    btnPrimary,
-                    order.billRequestedAt && "col-span-2",
-                  )}
-                >
-                  <Icon name="cash" />
-                  {t("openBill")}
-                </Link>
-              )}
-              {order.status === "paid" && canBill && (
-                <Link
-                  href={orderHref(order.id, "receipt")}
-                  className={cn(btnDark, "col-span-2")}
-                >
-                  <Icon name="printer" />
-                  {t("receipt")}
-                </Link>
-              )}
-            </div>
-          )}
-        </footer>
-      </EmptyTicket>
-    </section>
+      {/* Totals and actions, always in view. */}
+      <footer className="shrink-0 space-y-3 border-t bg-card p-3">
+        {canBill && open && itemCount > 0 && <CouponBox order={order} error={error} />}
+        <div className="space-y-1">
+          {/* Paid and due only matter once part of the bill is paid. */}
+          <OrderTotals order={order} compact billSummary={order.paidTaka === 0} />
+          <UnsentTotal />
+        </div>
+        {picker && <SendButton />}
+        {open && (
+          <BillActions
+            orderId={order.id}
+            requestBill={requestBill}
+            showRequest={!order.billRequestedAt}
+            billHref={canBill ? orderHref(order.id, "bill") : null}
+            hasItems={itemCount > 0}
+          />
+        )}
+        {order.status === "paid" && canBill && (
+          <Link href={orderHref(order.id, "receipt")} className={cn(btnPrimary, "w-full")}>
+            <Icon name="printer" />
+            {t("receipt")}
+          </Link>
+        )}
+      </footer>
+    </>
   );
 
-  if (!picker) return <div className="mx-auto max-w-[560px]">{ticket}</div>;
+  if (!picker)
+    return (
+      <div className="mx-auto max-w-[560px]">
+        <section
+          aria-label={t("ticket")}
+          className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-xs"
+        >
+          {panel}
+        </section>
+      </div>
+    );
 
   return (
     <OrderCartProvider orderId={order.id} menu={menu}>
-      <div className="mx-auto max-w-[1600px]">
-        {/* Phones: switch between the order and the menu. */}
-        <Segmented
-          label={t("tabs.label")}
-          className="mb-3 lg:hidden"
-          items={[
-            {
-              href: orderHref(order.id),
-              label: t("tabs.order"),
-              active: !adding,
-            },
-            {
-              href: withParams(orderHref(order.id), { tab: "add" }),
-              label: t("tabs.add"),
-              active: adding,
-            },
-          ]}
-        />
-        <div className="lg:grid lg:h-[calc(100dvh-7.5rem)] lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div
-            id="picker"
-            className={cn(
-              "max-lg:pb-40 lg:h-full lg:min-h-0",
-              !adding && "max-lg:hidden",
-            )}
-          >
-            <MenuPicker />
-          </div>
-          {ticket}
+      {/* Menu (categories + grid) | order panel. Full height on tablets and laptops; each part scrolls on its own. */}
+      <div className="md:h-[calc(100dvh-7.5rem)] lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="min-w-0 md:h-full md:min-h-0">
+          <MenuPicker />
         </div>
-        {adding && <CartBar reviewHref={orderHref(order.id)} />}
+        <OrderPanel label={t("ticket")} sentCount={itemCount} sentTotal={order.totalTaka}>
+          {panel}
+        </OrderPanel>
       </div>
     </OrderCartProvider>
   );
 }
 
-function EmptyTicket({
-  picker,
-  children,
+function MergeForm({
+  order,
+  targets,
+  error,
 }: {
-  picker: boolean;
-  children: React.ReactNode;
-}) {
-  return picker ? <WhenCartEmpty>{children}</WhenCartEmpty> : <>{children}</>;
-}
-
-function RoundHeader({
-  round,
-  index,
-  tz,
-}: {
-  round: Round;
-  index: number;
-  tz: string;
+  order: Order;
+  targets: { orderId: string; label: string; number: number; totalTaka: number }[];
+  error?: string;
 }) {
   const t = useTranslations("order");
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <h3 className="text-[17px] font-semibold">
-        {t("round", { n: index })}
-        <span className="ml-2 text-[14.5px] font-semibold text-muted-foreground">
-          {[
-            round.source === "qr" ? t("fromQr") : t("fromPos"),
-            formatTime(round.createdAt, tz),
-            round.createdBy?.name,
-          ]
+    <form action={mergeOrder} className="grid gap-3">
+      <input type="hidden" name="orderId" value={order.id} />
+      <p className="text-[14px] text-muted-foreground">{t("mergeBody", { table: order.tableLabel ?? "" })}</p>
+      {error && <Notice>{error}</Notice>}
+      <fieldset className="grid gap-1.5">
+        <legend className="mb-1.5 text-[14px] font-semibold">{t("mergeInto")}</legend>
+        {targets.map((m) => (
+          <label
+            key={m.orderId}
+            className="flex h-12 cursor-pointer items-center gap-3 rounded-lg border border-input bg-card px-3 text-[14px] has-[:checked]:border-select has-[:checked]:bg-select/5"
+          >
+            <input type="radio" name="intoOrderId" value={m.orderId} required className="size-4 accent-[var(--select)]" />
+            <span className="flex-1 font-semibold">{m.label}</span>
+            <span className="text-muted-foreground tabular-nums">
+              #{m.number} · {formatTaka(m.totalTaka)}
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      <p className="text-[13px] text-muted-foreground">{t("mergeWarning")}</p>
+      <button type="submit" className={cn(btnPrimary, "w-full")}>
+        {t("confirmMerge")}
+      </button>
+    </form>
+  );
+}
+
+function CancelOrderForm({ order, role, error }: { order: Order; role: Role; error?: string }) {
+  const t = useTranslations("order");
+  return (
+    <form action={cancelOrder} className="grid gap-3">
+      <input type="hidden" name="orderId" value={order.id} />
+      <p className="text-[14px] text-muted-foreground">{t("cancelOrderBody")}</p>
+      {error && <Notice>{error}</Notice>}
+      <label className="block text-[14px] font-semibold">
+        {t("cancelReason")}
+        <input name="reason" required maxLength={200} placeholder={t("cancelOrderPlaceholder")} className={fieldClass} />
+      </label>
+      <OverrideFields role={role} idPrefix="cancel-order" />
+      <button type="submit" className={cn(btnDanger, "w-full")}>
+        {t("confirmCancelOrder")}
+      </button>
+    </form>
+  );
+}
+
+/** A divider above each sent round: its number, where it came from, when, and where it is in the kitchen. */
+function RoundHeader({ round, index, tz }: { round: Round; index: number; tz: string }) {
+  const t = useTranslations("order");
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <h3 className="shrink-0 text-[13px] font-semibold text-zinc-800">{t("round", { n: index })}</h3>
+        <span className="min-w-0 truncate text-[12.5px] text-muted-foreground">
+          {[round.source === "qr" ? t("fromQr") : t("fromPos"), formatTime(round.createdAt, tz), round.createdBy?.name]
             .filter(Boolean)
             .join(" · ")}
         </span>
-      </h3>
-      <RoundPill status={round.status} />
+        <span className="h-px min-w-3 flex-1 bg-border" aria-hidden />
+        <RoundPill status={round.status} />
+      </div>
       {round.note && (
-        <p className="w-full rounded-md bg-amber-50 px-3 py-1.5 text-[14px] font-medium text-amber-900">
+        <p className="mt-1.5 rounded-md bg-amber-50 px-2.5 py-1 text-[13.5px] font-medium text-amber-900">
           {t("note", { note: round.note })}
         </p>
       )}
@@ -632,30 +417,18 @@ function RoundHeader({
   );
 }
 
-function ItemList({
-  order,
-  round,
-  role,
-  error,
-}: {
-  order: Order;
-  round: Round;
-  role: Role;
-  error: ErrorReader;
-}) {
-  const cancellable =
-    order.status === "open" &&
-    round.status !== "pending_approval" &&
-    round.status !== "rejected";
+function ItemList({ order, round, role, error }: { order: Order; round: Round; role: Role; error: ErrorReader }) {
+  const cancellable = order.status === "open" && round.status !== "pending_approval" && round.status !== "rejected";
   return (
-    <ul className="mt-2 divide-y divide-line">
-      {round.items.map((item) => (
+    <ul className="mt-1 divide-y divide-line">
+      {nestToppings(round.items).map(({ item, toppings }) => (
         <ItemRow
           key={item.id}
           order={order}
           item={item}
+          toppings={toppings}
           role={role}
-          cancellable={cancellable && !item.cancelledAt}
+          cancellable={cancellable}
           error={error}
         />
       ))}
@@ -663,82 +436,150 @@ function ItemList({
   );
 }
 
+/** A sent line: qty × name, its toppings indented under it, note, total, and a trash button to cancel it. */
 function ItemRow({
   order,
   item,
+  toppings,
   role,
   cancellable,
   error,
 }: {
   order: Order;
   item: OrderItem;
+  toppings: OrderItem[];
   role: Role;
   cancellable: boolean;
   error: ErrorReader;
 }) {
   const t = useTranslations("order");
-  const formError = error.forForm(`cancel-${item.id}`);
+  const name = titleCaseLabel(item.name);
   return (
     <li className="py-2">
-      <div className="flex items-start justify-between gap-3">
-        <div
-          className={cn(
-            "min-w-0",
-            item.cancelledAt && "text-muted-foreground line-through",
-          )}
-        >
-          <p className="flex items-center gap-2.5 text-[16px] font-semibold">
-            <span className="flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md bg-zinc-100 px-1.5 text-[13.5px] font-bold tabular-nums">
-              {item.quantity}×
-            </span>
-            <span className="min-w-0">{item.name}</span>
-          </p>
-          {item.note && (
-            <p className="text-[14px] font-medium text-amber-800 no-underline">
-              {item.note}
-            </p>
-          )}
+      <SentLine order={order} item={item} name={name} role={role} cancellable={cancellable} error={error} />
+      {toppings.length > 0 && (
+        <ul className="mt-1 ml-9 border-l-2 border-zinc-200 pl-2.5">
+          {toppings.map((x) => (
+            <li key={x.id}>
+              <SentLine
+                order={order}
+                item={x}
+                name={`+ ${titleCaseLabel(x.name)}`}
+                role={role}
+                cancellable={cancellable}
+                error={error}
+                topping
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+      {item.cancelledAt && (
+        <p className="mt-0.5 ml-9 text-[13px] font-semibold text-late">
+          {t("cancelled", { reason: item.cancelReason ?? "" })}
+        </p>
+      )}
+    </li>
+  );
+}
+
+function SentLine({
+  order,
+  item,
+  name,
+  role,
+  cancellable,
+  error,
+  topping = false,
+}: {
+  order: Order;
+  item: OrderItem;
+  name: string;
+  role: Role;
+  cancellable: boolean;
+  error: ErrorReader;
+  topping?: boolean;
+}) {
+  const t = useTranslations("order");
+  const formError = error.forForm(`cancel-${item.id}`);
+  const off = !!item.cancelledAt;
+  // A topping's note only says which dish it is for (shown by the indent).
+  const note = topping ? null : item.note;
+  return (
+    <div>
+      <div className="flex items-start gap-2">
+        {!topping && (
+          <span className="mt-px flex h-6 min-w-7 shrink-0 items-center justify-center rounded-md bg-zinc-100 px-1 text-[13px] font-bold tabular-nums">
+            {item.quantity}×
+          </span>
+        )}
+        <div className={cn("min-w-0 flex-1", off && "text-muted-foreground line-through")}>
+          <p className={cn(topping ? "text-[13.5px] text-zinc-700" : "text-[14.5px] font-semibold")}>{name}</p>
+          {note && <p className="text-[13px] font-medium text-amber-800 no-underline">{note}</p>}
         </div>
         <span
           className={cn(
-            "shrink-0 font-semibold tabular-nums",
-            item.cancelledAt && "text-muted-foreground line-through",
+            "shrink-0 pt-px tabular-nums",
+            topping ? "text-[13.5px] text-zinc-700" : "text-[14px] font-semibold",
+            off && "text-muted-foreground line-through",
           )}
         >
           {formatTaka(item.lineTotalTaka)}
         </span>
+        {cancellable && !off && (
+          <details id={`cancel-${item.id}`} open={!!formError} className="group -my-1.5 shrink-0">
+            <summary
+              aria-label={t("removeItem", { name })}
+              title={t("cancelItem")}
+              className="flex size-9 cursor-pointer list-none items-center justify-center rounded-lg text-zinc-400 hover:bg-red-50 hover:text-red-700 focus-visible:ring-3 focus-visible:ring-select/30 focus-visible:outline-none group-open:bg-red-50 group-open:text-red-700 [&::-webkit-details-marker]:hidden"
+            >
+              <Icon name="trash" className="size-4" />
+            </summary>
+          </details>
+        )}
       </div>
-      {item.cancelledAt && (
-        <p className="text-[14.5px] font-semibold text-late">
-          {t("cancelled", { reason: item.cancelReason ?? "" })}
-        </p>
+      {cancellable && !off && (
+        // The cancel form sits under the line; it opens with the trash button (same <details> id via CSS sibling).
+        <CancelItemForm order={order} item={item} name={name} role={role} formError={formError} />
       )}
-      {cancellable && (
-        <details id={`cancel-${item.id}`} open={!!formError} className="mt-1">
-          <summary className="inline-flex min-h-12 cursor-pointer items-center rounded-lg px-2 text-[14px] font-medium text-late hover:bg-late/5">
-            {t("cancelItem")}
-          </summary>
-          <form action={cancelItem} className="mt-1 rounded-md bg-gray/60 p-3">
-            <input type="hidden" name="orderId" value={order.id} />
-            <input type="hidden" name="itemId" value={item.id} />
-            {formError && <Notice>{formError}</Notice>}
-            <label className="mt-2 block text-[15.5px] font-semibold">
-              {t("cancelReason")}
-              <input
-                name="reason"
-                required
-                maxLength={200}
-                placeholder={t("cancelPlaceholder")}
-                className={fieldClass}
-              />
-            </label>
-            <OverrideFields role={role} idPrefix={`c-${item.id}`} />
-            <button type="submit" className={cn(btnDanger, "mt-3 w-full")}>
-              {t("confirmCancel", { name: item.name })}
-            </button>
-          </form>
-        </details>
+    </div>
+  );
+}
+
+function CancelItemForm({
+  order,
+  item,
+  name,
+  role,
+  formError,
+}: {
+  order: Order;
+  item: OrderItem;
+  name: string;
+  role: Role;
+  formError?: string;
+}) {
+  const t = useTranslations("order");
+  return (
+    <form
+      action={cancelItem}
+      className={cn(
+        "mt-2 rounded-lg bg-red-50/70 p-3 ring-1 ring-red-100",
+        // Shown while the trash <details> just above is open.
+        !formError && "hidden [div:has(>div>details[open])>&]:block",
       )}
-    </li>
+    >
+      <input type="hidden" name="orderId" value={order.id} />
+      <input type="hidden" name="itemId" value={item.id} />
+      {formError && <Notice>{formError}</Notice>}
+      <label className="block text-[14px] font-semibold">
+        {t("cancelReason")}
+        <input name="reason" required maxLength={200} placeholder={t("cancelPlaceholder")} className={fieldClass} />
+      </label>
+      <OverrideFields role={role} idPrefix={`c-${item.id}`} />
+      <button type="submit" className={cn(btnDanger, "mt-3 h-11 w-full")}>
+        {t("confirmCancel", { name })}
+      </button>
+    </form>
   );
 }

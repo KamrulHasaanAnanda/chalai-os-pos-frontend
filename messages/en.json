@@ -683,7 +683,8 @@
     "viewOrder": "View order",
     "closeOrder": "Close the order",
     "emptyLine": "Nothing ordered yet. Tap a dish to add it.",
-    "newSection": "{n, plural, one {# new item} other {# new items}} · not sent"
+    "newSection": "{n, plural, one {# new item} other {# new items}} · not sent",
+    "noToppings": "No toppings"
   },
   "receipt": {
     "title": "Receipt #{number}",

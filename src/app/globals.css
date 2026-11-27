@@ -347,3 +347,9 @@ dialog.sheet[open]::backdrop { animation: fade-in 180ms ease-out; }
     transition: none;
   }
 }
+
+/* The ticket line a tap just added to flashes once (order/cart-panel.tsx). */
+@keyframes line-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
